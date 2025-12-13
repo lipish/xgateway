@@ -1,8 +1,10 @@
 pub mod models;
 pub mod pool;
+pub mod init;
 
 pub use models::*;
 pub use pool::*;
+pub use init::*;
 
 use sqlx::SqlitePool;
 use std::path::Path;
@@ -22,9 +24,10 @@ pub async fn initialize_database(db_path: &Path) -> Result<SqlitePool, sqlx::Err
     tracing::info!("Attempting to create database at: {:?}", db_path);
 
     // Create database connection pool with proper connection string
-    let connection_string = format!("sqlite://{}", db_path.display());
+    // mode=rwc enables read-write-create mode so the database file is created if it doesn't exist
+    let connection_string = format!("sqlite://{}?mode=rwc", db_path.display());
     tracing::info!("Using connection string: {}", connection_string);
-    
+
     let pool = SqlitePool::connect(&connection_string).await?;
     
     // Run migrations

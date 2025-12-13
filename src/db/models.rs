@@ -91,3 +91,82 @@ impl NewProvider {
         }
     }
 }
+
+/// Provider type configuration (stored in database, initialized from models.yaml)
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct ProviderType {
+    pub id: String,              // e.g., "openai", "anthropic"
+    pub label: String,           // Display name
+    pub base_url: String,        // Default API base URL
+    pub default_model: String,   // Default model ID
+    pub models: String,          // JSON array of model objects
+    pub enabled: bool,
+    pub sort_order: i32,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Model info within a provider type
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModelInfo {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub supports_tools: Option<bool>,
+    #[serde(default)]
+    pub context_length: Option<u32>,
+}
+
+/// For creating a new provider type
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NewProviderType {
+    pub id: String,
+    pub label: String,
+    pub base_url: String,
+    pub default_model: String,
+    pub models: Vec<ModelInfo>,
+    #[serde(default)]
+    pub enabled: Option<bool>,
+    #[serde(default)]
+    pub sort_order: Option<i32>,
+}
+
+/// For updating a provider type
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateProviderType {
+    pub label: Option<String>,
+    pub base_url: Option<String>,
+    pub default_model: Option<String>,
+    pub models: Option<Vec<ModelInfo>>,
+    pub enabled: Option<bool>,
+    pub sort_order: Option<i32>,
+}
+
+/// API response format for provider types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProviderTypeResponse {
+    pub id: String,
+    pub label: String,
+    pub base_url: String,
+    pub default_model: String,
+    pub models: Vec<String>,  // Just model IDs for the dropdown
+}
+
+impl ProviderType {
+    /// Convert to API response format
+    pub fn to_response(&self) -> ProviderTypeResponse {
+        let model_ids: Vec<String> = serde_json::from_str(&self.models)
+            .map(|models: Vec<ModelInfo>| models.into_iter().map(|m| m.id).collect())
+            .unwrap_or_default();
+
+        ProviderTypeResponse {
+            id: self.id.clone(),
+            label: self.label.clone(),
+            base_url: self.base_url.clone(),
+            default_model: self.default_model.clone(),
+            models: model_ids,
+        }
+    }
+}

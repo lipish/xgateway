@@ -1,7 +1,7 @@
 use sqlx::SqlitePool;
 use std::path::Path;
 use tracing::info;
-use crate::db::{initialize_database, Provider, NewProvider, UpdateProvider, ProviderStats};
+use crate::db::{initialize_database, Provider, NewProvider, UpdateProvider, ProviderStats, ProviderType, NewProviderType, UpdateProviderType, ModelInfo};
 use anyhow::Result;
 
 #[derive(Clone)]
@@ -19,11 +19,14 @@ impl DatabasePool {
     /// Create in-memory database pool for Phase 1 fallback
     pub async fn new_memory() -> Result<Self> {
         info!("Creating in-memory database pool...");
-        let pool = SqlitePool::connect(":memory:").await?;
-        
+
+        // Use shared cache mode so all connections share the same in-memory database
+        // Without this, each connection in the pool gets its own empty database
+        let pool = SqlitePool::connect("sqlite::memory:?mode=memory&cache=shared").await?;
+
         // Run migrations on in-memory database
         sqlx::migrate!("./migrations").run(&pool).await?;
-        
+
         Ok(Self { pool })
     }
 
@@ -233,7 +236,7 @@ impl DatabasePool {
         let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM providers")
             .fetch_one(&self.pool)
             .await?;
-        
+
         let enabled: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM providers WHERE enabled = true")
             .fetch_one(&self.pool)
             .await?;
@@ -243,5 +246,154 @@ impl DatabasePool {
             enabled: enabled as usize,
             disabled: (total - enabled) as usize,
         })
+    }
+
+    // ========== Provider Types CRUD ==========
+
+    /// List all provider types
+    pub async fn list_provider_types(&self) -> Result<Vec<ProviderType>> {
+        let types = sqlx::query_as::<_, ProviderType>(
+            r#"
+            SELECT id, label, base_url, default_model, models, enabled, sort_order, created_at, updated_at
+            FROM provider_types
+            WHERE enabled = true
+            ORDER BY sort_order ASC, id ASC
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(types)
+    }
+
+    /// Get provider type by ID
+    pub async fn get_provider_type(&self, id: &str) -> Result<Option<ProviderType>> {
+        let pt = sqlx::query_as::<_, ProviderType>(
+            r#"
+            SELECT id, label, base_url, default_model, models, enabled, sort_order, created_at, updated_at
+            FROM provider_types
+            WHERE id = ?
+            "#
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(pt)
+    }
+
+    /// Create a new provider type
+    pub async fn create_provider_type(&self, pt: NewProviderType) -> Result<()> {
+        let models_json = serde_json::to_string(&pt.models)?;
+
+        sqlx::query(
+            r#"
+            INSERT INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            "#
+        )
+        .bind(&pt.id)
+        .bind(&pt.label)
+        .bind(&pt.base_url)
+        .bind(&pt.default_model)
+        .bind(&models_json)
+        .bind(pt.enabled.unwrap_or(true))
+        .bind(pt.sort_order.unwrap_or(0))
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Update a provider type
+    pub async fn update_provider_type(&self, id: &str, update: UpdateProviderType) -> Result<bool> {
+        let mut query = sqlx::QueryBuilder::new("UPDATE provider_types SET updated_at = CURRENT_TIMESTAMP");
+        let mut has_updates = false;
+
+        if let Some(label) = &update.label {
+            query.push(", label = ");
+            query.push_bind(label);
+            has_updates = true;
+        }
+        if let Some(base_url) = &update.base_url {
+            query.push(", base_url = ");
+            query.push_bind(base_url);
+            has_updates = true;
+        }
+        if let Some(default_model) = &update.default_model {
+            query.push(", default_model = ");
+            query.push_bind(default_model);
+            has_updates = true;
+        }
+        if let Some(models) = &update.models {
+            let models_json = serde_json::to_string(models)?;
+            query.push(", models = ");
+            query.push_bind(models_json);
+            has_updates = true;
+        }
+        if let Some(enabled) = update.enabled {
+            query.push(", enabled = ");
+            query.push_bind(enabled);
+            has_updates = true;
+        }
+        if let Some(sort_order) = update.sort_order {
+            query.push(", sort_order = ");
+            query.push_bind(sort_order);
+            has_updates = true;
+        }
+
+        if !has_updates {
+            return Ok(false);
+        }
+
+        query.push(" WHERE id = ");
+        query.push_bind(id);
+
+        let result = query.build().execute(&self.pool).await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    /// Delete a provider type
+    pub async fn delete_provider_type(&self, id: &str) -> Result<bool> {
+        let result = sqlx::query("DELETE FROM provider_types WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
+    /// Check if provider_types table is empty
+    pub async fn is_provider_types_empty(&self) -> Result<bool> {
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM provider_types")
+            .fetch_one(&self.pool)
+            .await?;
+
+        Ok(count == 0)
+    }
+
+    /// Batch insert provider types (for initialization)
+    pub async fn batch_insert_provider_types(&self, types: Vec<NewProviderType>) -> Result<()> {
+        for (i, pt) in types.into_iter().enumerate() {
+            let models_json = serde_json::to_string(&pt.models)?;
+
+            sqlx::query(
+                r#"
+                INSERT OR IGNORE INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                "#
+            )
+            .bind(&pt.id)
+            .bind(&pt.label)
+            .bind(&pt.base_url)
+            .bind(&pt.default_model)
+            .bind(&models_json)
+            .bind(pt.enabled.unwrap_or(true))
+            .bind(pt.sort_order.unwrap_or(i as i32))
+            .execute(&self.pool)
+            .await?;
+        }
+
+        Ok(())
     }
 }

@@ -2,6 +2,12 @@ import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { DashboardPage } from "@/pages/dashboard"
 import { ProvidersPage } from "@/pages/providers"
+import { MonitoringPage } from "@/pages/monitoring"
+import { LogsPage } from "@/pages/logs"
+import { SettingsPage } from "@/pages/settings"
+import { ApiKeysPage } from "@/pages/api-keys"
+import { HelpPage } from "@/pages/help"
+import { ChatPage } from "@/pages/chat"
 
 function App() {
   return (
@@ -10,6 +16,12 @@ function App() {
         <Route path="/" element={<DashboardLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="providers" element={<ProvidersPage />} />
+          <Route path="chat" element={<ChatPage />} />
+          <Route path="monitoring" element={<MonitoringPage />} />
+          <Route path="logs" element={<LogsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="api-keys" element={<ApiKeysPage />} />
+          <Route path="help" element={<HelpPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

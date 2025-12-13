@@ -11,6 +11,7 @@ import {
   FileText,
   HelpCircle,
   Search,
+  MessageSquare,
 } from "lucide-react"
 
 const navigation = [
@@ -19,6 +20,7 @@ const navigation = [
     items: [
       { name: "仪表板", href: "/", icon: LayoutDashboard },
       { name: "Providers", href: "/providers", icon: Server },
+      { name: "对话测试", href: "/chat", icon: MessageSquare },
       { name: "日志", href: "/logs", icon: FileText },
     ],
   },

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -20,6 +21,10 @@ import {
   Play,
   Pencil,
   Trash2,
+  Plus,
+  Loader2,
+  CheckCircle,
+  XCircle,
 } from "lucide-react"
 
 interface ProviderStats {
@@ -40,10 +45,13 @@ interface Provider {
 }
 
 export function DashboardPage() {
+  const navigate = useNavigate()
   const [stats, setStats] = useState<ProviderStats | null>(null)
   const [recentProviders, setRecentProviders] = useState<Provider[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [testingId, setTestingId] = useState<number | null>(null)
+  const [testResult, setTestResult] = useState<{ id: number; success: boolean; message: string } | null>(null)
 
   useEffect(() => {
     fetchDashboardData()
@@ -83,41 +91,77 @@ export function DashboardPage() {
     }
   }
 
+  const testProvider = async (id: number) => {
+    setTestingId(id)
+    setTestResult(null)
+    try {
+      const response = await fetch(`/api/providers/${id}/test`, { method: 'POST' })
+      const result = await response.json()
+      setTestResult({ id, success: result.success, message: result.message || (result.success ? '连接成功' : '连接失败') })
+    } catch {
+      setTestResult({ id, success: false, message: '网络错误' })
+    } finally {
+      setTestingId(null)
+    }
+  }
+
+  const deleteProvider = async (id: number) => {
+    if (!confirm('确定要删除这个 Provider 吗？')) return
+    try {
+      const response = await fetch(`/api/providers/${id}`, { method: 'DELETE' })
+      const result = await response.json()
+      if (result.success) {
+        setRecentProviders(recentProviders.filter(p => p.id !== id))
+        fetchDashboardData()
+      } else {
+        alert(result.message || '删除失败')
+      }
+    } catch {
+      alert('网络错误')
+    }
+  }
+
   const statsCards = [
     {
       title: "总 Providers",
       value: stats?.total.toString() || "0",
-      change: stats?.total ? "+1" : "0",
-      changeType: "positive" as const,
+      subtitle: "已配置的 Provider 数量",
       icon: Server,
     },
     {
       title: "在线 Providers",
       value: stats?.enabled.toString() || "0",
-      change: stats?.enabled ? "+1" : "0",
-      changeType: "positive" as const,
+      subtitle: "当前启用的 Provider",
       icon: Activity,
     },
     {
       title: "今日请求",
-      value: "--",
-      change: "--",
-      changeType: "positive" as const,
+      value: "—",
+      subtitle: "统计功能开发中",
       icon: Zap,
     },
     {
       title: "平均延迟",
-      value: "--",
-      change: "--",
-      changeType: "positive" as const,
+      value: "—",
+      subtitle: "统计功能开发中",
       icon: Clock,
     },
   ]
   return (
     <div className="flex flex-col">
-      <Header title="仪表板" description="LLM Link 多 Provider AI 网关概览" />
+      <Header
+        title="仪表板"
+        description="LLM Link 多 Provider AI 网关概览"
+        onRefresh={fetchDashboardData}
+        actions={
+          <Button size="sm" onClick={() => navigate('/providers?add=true')}>
+            <Plus className="mr-2 h-4 w-4" />
+            添加 Provider
+          </Button>
+        }
+      />
 
-      <div className="flex-1 space-y-6 p-6">
+      <div className="flex-1 space-y-6 p-6 max-w-[1600px] mx-auto w-full">
         {/* Loading and Error States */}
         {loading && (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -160,18 +204,7 @@ export function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground">
-                    <span
-                      className={
-                        stat.changeType === "positive"
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }
-                    >
-                      {stat.change}
-                    </span>{" "}
-                    较上周
-                  </p>
+                  <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
                 </CardContent>
               </Card>
             ))}
@@ -191,7 +224,7 @@ export function DashboardPage() {
                       管理您的 AI 服务提供商
                     </CardDescription>
                   </div>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => navigate('/providers')}>
                     查看全部
                   </Button>
                 </div>
@@ -235,13 +268,35 @@ export function DashboardPage() {
                         <TableCell>{new Date(provider.created_at).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" title="测试">
-                              <Play className="h-4 w-4" />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="测试连接"
+                              onClick={() => testProvider(provider.id)}
+                              disabled={testingId === provider.id}
+                            >
+                              {testingId === provider.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : testResult?.id === provider.id ? (
+                                testResult.success ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-red-500" />
+                              ) : (
+                                <Play className="h-4 w-4" />
+                              )}
                             </Button>
-                            <Button variant="ghost" size="icon" title="编辑">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="编辑"
+                              onClick={() => navigate(`/providers?edit=${provider.id}`)}
+                            >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" title="删除">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="删除"
+                              onClick={() => deleteProvider(provider.id)}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -291,26 +346,21 @@ export function DashboardPage() {
             <CardDescription>实时监控系统运行状态</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="flex items-center gap-4 rounded-lg border p-4">
                 <div className="h-3 w-3 rounded-full bg-green-500" />
                 <div>
                   <p className="text-sm font-medium">API 网关</p>
-                  <p className="text-xs text-muted-foreground">运行正常</p>
+                  <p className="text-xs text-muted-foreground">运行正常 (端口 3000)</p>
                 </div>
               </div>
               <div className="flex items-center gap-4 rounded-lg border p-4">
-                <div className="h-3 w-3 rounded-full bg-green-500" />
+                <div className={`h-3 w-3 rounded-full ${stats && stats.enabled > 0 ? 'bg-green-500' : 'bg-yellow-500'}`} />
                 <div>
-                  <p className="text-sm font-medium">数据库</p>
-                  <p className="text-xs text-muted-foreground">连接正常</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 rounded-lg border p-4">
-                <div className="h-3 w-3 rounded-full bg-yellow-500" />
-                <div>
-                  <p className="text-sm font-medium">缓存服务</p>
-                  <p className="text-xs text-muted-foreground">负载较高</p>
+                  <p className="text-sm font-medium">Provider 池</p>
+                  <p className="text-xs text-muted-foreground">
+                    {stats && stats.enabled > 0 ? `${stats.enabled} 个可用` : '无可用 Provider'}
+                  </p>
                 </div>
               </div>
             </div>

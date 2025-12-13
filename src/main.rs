@@ -13,6 +13,7 @@ mod provider;
 mod db;
 mod mode;
 mod admin;
+mod pool;
 
 use anyhow::Result;
 use axum::{
@@ -38,7 +39,7 @@ use cli::{Args, ConfigLoader, list_applications, show_application_info};
 
 // Import new modules
 use mode::RunMode;
-use db::DatabasePool;
+use db::{DatabasePool, initialize_provider_types};
 use admin::create_admin_app;
 
 #[tokio::main]
@@ -99,7 +100,7 @@ async fn run_single_mode(args: Args) -> Result<()> {
 /// Run in multi provider mode (new zero-config experience)
 async fn run_multi_mode(args: Args) -> Result<()> {
     info!("🌐 Multi provider mode: Using database and web interface");
-    
+
     // First test with in-memory database to isolate SQLite library issues
     match test_in_memory_database().await {
         Ok(_) => info!("✅ In-memory database test passed - SQLite library works"),
@@ -109,7 +110,7 @@ async fn run_multi_mode(args: Args) -> Result<()> {
             std::process::exit(1);
         }
     }
-    
+
     // Try file-based database first, fallback to in-memory if it fails
     let db_pool = match try_file_database().await {
         Ok(pool) => {
@@ -119,8 +120,7 @@ async fn run_multi_mode(args: Args) -> Result<()> {
         Err(e) => {
             warn!("⚠️ File-based database failed: {}", e);
             info!("🔄 Falling back to in-memory database for Phase 1");
-            info!("📝 Note: File persistence will be implemented in Phase 2");
-            
+
             match DatabasePool::new_memory().await {
                 Ok(pool) => {
                     info!("✅ In-memory database initialized successfully");
@@ -133,37 +133,261 @@ async fn run_multi_mode(args: Args) -> Result<()> {
             }
         }
     };
-    
-    // Check if this is first run
-    let is_first_run = db_pool.is_first_run().await.unwrap_or(true); // Assume first run for in-memory
-    
-    // Start admin interface
-    let admin_app = create_admin_app(db_pool.clone());
-    let admin_port = args.admin_port.unwrap_or(8081);
-    let admin_bind_addr = format!("0.0.0.0:{}", admin_port);
-    
-    info!("🌐 Admin interface: http://localhost:{}", admin_port);
-    
-    if is_first_run {
-        info!("📝 First time setup? Visit: http://localhost:{}/setup", admin_port);
+
+    // Initialize provider types from models.yaml
+    if let Err(e) = initialize_provider_types(&db_pool).await {
+        warn!("⚠️ Failed to initialize provider types: {}", e);
     }
-    
-    // Start admin server in background
-    let admin_listener = tokio::net::TcpListener::bind(&admin_bind_addr).await?;
-    let admin_handle = tokio::spawn(async move {
-        if let Err(e) = axum::serve(admin_listener, admin_app).await {
-            error!("Admin server error: {}", e);
-        }
-    });
-    
-    // TODO: Start main API server (placeholder for now)
-    info!("📡 Main API server will be implemented in Phase 2");
-    info!("🎉 Multi-mode setup complete. Admin interface is running.");
-    
-    // Wait for admin server (in real implementation, this would also start the main API)
-    admin_handle.await?;
-    
+
+    // Build unified application with both Admin API and LLM Proxy
+    let app = build_multi_mode_app(db_pool.clone());
+
+    // Use port 3000 as the unified service port
+    let port = args.port.unwrap_or(3000);
+    let bind_addr = format!("0.0.0.0:{}", port);
+
+    info!("🚀 LLM Link unified service starting on http://localhost:{}", port);
+    info!("📡 LLM API Proxy: http://localhost:{}/v1/chat/completions", port);
+    info!("🔧 Admin API: http://localhost:{}/api/*", port);
+    info!("🏥 Health check: http://localhost:{}/health", port);
+
+    // Start unified server
+    let listener = tokio::net::TcpListener::bind(&bind_addr).await?;
+    info!("🎉 LLM Link is ready to accept connections!");
+
+    axum::serve(listener, app).await?;
+
     Ok(())
+}
+
+/// Build multi-mode application with Admin API and LLM Proxy routes
+fn build_multi_mode_app(db_pool: DatabasePool) -> Router {
+    use tower_http::cors::{Any, CorsLayer};
+
+    // Admin API routes (/api/*)
+    let admin_routes = create_admin_app(db_pool.clone());
+
+    // LLM Proxy routes (/v1/*)
+    let llm_proxy_routes = build_llm_proxy_routes(db_pool.clone());
+
+    // Basic routes
+    let basic_routes = Router::new()
+        .route("/", get(|| async {
+            axum::Json(serde_json::json!({
+                "service": "LLM Link",
+                "version": env!("CARGO_PKG_VERSION"),
+                "mode": "multi-provider",
+                "endpoints": {
+                    "llm_api": "/v1/*",
+                    "admin_api": "/api/*",
+                    "health": "/health"
+                }
+            }))
+        }))
+        .route("/health", get(|| async {
+            axum::Json(serde_json::json!({
+                "status": "healthy",
+                "timestamp": chrono::Utc::now().to_rfc3339()
+            }))
+        }));
+
+    // Merge all routes
+    let app = basic_routes
+        .merge(admin_routes)
+        .merge(llm_proxy_routes)
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods(Any)
+                .allow_headers(Any)
+        );
+
+    app
+}
+
+/// Build LLM proxy routes for multi-provider mode
+fn build_llm_proxy_routes(db_pool: DatabasePool) -> Router {
+    use axum::{extract::State, Json, http::StatusCode};
+    use serde_json::json;
+
+    Router::new()
+        // OpenAI compatible endpoints
+        .route("/v1/chat/completions", post(handle_chat_completions))
+        .route("/v1/models", get(handle_list_models))
+        .route("/v1/models/:model", get(handle_get_model))
+        .with_state(db_pool)
+}
+
+/// Handle chat completions request - routes to appropriate provider
+async fn handle_chat_completions(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::Json(request): axum::Json<serde_json::Value>,
+) -> axum::response::Response {
+    use axum::http::StatusCode;
+    use axum::response::IntoResponse;
+
+    // Check if streaming is requested
+    let is_stream = request.get("stream").and_then(|v| v.as_bool()).unwrap_or(false);
+
+    // Check if a specific provider_id is requested
+    let requested_provider_id = request.get("provider_id").and_then(|v| v.as_i64());
+
+    // Get providers from database
+    let providers = match db_pool.list_providers().await {
+        Ok(p) => p,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                axum::Json(serde_json::json!({
+                    "error": {
+                        "message": format!("Failed to get providers: {}", e),
+                        "type": "server_error"
+                    }
+                }))
+            ).into_response();
+        }
+    };
+
+    // Find the provider to use
+    let provider = if let Some(provider_id) = requested_provider_id {
+        // Use specific provider by ID
+        match providers.iter().find(|p| p.id == provider_id) {
+            Some(p) => p.clone(),
+            None => {
+                return (
+                    StatusCode::NOT_FOUND,
+                    axum::Json(serde_json::json!({
+                        "error": {
+                            "message": format!("Provider with id {} not found", provider_id),
+                            "type": "provider_not_found"
+                        }
+                    }))
+                ).into_response();
+            }
+        }
+    } else {
+        // Use first enabled provider (default behavior)
+        let enabled_providers: Vec<_> = providers.into_iter().filter(|p| p.enabled).collect();
+        if enabled_providers.is_empty() {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                axum::Json(serde_json::json!({
+                    "error": {
+                        "message": "No providers available. Please configure providers in the admin interface.",
+                        "type": "no_providers"
+                    }
+                }))
+            ).into_response();
+        }
+        enabled_providers[0].clone()
+    };
+
+    // Parse provider config and forward request
+    let config: serde_json::Value = serde_json::from_str(&provider.config).unwrap_or_default();
+    let api_key = config.get("api_key").and_then(|v| v.as_str()).unwrap_or("");
+    let base_url = config.get("base_url").and_then(|v| v.as_str()).unwrap_or("");
+    let model = config.get("model").and_then(|v| v.as_str()).unwrap_or("");
+
+    // Build the actual request to provider
+    let client = reqwest::Client::new();
+    let url = format!("{}/chat/completions", base_url.trim_end_matches('/'));
+
+    // Merge model into request if not specified, and remove provider_id from request body
+    let mut req_body = request.clone();
+    if let Some(obj) = req_body.as_object_mut() {
+        obj.remove("provider_id"); // Remove custom field before forwarding
+    }
+    if req_body.get("model").is_none() || req_body.get("model").unwrap().as_str() == Some("") {
+        req_body["model"] = serde_json::json!(model);
+    }
+
+    match client
+        .post(&url)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Content-Type", "application/json")
+        .json(&req_body)
+        .send()
+        .await
+    {
+        Ok(response) => {
+            let status = StatusCode::from_u16(response.status().as_u16()).unwrap_or(StatusCode::OK);
+
+            if is_stream {
+                // For streaming, forward the response body directly
+                let stream = response.bytes_stream();
+                let body = axum::body::Body::from_stream(stream);
+
+                axum::response::Response::builder()
+                    .status(status)
+                    .header("Content-Type", "text/event-stream")
+                    .header("Cache-Control", "no-cache")
+                    .header("Connection", "keep-alive")
+                    .body(body)
+                    .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
+            } else {
+                // For non-streaming, parse JSON response
+                match response.json::<serde_json::Value>().await {
+                    Ok(body) => (status, axum::Json(body)).into_response(),
+                    Err(e) => (
+                        StatusCode::BAD_GATEWAY,
+                        axum::Json(serde_json::json!({
+                            "error": {
+                                "message": format!("Failed to parse provider response: {}", e),
+                                "type": "proxy_error"
+                            }
+                        }))
+                    ).into_response()
+                }
+            }
+        }
+        Err(e) => (
+            StatusCode::BAD_GATEWAY,
+            axum::Json(serde_json::json!({
+                "error": {
+                    "message": format!("Failed to reach provider: {}", e),
+                    "type": "proxy_error",
+                    "provider": provider.name
+                }
+            }))
+        ).into_response()
+    }
+}
+
+/// Handle list models request
+async fn handle_list_models(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+) -> impl axum::response::IntoResponse {
+    let providers = db_pool.list_providers().await.unwrap_or_default();
+    let models: Vec<serde_json::Value> = providers
+        .iter()
+        .filter(|p| p.enabled)
+        .map(|p| {
+            let config: serde_json::Value = serde_json::from_str(&p.config).unwrap_or_default();
+            let model = config.get("model").and_then(|v| v.as_str()).unwrap_or("unknown");
+            serde_json::json!({
+                "id": model,
+                "object": "model",
+                "owned_by": p.provider_type,
+                "provider": p.name
+            })
+        })
+        .collect();
+
+    axum::Json(serde_json::json!({
+        "object": "list",
+        "data": models
+    }))
+}
+
+/// Handle get model request
+async fn handle_get_model(
+    axum::extract::Path(model_id): axum::extract::Path<String>,
+) -> impl axum::response::IntoResponse {
+    axum::Json(serde_json::json!({
+        "id": model_id,
+        "object": "model",
+        "owned_by": "llm-link"
+    }))
 }
 
 /// Try to initialize file-based database
@@ -249,9 +473,9 @@ async fn test_in_memory_database() -> Result<()> {
 /// Test basic SQLite connectivity
 async fn test_sqlite_connection(db_path: &std::path::Path) -> Result<()> {
     info!("Testing SQLite connectivity...");
-    
-    // Create a simple test connection
-    let test_conn_str = format!("sqlite://{}", db_path.display());
+
+    // Create a simple test connection with create mode
+    let test_conn_str = format!("sqlite://{}?mode=rwc", db_path.display());
     let pool = sqlx::SqlitePool::connect(&test_conn_str).await?;
     
     // Run a simple query
