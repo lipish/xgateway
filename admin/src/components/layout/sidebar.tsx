@@ -48,9 +48,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex h-14 items-center border-b px-4">
         <Link to="/" className="flex items-center gap-2 font-semibold">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            🚀
-          </div>
+          <img src="/vite.svg" alt="LLM Link" className="h-8 w-8" />
           <span className="text-lg">LLM Link</span>
         </Link>
       </div>
