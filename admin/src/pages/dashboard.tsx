@@ -18,14 +18,13 @@ import {
   Zap,
   Clock,
   TrendingUp,
-  Play,
-  Pencil,
-  Trash2,
   Plus,
   Loader2,
-  CheckCircle,
-  XCircle,
+  MessageSquare,
+  Settings,
+  Trash2,
 } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 
 interface ProviderStats {
   total: number
@@ -94,32 +93,47 @@ export function DashboardPage() {
   const testProvider = async (id: number) => {
     setTestingId(id)
     setTestResult(null)
+    const startTime = Date.now()
+    const minLoadingTime = 800
     try {
       const response = await fetch(`/api/providers/${id}/test`, { method: 'POST' })
       const result = await response.json()
+      const elapsed = Date.now() - startTime
+      if (elapsed < minLoadingTime) {
+        await new Promise(resolve => setTimeout(resolve, minLoadingTime - elapsed))
+      }
       setTestResult({ id, success: result.success, message: result.message || (result.success ? '连接成功' : '连接失败') })
     } catch {
+      const elapsed = Date.now() - startTime
+      if (elapsed < minLoadingTime) {
+        await new Promise(resolve => setTimeout(resolve, minLoadingTime - elapsed))
+      }
       setTestResult({ id, success: false, message: '网络错误' })
     } finally {
       setTestingId(null)
     }
   }
 
-  const deleteProvider = async (id: number) => {
-    if (!confirm('确定要删除这个 Provider 吗？')) return
+  const toggleProvider = async (id: number) => {
     try {
-      const response = await fetch(`/api/providers/${id}`, { method: 'DELETE' })
+      const response = await fetch(`/api/providers/${id}/toggle`, { method: 'POST' })
       const result = await response.json()
       if (result.success) {
-        setRecentProviders(recentProviders.filter(p => p.id !== id))
-        fetchDashboardData()
+        setRecentProviders(recentProviders.map(p => p.id === id ? result.data : p))
+        // 静默更新统计数据，不触发 loading 状态
+        const statsResponse = await fetch('/api/providers/stats')
+        const statsResult = await statsResponse.json()
+        if (statsResult.success) {
+          setStats(statsResult.data)
+        }
       } else {
-        alert(result.message || '删除失败')
+        alert(result.message || 'Failed to toggle provider')
       }
     } catch {
-      alert('网络错误')
+      alert('Network error: Failed to toggle provider')
     }
   }
+
 
   const statsCards = [
     {
@@ -267,7 +281,11 @@ export function DashboardPage() {
                         <TableCell>{provider.priority}</TableCell>
                         <TableCell>{new Date(provider.created_at).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={provider.enabled}
+                              onCheckedChange={() => toggleProvider(provider.id)}
+                            />
                             <Button
                               variant="ghost"
                               size="icon"
@@ -278,26 +296,19 @@ export function DashboardPage() {
                               {testingId === provider.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : testResult?.id === provider.id ? (
-                                testResult.success ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-red-500" />
+                                <Activity className={`h-4 w-4 ${testResult.success ? 'text-green-500' : 'text-red-500'}`} />
                               ) : (
-                                <Play className="h-4 w-4" />
+                                <Activity className="h-4 w-4" />
                               )}
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              title="编辑"
-                              onClick={() => navigate(`/providers?edit=${provider.id}`)}
+                              title={provider.enabled ? "开始对话" : "Provider 已禁用"}
+                              onClick={() => navigate(`/chat?provider=${provider.id}`)}
+                              disabled={!provider.enabled}
                             >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="删除"
-                              onClick={() => deleteProvider(provider.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
+                              <MessageSquare className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -316,11 +327,11 @@ export function DashboardPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <Button className="w-full justify-start" variant="outline">
-                  <Play className="mr-2 h-4 w-4" />
+                  <Activity className="mr-2 h-4 w-4" />
                   测试所有 Providers
                 </Button>
                 <Button className="w-full justify-start" variant="outline">
-                  <Pencil className="mr-2 h-4 w-4" />
+                  <Settings className="mr-2 h-4 w-4" />
                   批量编辑配置
                 </Button>
                 <Button className="w-full justify-start" variant="outline">

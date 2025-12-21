@@ -1,7 +1,7 @@
 use sqlx::SqlitePool;
 use std::path::Path;
 use tracing::info;
-use crate::db::{initialize_database, Provider, NewProvider, UpdateProvider, ProviderStats, ProviderType, NewProviderType, UpdateProviderType, ModelInfo};
+use crate::db::{initialize_database, Provider, NewProvider, UpdateProvider, ProviderStats, ProviderType, NewProviderType, UpdateProviderType, ModelInfo, Conversation, NewConversation, UpdateConversation, Message, NewMessage, ConversationListItem, ConversationWithMessages};
 use anyhow::Result;
 
 #[derive(Clone)]
@@ -395,5 +395,183 @@ impl DatabasePool {
         }
 
         Ok(())
+    }
+
+    // ========== Conversation CRUD ==========
+
+    /// Create a new conversation
+    pub async fn create_conversation(&self, conv: NewConversation) -> Result<Conversation> {
+        let title = conv.title.unwrap_or_else(|| "新对话".to_string());
+
+        let result = sqlx::query(
+            r#"
+            INSERT INTO conversations (title, provider_id)
+            VALUES (?, ?)
+            "#
+        )
+        .bind(&title)
+        .bind(conv.provider_id)
+        .execute(&self.pool)
+        .await?;
+
+        let id = result.last_insert_rowid();
+
+        // Fetch and return the created conversation
+        let conversation = sqlx::query_as::<_, Conversation>(
+            "SELECT id, title, provider_id, created_at, updated_at FROM conversations WHERE id = ?"
+        )
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(conversation)
+    }
+
+    /// List conversations with provider info
+    pub async fn list_conversations(&self, provider_id: Option<i64>, limit: i64) -> Result<Vec<ConversationListItem>> {
+        let conversations = if let Some(pid) = provider_id {
+            sqlx::query_as::<_, ConversationListItem>(
+                r#"
+                SELECT
+                    c.id, c.title, c.provider_id, p.name as provider_name, c.updated_at,
+                    (SELECT COUNT(*) FROM messages WHERE conversation_id = c.id) as message_count
+                FROM conversations c
+                LEFT JOIN providers p ON c.provider_id = p.id
+                WHERE c.provider_id = ?
+                ORDER BY c.updated_at DESC
+                LIMIT ?
+                "#
+            )
+            .bind(pid)
+            .bind(limit)
+            .fetch_all(&self.pool)
+            .await?
+        } else {
+            sqlx::query_as::<_, ConversationListItem>(
+                r#"
+                SELECT
+                    c.id, c.title, c.provider_id, p.name as provider_name, c.updated_at,
+                    (SELECT COUNT(*) FROM messages WHERE conversation_id = c.id) as message_count
+                FROM conversations c
+                LEFT JOIN providers p ON c.provider_id = p.id
+                ORDER BY c.updated_at DESC
+                LIMIT ?
+                "#
+            )
+            .bind(limit)
+            .fetch_all(&self.pool)
+            .await?
+        };
+
+        Ok(conversations)
+    }
+
+    /// Get conversation by ID
+    pub async fn get_conversation(&self, id: i64) -> Result<Option<Conversation>> {
+        let conv = sqlx::query_as::<_, Conversation>(
+            "SELECT id, title, provider_id, created_at, updated_at FROM conversations WHERE id = ?"
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(conv)
+    }
+
+    /// Get conversation with messages
+    pub async fn get_conversation_with_messages(&self, id: i64) -> Result<Option<ConversationWithMessages>> {
+        let conv = self.get_conversation(id).await?;
+
+        if let Some(c) = conv {
+            let messages = self.list_messages(id).await?;
+            Ok(Some(ConversationWithMessages {
+                id: c.id,
+                title: c.title,
+                provider_id: c.provider_id,
+                created_at: c.created_at,
+                updated_at: c.updated_at,
+                messages,
+            }))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Update conversation
+    pub async fn update_conversation(&self, id: i64, update: UpdateConversation) -> Result<bool> {
+        if let Some(title) = update.title {
+            let result = sqlx::query(
+                "UPDATE conversations SET title = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+            )
+            .bind(&title)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+            Ok(result.rows_affected() > 0)
+        } else {
+            Ok(false)
+        }
+    }
+
+    /// Delete conversation (messages will be cascade deleted)
+    pub async fn delete_conversation(&self, id: i64) -> Result<bool> {
+        let result = sqlx::query("DELETE FROM conversations WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
+    // ========== Message CRUD ==========
+
+    /// Create a new message
+    pub async fn create_message(&self, msg: NewMessage) -> Result<Message> {
+        let result = sqlx::query(
+            r#"
+            INSERT INTO messages (conversation_id, role, content)
+            VALUES (?, ?, ?)
+            "#
+        )
+        .bind(msg.conversation_id)
+        .bind(&msg.role)
+        .bind(&msg.content)
+        .execute(&self.pool)
+        .await?;
+
+        let id = result.last_insert_rowid();
+
+        // Update conversation's updated_at
+        sqlx::query("UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+            .bind(msg.conversation_id)
+            .execute(&self.pool)
+            .await?;
+
+        // Fetch and return the created message
+        let message = sqlx::query_as::<_, Message>(
+            "SELECT id, conversation_id, role, content, created_at FROM messages WHERE id = ?"
+        )
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(message)
+    }
+
+    /// List messages for a conversation
+    pub async fn list_messages(&self, conversation_id: i64) -> Result<Vec<Message>> {
+        let messages = sqlx::query_as::<_, Message>(
+            r#"
+            SELECT id, conversation_id, role, content, created_at
+            FROM messages
+            WHERE conversation_id = ?
+            ORDER BY created_at ASC
+            "#
+        )
+        .bind(conversation_id)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(messages)
     }
 }

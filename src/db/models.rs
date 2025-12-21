@@ -170,3 +170,68 @@ impl ProviderType {
         }
     }
 }
+
+// ============= Conversation Models =============
+
+/// Conversation - represents a chat session
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct Conversation {
+    pub id: i64,
+    pub title: String,
+    pub provider_id: i64,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// For creating a new conversation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NewConversation {
+    pub title: Option<String>,
+    pub provider_id: i64,
+}
+
+/// For updating a conversation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateConversation {
+    pub title: Option<String>,
+}
+
+/// Message - represents a single message in a conversation
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct Message {
+    pub id: i64,
+    pub conversation_id: i64,
+    pub role: String,
+    pub content: String,
+    pub created_at: DateTime<Utc>,
+}
+
+/// For creating a new message
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NewMessage {
+    pub conversation_id: i64,
+    pub role: String,
+    pub content: String,
+}
+
+/// Conversation with messages for API response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConversationWithMessages {
+    pub id: i64,
+    pub title: String,
+    pub provider_id: i64,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub messages: Vec<Message>,
+}
+
+/// Conversation list item for sidebar
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct ConversationListItem {
+    pub id: i64,
+    pub title: String,
+    pub provider_id: i64,
+    pub provider_name: Option<String>,
+    pub updated_at: DateTime<Utc>,
+    pub message_count: i64,
+}

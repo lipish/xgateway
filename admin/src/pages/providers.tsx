@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useSearchParams } from "react-router-dom"
+import { useSearchParams, useNavigate } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -26,21 +26,18 @@ import { Header } from "@/components/layout/header"
 import {
   Plus,
   Search,
-  Play,
   Pencil,
   Trash2,
-  Power,
-  PowerOff,
   Loader2,
-  CheckCircle,
-  XCircle,
-  X,
   Server,
   Key,
   Link,
   Calendar,
   Settings,
+  Activity,
+  MessageSquare,
 } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 
 interface Provider {
   id: number
@@ -64,6 +61,7 @@ interface ProviderTypeConfig {
 
 export function ProvidersPage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [providers, setProviders] = useState<Provider[]>([])
   const [providerTypes, setProviderTypes] = useState<ProviderTypeConfig[]>([])
   const [loading, setLoading] = useState(true)
@@ -153,9 +151,13 @@ export function ProvidersPage() {
       
       if (result.success) {
         // Update the provider in the local state
-        setProviders(providers.map(p => 
+        setProviders(providers.map(p =>
           p.id === id ? result.data : p
         ))
+        // 同步更新右侧详情面板
+        if (selectedProvider?.id === id) {
+          setSelectedProvider(result.data)
+        }
       } else {
         alert(result.message || 'Failed to toggle provider')
       }
@@ -258,11 +260,21 @@ export function ProvidersPage() {
   const testProvider = async (id: number) => {
     setTestingId(id)
     setTestResult(null)
+    const startTime = Date.now()
+    const minLoadingTime = 800 // 最小加载时间，确保用户能看到加载动画
     try {
       const response = await fetch(`/api/providers/${id}/test`, { method: 'POST' })
       const result = await response.json()
+      const elapsed = Date.now() - startTime
+      if (elapsed < minLoadingTime) {
+        await new Promise(resolve => setTimeout(resolve, minLoadingTime - elapsed))
+      }
       setTestResult({ id, success: result.success, message: result.message || (result.success ? '连接成功' : '连接失败') })
     } catch (err) {
+      const elapsed = Date.now() - startTime
+      if (elapsed < minLoadingTime) {
+        await new Promise(resolve => setTimeout(resolve, minLoadingTime - elapsed))
+      }
       setTestResult({ id, success: false, message: '网络错误' })
     } finally {
       setTestingId(null)
@@ -376,7 +388,7 @@ export function ProvidersPage() {
                       <TableHead>类型</TableHead>
                       <TableHead>状态</TableHead>
                       <TableHead>优先级</TableHead>
-                      <TableHead className="w-[80px]">操作</TableHead>
+                      <TableHead className="w-[100px]">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -408,7 +420,11 @@ export function ProvidersPage() {
                         </TableCell>
                         <TableCell>{provider.priority}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={provider.enabled}
+                              onCheckedChange={() => toggleProvider(provider.id)}
+                            />
                             <Button
                               variant="ghost"
                               size="icon"
@@ -419,10 +435,19 @@ export function ProvidersPage() {
                               {testingId === provider.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : testResult?.id === provider.id ? (
-                                testResult.success ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-red-500" />
+                                <Activity className={`h-4 w-4 ${testResult.success ? 'text-green-500' : 'text-red-500'}`} />
                               ) : (
-                                <Play className="h-4 w-4" />
+                                <Activity className="h-4 w-4" />
                               )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title={provider.enabled ? "开始对话" : "Provider 已禁用"}
+                              onClick={(e) => { e.stopPropagation(); navigate(`/chat?provider=${provider.id}`) }}
+                              disabled={!provider.enabled}
+                            >
+                              <MessageSquare className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -527,7 +552,7 @@ export function ProvidersPage() {
                     {testingId === selectedProvider.id ? (
                       <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                     ) : (
-                      <Play className="h-4 w-4 mr-1" />
+                      <Activity className="h-4 w-4 mr-1" />
                     )}
                     测试
                   </Button>
@@ -540,13 +565,10 @@ export function ProvidersPage() {
                     <Pencil className="h-4 w-4 mr-1" />
                     编辑
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toggleProvider(selectedProvider.id)}
-                  >
-                    {selectedProvider.enabled ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
-                  </Button>
+                  <Switch
+                    checked={selectedProvider.enabled}
+                    onCheckedChange={() => toggleProvider(selectedProvider.id)}
+                  />
                   <Button
                     variant="outline"
                     size="sm"
