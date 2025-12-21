@@ -5,7 +5,7 @@ pub use handlers::*;
 
 use axum::{Router, routing::{get, post, put, delete}, Json};
 use serde::{Serialize, Deserialize};
-use crate::db::{DatabasePool, NewProviderType, UpdateProviderType, ModelInfo, NewConversation, UpdateConversation, NewMessage, Conversation, Message, ConversationListItem, ConversationWithMessages};
+use crate::db::{DatabasePool, NewProviderType, UpdateProviderType, ModelInfo, NewConversation, UpdateConversation, NewMessage, Conversation, Message, ConversationListItem, ConversationWithMessages, RequestLog};
 
 /// Create admin API router (pure REST API, no HTML pages)
 pub fn create_admin_app(db_pool: DatabasePool) -> Router {
@@ -112,13 +112,34 @@ async fn save_pool_settings_api(
     })
 }
 
+#[derive(Debug, Deserialize)]
+struct ListLogsQuery {
+    #[serde(default = "default_logs_limit")]
+    limit: i64,
+    #[serde(default)]
+    offset: i64,
+    status: Option<String>,
+}
+
+fn default_logs_limit() -> i64 { 100 }
+
 /// Get logs API
-async fn get_logs_api() -> Json<ApiResponse<Vec<serde_json::Value>>> {
-    Json(ApiResponse {
-        success: true,
-        data: Some(vec![]),
-        message: "Logs retrieved".to_string(),
-    })
+async fn get_logs_api(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::extract::Query(query): axum::extract::Query<ListLogsQuery>,
+) -> Json<ApiResponse<Vec<RequestLog>>> {
+    match db_pool.list_request_logs(query.limit, query.offset, query.status.as_deref()).await {
+        Ok(logs) => Json(ApiResponse {
+            success: true,
+            data: Some(logs),
+            message: "Logs retrieved".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to retrieve logs: {}", e),
+        }),
+    }
 }
 
 /// List API keys

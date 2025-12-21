@@ -246,12 +246,16 @@ export function ChatPage() {
       }
 
       setPanels(prev => prev.map(p => p.id === panelId ? { ...p, loading: false } : p))
+      // 对话完成后聚焦到输入框
+      setTimeout(() => inputRefs.current[panelId]?.focus(), 100)
     } catch (err) {
       setPanels(prev => prev.map(p => p.id === panelId ? {
         ...p,
         messages: [...p.messages.slice(0, -1), { role: "assistant" as const, content: `网络错误: ${err}` }],
         loading: false
       } : p))
+      // 错误后也聚焦到输入框
+      setTimeout(() => inputRefs.current[panelId]?.focus(), 100)
     }
   }
 

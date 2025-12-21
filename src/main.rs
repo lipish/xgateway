@@ -225,6 +225,10 @@ async fn handle_chat_completions(
 ) -> axum::response::Response {
     use axum::http::StatusCode;
     use axum::response::IntoResponse;
+    use crate::db::NewRequestLog;
+
+    // Start timing
+    let start_time = std::time::Instant::now();
 
     // Check if streaming is requested
     let is_stream = request.get("stream").and_then(|v| v.as_bool()).unwrap_or(false);
@@ -301,6 +305,25 @@ async fn handle_chat_completions(
         req_body["model"] = serde_json::json!(model);
     }
 
+    // Extract request content (all messages in the conversation)
+    let request_content = req_body.get("messages")
+        .and_then(|m| m.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|m| {
+                    let role = m.get("role").and_then(|r| r.as_str()).unwrap_or("unknown");
+                    let content = m.get("content").and_then(|c| c.as_str()).unwrap_or("");
+                    if content.is_empty() {
+                        None
+                    } else {
+                        Some(format!("[{}]: {}", role, content))
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n\n")
+        })
+        .filter(|s| !s.is_empty());
+
     match client
         .post(&url)
         .header("Authorization", format!("Bearer {}", api_key))
@@ -311,11 +334,111 @@ async fn handle_chat_completions(
     {
         Ok(response) => {
             let status = StatusCode::from_u16(response.status().as_u16()).unwrap_or(StatusCode::OK);
+            let latency_ms = start_time.elapsed().as_millis() as i64;
+            let is_success = status.is_success();
 
             if is_stream {
-                // For streaming, forward the response body directly
+                // For streaming, collect the full response while forwarding
+                use futures::StreamExt;
+                use std::pin::Pin;
+                use std::task::{Context, Poll};
+                use futures::Stream;
+
                 let stream = response.bytes_stream();
-                let body = axum::body::Body::from_stream(stream);
+                let collected_content = std::sync::Arc::new(std::sync::Mutex::new(String::new()));
+                let content_clone = collected_content.clone();
+
+                // Create a stream that collects chunks while forwarding
+                let collecting_stream = stream.map(move |chunk_result| {
+                    if let Ok(ref chunk) = chunk_result {
+                        // Parse SSE data to extract content
+                        if let Ok(text) = std::str::from_utf8(chunk) {
+                            for line in text.lines() {
+                                if line.starts_with("data: ") {
+                                    let data = &line[6..];
+                                    if data != "[DONE]" {
+                                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
+                                            if let Some(content) = json.get("choices")
+                                                .and_then(|c| c.as_array())
+                                                .and_then(|arr| arr.first())
+                                                .and_then(|c| c.get("delta"))
+                                                .and_then(|d| d.get("content"))
+                                                .and_then(|c| c.as_str())
+                                            {
+                                                if let Ok(mut collected) = content_clone.lock() {
+                                                    collected.push_str(content);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    chunk_result
+                });
+
+                // Wrap with a stream that logs on completion
+                struct LoggingStream<S> {
+                    inner: S,
+                    collected_content: std::sync::Arc<std::sync::Mutex<String>>,
+                    db_pool: std::sync::Arc<db::DatabasePool>,
+                    provider_id: i64,
+                    provider_name: String,
+                    model: String,
+                    request_content: Option<String>,
+                    latency_ms: i64,
+                    logged: bool,
+                }
+
+                impl<S: Stream + Unpin> Stream for LoggingStream<S> {
+                    type Item = S::Item;
+
+                    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+                        let result = Pin::new(&mut self.inner).poll_next(cx);
+                        if let Poll::Ready(None) = &result {
+                            if !self.logged {
+                                self.logged = true;
+                                let response_content = self.collected_content.lock()
+                                    .map(|c| if c.is_empty() { None } else { Some(c.clone()) })
+                                    .unwrap_or(None);
+
+                                let log = NewRequestLog {
+                                    provider_id: Some(self.provider_id),
+                                    provider_name: self.provider_name.clone(),
+                                    model: self.model.clone(),
+                                    status: "success".to_string(),
+                                    latency_ms: self.latency_ms,
+                                    tokens_used: 0,
+                                    error_message: None,
+                                    request_type: "chat".to_string(),
+                                    request_content: self.request_content.clone(),
+                                    response_content,
+                                };
+
+                                let db_pool = self.db_pool.clone();
+                                tokio::spawn(async move {
+                                    let _ = db_pool.create_request_log(log).await;
+                                });
+                            }
+                        }
+                        result
+                    }
+                }
+
+                let logging_stream = LoggingStream {
+                    inner: Box::pin(collecting_stream),
+                    collected_content,
+                    db_pool: std::sync::Arc::new(db_pool.clone()),
+                    provider_id: provider.id,
+                    provider_name: provider.name.clone(),
+                    model: model.to_string(),
+                    request_content,
+                    latency_ms,
+                    logged: false,
+                };
+
+                let body = axum::body::Body::from_stream(logging_stream);
 
                 axum::response::Response::builder()
                     .status(status)
@@ -325,9 +448,40 @@ async fn handle_chat_completions(
                     .body(body)
                     .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
             } else {
-                // For non-streaming, parse JSON response
+                // For non-streaming, parse JSON response and log with content
                 match response.json::<serde_json::Value>().await {
-                    Ok(body) => (status, axum::Json(body)).into_response(),
+                    Ok(body) => {
+                        // Extract response content from assistant message
+                        let response_content = body.get("choices")
+                            .and_then(|c| c.as_array())
+                            .and_then(|arr| arr.first())
+                            .and_then(|c| c.get("message"))
+                            .and_then(|m| m.get("content"))
+                            .and_then(|c| c.as_str())
+                            .map(|s| s.to_string());
+
+                        // Extract tokens used
+                        let tokens_used = body.get("usage")
+                            .and_then(|u| u.get("total_tokens"))
+                            .and_then(|t| t.as_i64())
+                            .unwrap_or(0);
+
+                        let log = NewRequestLog {
+                            provider_id: Some(provider.id),
+                            provider_name: provider.name.clone(),
+                            model: model.to_string(),
+                            status: if is_success { "success".to_string() } else { "error".to_string() },
+                            latency_ms,
+                            tokens_used,
+                            error_message: if is_success { None } else { Some(format!("HTTP {}", status.as_u16())) },
+                            request_type: "chat".to_string(),
+                            request_content,
+                            response_content,
+                        };
+                        let _ = db_pool.create_request_log(log).await;
+
+                        (status, axum::Json(body)).into_response()
+                    }
                     Err(e) => (
                         StatusCode::BAD_GATEWAY,
                         axum::Json(serde_json::json!({
@@ -340,16 +494,35 @@ async fn handle_chat_completions(
                 }
             }
         }
-        Err(e) => (
-            StatusCode::BAD_GATEWAY,
-            axum::Json(serde_json::json!({
-                "error": {
-                    "message": format!("Failed to reach provider: {}", e),
-                    "type": "proxy_error",
-                    "provider": provider.name
-                }
-            }))
-        ).into_response()
+        Err(e) => {
+            let latency_ms = start_time.elapsed().as_millis() as i64;
+
+            // Log the failed request
+            let log = NewRequestLog {
+                provider_id: Some(provider.id),
+                provider_name: provider.name.clone(),
+                model: model.to_string(),
+                status: "error".to_string(),
+                latency_ms,
+                tokens_used: 0,
+                error_message: Some(format!("{}", e)),
+                request_type: "chat".to_string(),
+                request_content,
+                response_content: None,
+            };
+            let _ = db_pool.create_request_log(log).await;
+
+            (
+                StatusCode::BAD_GATEWAY,
+                axum::Json(serde_json::json!({
+                    "error": {
+                        "message": format!("Failed to reach provider: {}", e),
+                        "type": "proxy_error",
+                        "provider": provider.name
+                    }
+                }))
+            ).into_response()
+        }
     }
 }
 

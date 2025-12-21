@@ -1,7 +1,7 @@
 use sqlx::SqlitePool;
 use std::path::Path;
 use tracing::info;
-use crate::db::{initialize_database, Provider, NewProvider, UpdateProvider, ProviderStats, ProviderType, NewProviderType, UpdateProviderType, ModelInfo, Conversation, NewConversation, UpdateConversation, Message, NewMessage, ConversationListItem, ConversationWithMessages};
+use crate::db::{initialize_database, Provider, NewProvider, UpdateProvider, ProviderStats, ProviderType, NewProviderType, UpdateProviderType, ModelInfo, Conversation, NewConversation, UpdateConversation, Message, NewMessage, ConversationListItem, ConversationWithMessages, RequestLog, NewRequestLog};
 use anyhow::Result;
 
 #[derive(Clone)]
@@ -573,5 +573,101 @@ impl DatabasePool {
         .await?;
 
         Ok(messages)
+    }
+
+    // ========== Request Log CRUD ==========
+
+    /// Create a new request log
+    pub async fn create_request_log(&self, log: NewRequestLog) -> Result<RequestLog> {
+        let result = sqlx::query(
+            r#"
+            INSERT INTO request_logs (provider_id, provider_name, model, status, latency_ms, tokens_used, error_message, request_type, request_content, response_content)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            "#
+        )
+        .bind(log.provider_id)
+        .bind(&log.provider_name)
+        .bind(&log.model)
+        .bind(&log.status)
+        .bind(log.latency_ms)
+        .bind(log.tokens_used)
+        .bind(&log.error_message)
+        .bind(&log.request_type)
+        .bind(&log.request_content)
+        .bind(&log.response_content)
+        .execute(&self.pool)
+        .await?;
+
+        let id = result.last_insert_rowid();
+
+        let created = sqlx::query_as::<_, RequestLog>(
+            "SELECT * FROM request_logs WHERE id = ?"
+        )
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(created)
+    }
+
+    /// List request logs with pagination
+    pub async fn list_request_logs(&self, limit: i64, offset: i64, status_filter: Option<&str>) -> Result<Vec<RequestLog>> {
+        let logs = if let Some(status) = status_filter {
+            sqlx::query_as::<_, RequestLog>(
+                r#"
+                SELECT * FROM request_logs
+                WHERE status = ?
+                ORDER BY created_at DESC
+                LIMIT ? OFFSET ?
+                "#
+            )
+            .bind(status)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(&self.pool)
+            .await?
+        } else {
+            sqlx::query_as::<_, RequestLog>(
+                r#"
+                SELECT * FROM request_logs
+                ORDER BY created_at DESC
+                LIMIT ? OFFSET ?
+                "#
+            )
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(&self.pool)
+            .await?
+        };
+
+        Ok(logs)
+    }
+
+    /// Get request log count
+    pub async fn get_request_log_count(&self, status_filter: Option<&str>) -> Result<i64> {
+        let count: (i64,) = if let Some(status) = status_filter {
+            sqlx::query_as("SELECT COUNT(*) FROM request_logs WHERE status = ?")
+                .bind(status)
+                .fetch_one(&self.pool)
+                .await?
+        } else {
+            sqlx::query_as("SELECT COUNT(*) FROM request_logs")
+                .fetch_one(&self.pool)
+                .await?
+        };
+
+        Ok(count.0)
+    }
+
+    /// Delete old request logs (cleanup)
+    pub async fn delete_old_request_logs(&self, days: i64) -> Result<u64> {
+        let result = sqlx::query(
+            "DELETE FROM request_logs WHERE created_at < datetime('now', ? || ' days')"
+        )
+        .bind(-days)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(result.rows_affected())
     }
 }

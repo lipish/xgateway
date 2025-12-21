@@ -235,3 +235,38 @@ pub struct ConversationListItem {
     pub updated_at: DateTime<Utc>,
     pub message_count: i64,
 }
+
+
+// ============ Request Log Models ============
+
+/// Request log record
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct RequestLog {
+    pub id: i64,
+    pub provider_id: Option<i64>,
+    pub provider_name: String,
+    pub model: String,
+    pub status: String,
+    pub latency_ms: i64,
+    pub tokens_used: i64,
+    pub error_message: Option<String>,
+    pub request_type: String,
+    pub request_content: Option<String>,
+    pub response_content: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// New request log
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NewRequestLog {
+    pub provider_id: Option<i64>,
+    pub provider_name: String,
+    pub model: String,
+    pub status: String,
+    pub latency_ms: i64,
+    pub tokens_used: i64,
+    pub error_message: Option<String>,
+    pub request_type: String,
+    pub request_content: Option<String>,
+    pub response_content: Option<String>,
+}
