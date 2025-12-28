@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
+import { apiGet, apiPost } from "@/lib/api"
+import { useI18n, t } from "@/lib/i18n"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Header } from "@/components/layout/header"
@@ -44,14 +46,14 @@ export function ChatPage() {
   const inputRefs = useRef<{ [key: string]: HTMLTextAreaElement | null }>({})
 
   const fetchConversations = async () => {
-    const result = await fetch("/api/conversations?limit=50").then(r => r.json())
+    const result = await apiGet("/api/conversations?limit=50")
     if (result.success) {
       setConversations(result.data)
     }
   }
 
   useEffect(() => {
-    fetch("/api/providers").then(r => r.json()).then(result => {
+    apiGet("/api/providers").then(result => {
       if (result.success) {
         const enabledProviders = result.data.filter((p: Provider) => p.enabled)
         setProviders(enabledProviders)
@@ -104,7 +106,7 @@ export function ChatPage() {
   }
 
   const loadConversation = async (conversationId: number, panelId: string) => {
-    const result = await fetch(`/api/conversations/${conversationId}`).then(r => r.json())
+    const result = await apiGet(`/api/conversations/${conversationId}`)
     if (result.success) {
       const conv = result.data
       setPanels(prev => prev.map(p => p.id === panelId ? {
@@ -121,20 +123,12 @@ export function ChatPage() {
   }
 
   const saveMessage = async (conversationId: number, role: string, content: string) => {
-    await fetch(`/api/conversations/${conversationId}/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role, content })
-    })
+    await apiPost(`/api/conversations/${conversationId}/messages`, { role, content })
     fetchConversations() // 刷新列表更新时间
   }
 
   const createConversation = async (providerId: number, title?: string): Promise<number | null> => {
-    const result = await fetch("/api/conversations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider_id: providerId, title })
-    }).then(r => r.json())
+    const result = await apiPost("/api/conversations", { provider_id: providerId, title })
     if (result.success) {
       fetchConversations()
       return result.data.id
@@ -283,7 +277,7 @@ export function ChatPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Header title="对话测试" description="选择 Provider 进行对比测试" />
+      <Header title={t('chat.title')} description={t('chat.description')} />
 
       <div className="flex-1 flex overflow-hidden">
         {/* 历史对话侧边栏 */}
@@ -292,7 +286,7 @@ export function ChatPage() {
             <div className="p-3 border-b flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <History className="w-4 h-4" />
-                历史对话
+                {t('chat.history')}
               </div>
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowHistory(false)}>
                 <PanelLeftClose className="w-4 h-4" />
@@ -300,7 +294,7 @@ export function ChatPage() {
             </div>
             <div className="flex-1 overflow-y-auto">
               {conversations.length === 0 ? (
-                <div className="p-4 text-sm text-muted-foreground text-center">暂无历史对话</div>
+                <div className="p-4 text-sm text-muted-foreground text-center">{t('chat.noHistory')}</div>
               ) : (
                 conversations.map(conv => (
                   <div

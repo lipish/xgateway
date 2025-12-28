@@ -2,6 +2,8 @@ import { Link, useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { LanguageSwitcher } from "@/components/language-switcher"
+import { useI18n, t } from "@/lib/i18n"
 import {
   LayoutDashboard,
   Server,
@@ -14,42 +16,45 @@ import {
   MessageSquare,
 } from "lucide-react"
 
-const navigation = [
-  {
-    title: "主要",
-    items: [
-      { name: "仪表板", href: "/", icon: LayoutDashboard },
-      { name: "Providers", href: "/providers", icon: Server },
-      { name: "对话测试", href: "/chat", icon: MessageSquare },
-      { name: "日志", href: "/logs", icon: FileText },
-    ],
-  },
-  {
-    title: "配置",
-    items: [
-      { name: "设置", href: "/settings", icon: Settings },
-      { name: "API 密钥", href: "/api-keys", icon: Key },
-    ],
-  },
-  {
-    title: "系统",
-    items: [
-      { name: "监控", href: "/monitoring", icon: Activity },
-      { name: "帮助", href: "/help", icon: HelpCircle },
-    ],
-  },
-]
+function getNavigation() {
+  return [
+    {
+      title: t('nav.dashboard').split(' ')[0], // Get first word for section title
+      items: [
+        { name: t('nav.dashboard'), href: "/", icon: LayoutDashboard },
+        { name: t('nav.providers'), href: "/providers", icon: Server },
+        { name: t('nav.chat'), href: "/chat", icon: MessageSquare },
+        { name: t('nav.logs'), href: "/logs", icon: FileText },
+      ],
+    },
+    {
+      title: t('nav.settings').split(' ')[0],
+      items: [
+        { name: t('nav.settings'), href: "/settings", icon: Settings },
+        { name: t('nav.apiKeys'), href: "/api-keys", icon: Key },
+      ],
+    },
+    {
+      title: t('nav.monitoring').split(' ')[0],
+      items: [
+        { name: t('nav.monitoring'), href: "/monitoring", icon: Activity },
+        { name: t('nav.help'), href: "/help", icon: HelpCircle },
+      ],
+    },
+  ]
+}
 
 export function Sidebar() {
   const location = useLocation()
+  const navigation = getNavigation()
 
   return (
     <div className="flex h-full w-64 flex-col border-r bg-sidebar">
       {/* Logo */}
       <div className="flex h-14 items-center border-b px-4">
         <Link to="/" className="flex items-center gap-2 font-semibold">
-          <img src="/vite.svg" alt="LLM Link" className="h-8 w-8" />
-          <span className="text-lg">LLM Link</span>
+          <img src="/favicon.svg" alt="XGateway" className="h-8 w-8" />
+          <span className="text-lg">XGateway</span>
         </Link>
       </div>
 
@@ -57,7 +62,7 @@ export function Sidebar() {
       <div className="p-4">
         <Button variant="outline" className="w-full justify-start gap-2 text-muted-foreground">
           <Search className="h-4 w-4" />
-          <span>搜索...</span>
+          <span>{t('providers.search')}</span>
           <kbd className="pointer-events-none ml-auto inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
             ⌘K
           </kbd>
@@ -95,6 +100,11 @@ export function Sidebar() {
 
       <Separator />
 
+      {/* Language Switcher */}
+      <div className="p-4 border-b">
+        <LanguageSwitcher />
+      </div>
+
       {/* User */}
       <div className="p-4">
         <div className="flex items-center gap-3 rounded-lg px-2 py-2">
@@ -102,8 +112,8 @@ export function Sidebar() {
             A
           </div>
           <div className="flex-1 truncate">
-            <p className="text-sm font-medium">Admin</p>
-            <p className="text-xs text-muted-foreground">admin@llm-link.local</p>
+            <p className="text-sm font-medium">{t('common.admin')}</p>
+            <p className="text-xs text-muted-foreground">{t('common.email')}</p>
           </div>
         </div>
       </div>

@@ -1,20 +1,21 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Header } from "@/components/layout/header"
+import { useI18n, t } from "@/lib/i18n"
 import { Badge } from "@/components/ui/badge"
 import { Book, Code, MessageCircle, Github } from "lucide-react"
 
 export function HelpPage() {
   return (
     <div className="flex flex-col">
-      <Header title="帮助中心" description="LLM Link 使用指南和文档" />
+      <Header title={t('help.title')} description={t('help.description')} />
       <div className="flex-1 space-y-6 p-6 max-w-[1600px] mx-auto w-full">
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Book className="h-5 w-5" /> 快速开始
+                <Book className="h-5 w-5" /> {t('help.quickStart')}
               </CardTitle>
-              <CardDescription>了解如何配置和使用 LLM Link</CardDescription>
+              <CardDescription>{t('help.quickStartDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -27,7 +28,7 @@ export function HelpPage() {
               </div>
               <div className="space-y-2">
                 <h4 className="font-medium">3. 创建 API Key</h4>
-                <p className="text-sm text-muted-foreground">生成 API Key 用于客户端访问 LLM Link 网关。</p>
+                <p className="text-sm text-muted-foreground">生成 API Key 用于客户端访问 XGateway 网关。</p>
               </div>
               <div className="space-y-2">
                 <h4 className="font-medium">4. 发送请求</h4>
@@ -39,16 +40,16 @@ export function HelpPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Code className="h-5 w-5" /> API 使用示例
+                <Code className="h-5 w-5" /> {t('help.apiKeys')}
               </CardTitle>
-              <CardDescription>常用 API 调用示例</CardDescription>
+              <CardDescription>{t('help.apiKeysDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-2">Chat Completions</h4>
                   <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
-{`curl -X POST http://localhost:3000/v1/chat/completions \\
+{`curl -X POST http://localhost:8000/v1/chat/completions \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -68,7 +69,7 @@ export function HelpPage() {
               <CardTitle className="flex items-center gap-2">
                 支持的 Providers
               </CardTitle>
-              <CardDescription>LLM Link 支持的 AI 服务提供商</CardDescription>
+              <CardDescription>XGateway 支持的 AI 服务提供商</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
@@ -120,14 +121,14 @@ export function HelpPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>联系与支持</CardTitle>
+            <CardTitle>{t('help.contact')}</CardTitle>
           </CardHeader>
           <CardContent className="flex gap-4">
             <a href="https://github.com/lipish/llm-link" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
-              <Github className="h-4 w-4" /> GitHub 仓库
+              <Github className="h-4 w-4" /> {t('help.github')}
             </a>
             <a href="https://github.com/lipish/llm-link/issues" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
-              <MessageCircle className="h-4 w-4" /> 提交问题
+              <MessageCircle className="h-4 w-4" /> {t('help.issues')}
             </a>
           </CardContent>
         </Card>

@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Header } from "@/components/layout/header"
+import { useI18n, t } from "@/lib/i18n"
 import { Activity, Heart, Shield, Gauge, RefreshCw, AlertTriangle, CheckCircle, XCircle } from "lucide-react"
 
 interface ProviderHealth {
@@ -90,20 +91,20 @@ export function MonitoringPage() {
 
   return (
     <div className="flex flex-col">
-      <Header title="系统监控" description="实时监控 Provider 池状态和健康状况" />
+      <Header title={t('monitoring.title')} description={t('monitoring.description')} />
 
       <div className="flex-1 space-y-6 p-6 max-w-[1600px] mx-auto w-full">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={fetchMonitoringData}>
-              <RefreshCw className="mr-2 h-4 w-4" /> 刷新
+              <RefreshCw className="mr-2 h-4 w-4" /> {t('monitoring.refresh')}
             </Button>
-            <Button 
-              variant={autoRefresh ? "default" : "outline"} 
-              size="sm" 
+            <Button
+              variant={autoRefresh ? "default" : "outline"}
+              size="sm"
               onClick={() => setAutoRefresh(!autoRefresh)}
             >
-              {autoRefresh ? "停止自动刷新" : "自动刷新 (5s)"}
+              {autoRefresh ? t('monitoring.stopAutoRefresh') : t('monitoring.autoRefresh')}
             </Button>
           </div>
         </div>

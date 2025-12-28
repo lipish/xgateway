@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Header } from "@/components/layout/header"
+import { useI18n, t } from "@/lib/i18n"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Trash2, Copy, RefreshCw } from "lucide-react"
 
@@ -103,38 +104,38 @@ export function ApiKeysPage() {
 
   return (
     <div className="flex flex-col">
-      <Header title="API 密钥" description="管理 LLM Link 网关的访问密钥" />
+      <Header title={t('apiKeys.title')} description={t('apiKeys.description')} />
       <div className="flex-1 space-y-6 p-6 max-w-[1600px] mx-auto w-full">
         <div className="flex items-center justify-between">
           <Button onClick={createApiKey}>
-            <Plus className="mr-2 h-4 w-4" /> 创建 API Key
+            <Plus className="mr-2 h-4 w-4" /> {t('apiKeys.create')}
           </Button>
           <Button variant="outline" size="sm" onClick={fetchApiKeys}>
-            <RefreshCw className="mr-2 h-4 w-4" /> 刷新
+            <RefreshCw className="mr-2 h-4 w-4" /> {t('apiKeys.refresh')}
           </Button>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>API 密钥列表</CardTitle>
-            <CardDescription>用于访问 LLM Link 网关的认证密钥</CardDescription>
+            <CardTitle>{t('apiKeys.list')}</CardTitle>
+            <CardDescription>{t('apiKeys.listDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-center py-4">加载中...</div>
+              <div className="text-center py-4">{t('common.loading')}</div>
             ) : apiKeys.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">暂无 API Key，点击上方按钮创建</div>
+              <div className="text-center py-8 text-muted-foreground">{t('apiKeys.noKeys')}</div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>名称</TableHead>
-                    <TableHead>密钥</TableHead>
-                    <TableHead>状态</TableHead>
-                    <TableHead>速率限制</TableHead>
-                    <TableHead>创建时间</TableHead>
-                    <TableHead>最后使用</TableHead>
-                    <TableHead>操作</TableHead>
+                    <TableHead>{t('apiKeys.name')}</TableHead>
+                    <TableHead>{t('apiKeys.key')}</TableHead>
+                    <TableHead>{t('apiKeys.status')}</TableHead>
+                    <TableHead>{t('apiKeys.rateLimit')}</TableHead>
+                    <TableHead>{t('apiKeys.createdAt')}</TableHead>
+                    <TableHead>{t('apiKeys.lastUsed')}</TableHead>
+                    <TableHead>{t('apiKeys.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

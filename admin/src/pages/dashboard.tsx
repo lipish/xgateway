@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Header } from "@/components/layout/header"
+import { useI18n, t } from "@/lib/i18n"
 import {
   Server,
   Activity,
@@ -25,6 +26,7 @@ import {
   Trash2,
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
+import { apiGet, apiPost } from "@/lib/api"
 
 interface ProviderStats {
   total: number
@@ -59,29 +61,26 @@ export function DashboardPage() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
-      
+
       // Fetch stats and providers in parallel
-      const [statsResponse, providersResponse] = await Promise.all([
-        fetch('/api/providers/stats'),
-        fetch('/api/providers')
+      const [statsResult, providersResult] = await Promise.all([
+        apiGet('/api/providers/stats'),
+        apiGet('/api/providers')
       ])
-      
-      const statsResult = await statsResponse.json()
-      const providersResult = await providersResponse.json()
-      
+
       if (statsResult.success) {
         setStats(statsResult.data)
       } else {
         setError(statsResult.message || 'Failed to fetch stats')
       }
-      
+
       if (providersResult.success) {
         // Get the 4 most recent providers
         setRecentProviders((providersResult.data || []).slice(0, 4))
       } else {
         setError(providersResult.message || 'Failed to fetch providers')
       }
-      
+
     } catch (err) {
       setError('Network error: Failed to fetch dashboard data')
       console.error('Error fetching dashboard data:', err)
@@ -96,8 +95,7 @@ export function DashboardPage() {
     const startTime = Date.now()
     const minLoadingTime = 800
     try {
-      const response = await fetch(`/api/providers/${id}/test`, { method: 'POST' })
-      const result = await response.json()
+      const result = await apiPost(`/api/providers/${id}/test`)
       const elapsed = Date.now() - startTime
       if (elapsed < minLoadingTime) {
         await new Promise(resolve => setTimeout(resolve, minLoadingTime - elapsed))
@@ -116,13 +114,11 @@ export function DashboardPage() {
 
   const toggleProvider = async (id: number) => {
     try {
-      const response = await fetch(`/api/providers/${id}/toggle`, { method: 'POST' })
-      const result = await response.json()
+      const result = await apiPost(`/api/providers/${id}/toggle`)
       if (result.success) {
         setRecentProviders(recentProviders.map(p => p.id === id ? result.data : p))
         // 静默更新统计数据，不触发 loading 状态
-        const statsResponse = await fetch('/api/providers/stats')
-        const statsResult = await statsResponse.json()
+        const statsResult = await apiGet('/api/providers/stats')
         if (statsResult.success) {
           setStats(statsResult.data)
         }
@@ -137,40 +133,40 @@ export function DashboardPage() {
 
   const statsCards = [
     {
-      title: "总 Providers",
+      title: t('dashboard.totalProviders'),
       value: stats?.total.toString() || "0",
-      subtitle: "已配置的 Provider 数量",
+      subtitle: t('dashboard.totalProvidersDesc'),
       icon: Server,
     },
     {
-      title: "在线 Providers",
+      title: t('dashboard.enabledProviders'),
       value: stats?.enabled.toString() || "0",
-      subtitle: "当前启用的 Provider",
+      subtitle: t('dashboard.enabledProvidersDesc'),
       icon: Activity,
     },
     {
-      title: "今日请求",
+      title: t('dashboard.todayRequests'),
       value: "—",
-      subtitle: "统计功能开发中",
+      subtitle: t('dashboard.todayRequestsDesc'),
       icon: Zap,
     },
     {
-      title: "平均延迟",
+      title: t('dashboard.avgLatency'),
       value: "—",
-      subtitle: "统计功能开发中",
+      subtitle: t('dashboard.avgLatencyDesc'),
       icon: Clock,
     },
   ]
   return (
     <div className="flex flex-col">
       <Header
-        title="仪表板"
-        description="LLM Link 多 Provider AI 网关概览"
+        title={t('dashboard.title')}
+        description={t('dashboard.description')}
         onRefresh={fetchDashboardData}
         actions={
           <Button size="sm" onClick={() => navigate('/providers?add=true')}>
             <Plus className="mr-2 h-4 w-4" />
-            添加 Provider
+            {t('dashboard.addProvider')}
           </Button>
         }
       />
@@ -322,28 +318,28 @@ export function DashboardPage() {
             {/* Quick Actions */}
             <Card className="md:col-span-3">
               <CardHeader>
-                <CardTitle>快速操作</CardTitle>
-                <CardDescription>常用功能快捷入口</CardDescription>
+                <CardTitle>{t('dashboard.quickActions')}</CardTitle>
+                <CardDescription>{t('common.loading')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Button className="w-full justify-start" variant="outline">
                   <Activity className="mr-2 h-4 w-4" />
-                  测试所有 Providers
+                  {t('dashboard.testAllProviders')}
                 </Button>
                 <Button className="w-full justify-start" variant="outline">
                   <Settings className="mr-2 h-4 w-4" />
-                  批量编辑配置
+                  {t('dashboard.batchEdit')}
                 </Button>
                 <Button className="w-full justify-start" variant="outline">
                   <TrendingUp className="mr-2 h-4 w-4" />
-                  查看性能报告
+                  {t('dashboard.viewReport')}
                 </Button>
                 <Button
                   className="w-full justify-start"
                   variant="outline"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  清理无效 Providers
+                  {t('dashboard.cleanupProviders')}
                 </Button>
               </CardContent>
             </Card>

@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Header } from "@/components/layout/header"
+import { useI18n, t } from "@/lib/i18n"
 import { Settings, Save, RotateCcw } from "lucide-react"
 
 interface PoolSettings {
@@ -92,7 +93,7 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-col">
-      <Header title="系统设置" description="配置负载均衡、健康检查和故障转移策略" />
+      <Header title={t('settings.title')} description={t('settings.description')} />
       <div className="flex-1 space-y-6 p-6 max-w-[1600px] mx-auto w-full">
         {message && (
           <div className={`p-4 rounded-lg ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -102,27 +103,27 @@ export function SettingsPage() {
 
         <div className="flex gap-2">
           <Button onClick={saveSettings} disabled={saving}>
-            <Save className="mr-2 h-4 w-4" /> {saving ? '保存中...' : '保存设置'}
+            <Save className="mr-2 h-4 w-4" /> {saving ? t('settings.saving') : t('settings.save')}
           </Button>
           <Button variant="outline" onClick={resetToDefaults}>
-            <RotateCcw className="mr-2 h-4 w-4" /> 恢复默认
+            <RotateCcw className="mr-2 h-4 w-4" /> {t('settings.reset')}
           </Button>
         </div>
 
         {loading ? (
-          <Card><CardContent className="p-6 text-center">加载中...</CardContent></Card>
+          <Card><CardContent className="p-6 text-center">{t('common.loading')}</CardContent></Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" /> 负载均衡
+                  <Settings className="h-5 w-5" /> {t('settings.loadBalance')}
                 </CardTitle>
-                <CardDescription>选择请求分发策略</CardDescription>
+                <CardDescription>{t('settings.loadBalanceDesc')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium">负载均衡策略</label>
+                  <label className="text-sm font-medium">{t('settings.strategy')}</label>
                   <select
                     className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2"
                     value={settings.load_balance_strategy}

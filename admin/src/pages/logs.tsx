@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react"
+import { apiGet } from "@/lib/api"
+import { useI18n, t } from "@/lib/i18n"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,12 +37,9 @@ export function LogsPage() {
   const fetchLogs = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/logs?limit=100')
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          setLogs(data.data || [])
-        }
+      const data = await apiGet('/api/logs?limit=100')
+      if (data.success) {
+        setLogs(data.data || [])
       }
     } catch (err) {
       console.error('Failed to fetch logs:', err)
@@ -59,9 +58,9 @@ export function LogsPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'success': return <Badge variant="success">成功</Badge>
-      case 'error': return <Badge variant="destructive">错误</Badge>
-      case 'timeout': return <Badge variant="secondary">超时</Badge>
+      case 'success': return <Badge variant="success">{t('common.success')}</Badge>
+      case 'error': return <Badge variant="destructive">{t('common.error')}</Badge>
+      case 'timeout': return <Badge variant="secondary">{t('common.timeout')}</Badge>
       default: return <Badge variant="outline">{status}</Badge>
     }
   }
@@ -77,37 +76,37 @@ export function LogsPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `llm-link-logs-${new Date().toISOString().split('T')[0]}.csv`
+    a.download = `xgateway-logs-${new Date().toISOString().split('T')[0]}.csv`
     a.click()
   }
 
   return (
     <div className="flex flex-col h-screen">
-      <Header title="请求日志" description="查看 API 请求历史记录" />
+      <Header title={t('logs.title')} description={t('logs.description')} />
       <div className="flex-1 p-6 max-w-[1600px] mx-auto w-full overflow-hidden">
         <div className="flex items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-2 flex-1">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="搜索 Provider 或模型..." className="pl-9" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <Input placeholder={t('logs.search')} className="pl-9" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
             <select
               className="rounded-md border border-input bg-background px-3 py-2 text-sm"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <option value="all">全部状态</option>
-              <option value="success">成功</option>
-              <option value="error">错误</option>
+              <option value="all">{t('logs.allStatus')}</option>
+              <option value="success">{t('common.success')}</option>
+              <option value="error">{t('common.error')}</option>
               <option value="timeout">超时</option>
             </select>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={fetchLogs}>
-              <RefreshCw className="mr-2 h-4 w-4" /> 刷新
+              <RefreshCw className="mr-2 h-4 w-4" /> {t('apiKeys.refresh')}
             </Button>
             <Button variant="outline" size="sm" onClick={exportLogs}>
-              <Download className="mr-2 h-4 w-4" /> 导出
+              <Download className="mr-2 h-4 w-4" /> {t('logs.export')}
             </Button>
           </div>
         </div>
@@ -116,20 +115,20 @@ export function LogsPage() {
           {/* Left: Log List */}
           <div className="flex-1 bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col">
             <div className="p-4 border-b">
-              <h3 className="font-semibold">请求记录</h3>
-              <p className="text-sm text-muted-foreground">共 {filteredLogs.length} 条记录</p>
+              <h3 className="font-semibold">{t('logs.title')}</h3>
+              <p className="text-sm text-muted-foreground">{filteredLogs.length} {t('logs.title')}</p>
             </div>
             <div className="flex-1 overflow-auto">
               {loading ? (
-                <div className="text-center py-4">加载中...</div>
+                <div className="text-center py-4">{t('common.loading')}</div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>时间</TableHead>
-                      <TableHead>Provider</TableHead>
-                      <TableHead>模型</TableHead>
-                      <TableHead>状态</TableHead>
+                      <TableHead>{t('logs.timestamp')}</TableHead>
+                      <TableHead>{t('logs.provider')}</TableHead>
+                      <TableHead>{t('logs.model')}</TableHead>
+                      <TableHead>{t('logs.status')}</TableHead>
                       <TableHead>延迟</TableHead>
                       <TableHead>Tokens</TableHead>
                     </TableRow>

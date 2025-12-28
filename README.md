@@ -103,6 +103,45 @@ Use multiple protocols simultaneously for maximum flexibility:
 
 📚 **[Architecture Documentation →](https://lipish.github.io/llm-link/docs/architecture)**
 
+## 🛠️ Development
+
+### Running the Admin Panel
+
+The project includes a React-based admin panel for managing providers and testing the service.
+
+```bash
+# Start the backend service (default port 8000)
+cargo run --release -- --port 8000
+
+# In another terminal, start the admin panel
+cd admin
+npm install
+npm run dev
+```
+
+The admin panel will be available at `http://localhost:5174`
+
+### Configuring API Connection
+
+The admin panel automatically connects to the backend API. If you're running the backend on a different port, configure it via environment variables:
+
+```bash
+# Create .env.local in the admin directory
+cd admin
+cp .env.example .env.local
+
+# Edit .env.local and set the API URL
+# VITE_API_URL=http://localhost:8000
+```
+
+Then restart the development server:
+
+```bash
+npm run dev
+```
+
+📚 **[Development Guide →](https://lipish.github.io/llm-link/docs/development)**
+
 ## 🔧 Advanced Usage
 
 ### Custom Configuration

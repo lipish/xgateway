@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react"
 import { useSearchParams, useNavigate } from "react-router-dom"
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
+import { useI18n, t } from "@/lib/i18n"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -102,8 +104,7 @@ export function ProvidersPage() {
 
   const fetchProviderTypes = async () => {
     try {
-      const response = await fetch('/api/provider-types')
-      const result = await response.json()
+      const result = await apiGet('/api/provider-types')
       if (result.success && result.data) {
         setProviderTypes(result.data)
       }
@@ -120,9 +121,8 @@ export function ProvidersPage() {
   const fetchProviders = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/providers')
-      const result = await response.json()
-      
+      const result = await apiGet('/api/providers')
+
       if (result.success) {
         const data = result.data || []
         setProviders(data)
@@ -230,18 +230,13 @@ export function ProvidersPage() {
     }
     setAdding(true)
     try {
-      const response = await fetch('/api/providers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: addForm.name,
-          provider_type: addForm.providerType,
-          config: JSON.stringify({ api_key: addForm.apiKey, model: addForm.model, base_url: addForm.baseUrl }),
-          enabled: true,
-          priority: parseInt(addForm.priority) || 10
-        })
+      const result = await apiPost('/api/providers', {
+        name: addForm.name,
+        provider_type: addForm.providerType,
+        config: JSON.stringify({ api_key: addForm.apiKey, model: addForm.model, base_url: addForm.baseUrl }),
+        enabled: true,
+        priority: parseInt(addForm.priority) || 10
       })
-      const result = await response.json()
       if (result.success) {
         setProviders([result.data, ...providers])
         setAddDialogOpen(false)
@@ -263,8 +258,7 @@ export function ProvidersPage() {
     const startTime = Date.now()
     const minLoadingTime = 800 // 最小加载时间，确保用户能看到加载动画
     try {
-      const response = await fetch(`/api/providers/${id}/test`, { method: 'POST' })
-      const result = await response.json()
+      const result = await apiPost(`/api/providers/${id}/test`)
       const elapsed = Date.now() - startTime
       if (elapsed < minLoadingTime) {
         await new Promise(resolve => setTimeout(resolve, minLoadingTime - elapsed))
@@ -331,14 +325,14 @@ export function ProvidersPage() {
 
   return (
     <div className="flex flex-col">
-      <Header title="Providers" description="管理您的 AI 服务提供商" />
+      <Header title={t('providers.title')} description={t('providers.description')} />
 
       <div className="flex-1 p-6 max-w-[1600px] mx-auto w-full">
         {/* Loading and Error States */}
         {loading && (
           <Card>
             <CardContent className="p-6">
-              <div className="text-center">Loading providers...</div>
+              <div className="text-center">{t('common.loading')}</div>
             </CardContent>
           </Card>
         )}
@@ -348,7 +342,7 @@ export function ProvidersPage() {
             <CardContent className="p-6">
               <div className="text-center text-red-500">{error}</div>
               <div className="text-center mt-2">
-                <Button onClick={fetchProviders}>Retry</Button>
+                <Button onClick={fetchProviders}>{t('common.confirm')}</Button>
               </div>
             </CardContent>
           </Card>
@@ -361,14 +355,14 @@ export function ProvidersPage() {
             <div className="bg-white rounded-xl shadow-sm border p-6 flex flex-col w-[65%]">
               <div className="flex items-center justify-between gap-4 mb-4">
                 <div>
-                  <h2 className="text-lg font-semibold">所有 Providers</h2>
-                  <p className="text-sm text-muted-foreground">共 {filteredProviders.length} 个 Provider</p>
+                  <h2 className="text-lg font-semibold">{t('providers.allProviders')}</h2>
+                  <p className="text-sm text-muted-foreground">{t('providers.allProviders')} {filteredProviders.length}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      placeholder="搜索..."
+                      placeholder={t('providers.search')}
                       className="pl-9 w-48"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
@@ -376,7 +370,7 @@ export function ProvidersPage() {
                   </div>
                   <Button onClick={openAddDialog} size="sm">
                     <Plus className="mr-1 h-4 w-4" />
-                    添加
+                    {t('providers.add')}
                 </Button>
               </div>
             </div>
@@ -384,11 +378,11 @@ export function ProvidersPage() {
                 <Table>
                   <TableHeader className="sticky top-0 bg-white">
                     <TableRow>
-                      <TableHead>名称</TableHead>
-                      <TableHead>类型</TableHead>
-                      <TableHead>状态</TableHead>
-                      <TableHead>优先级</TableHead>
-                      <TableHead className="w-[100px]">操作</TableHead>
+                      <TableHead>{t('providers.name')}</TableHead>
+                      <TableHead>{t('providers.type')}</TableHead>
+                      <TableHead>{t('providers.status')}</TableHead>
+                      <TableHead>{t('providers.priority')}</TableHead>
+                      <TableHead className="w-[100px]">{t('providers.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -415,7 +409,7 @@ export function ProvidersPage() {
                           <Badge
                             variant={provider.enabled ? "success" : "destructive"}
                           >
-                            {provider.enabled ? "启用" : "禁用"}
+                            {provider.enabled ? t('providers.enabled') : t('providers.disabled')}
                           </Badge>
                         </TableCell>
                         <TableCell>{provider.priority}</TableCell>
