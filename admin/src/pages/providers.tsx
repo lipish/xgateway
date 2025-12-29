@@ -340,7 +340,7 @@ export function ProvidersPage() {
         {error && (
           <Card>
             <CardContent className="p-6">
-              <div className="text-center text-red-500">{error}</div>
+              <div className="text-center text-destructive">{error}</div>
               <div className="text-center mt-2">
                 <Button onClick={fetchProviders}>{t('common.confirm')}</Button>
               </div>
@@ -396,7 +396,7 @@ export function ProvidersPage() {
                           <div className="flex items-center gap-2">
                             <div
                               className={`h-2 w-2 rounded-full ${
-                                provider.enabled ? "bg-green-500" : "bg-red-500"
+                                provider.enabled ? "bg-primary" : "bg-destructive"
                               }`}
                             />
                             <span className="font-medium">{provider.name}</span>
@@ -429,7 +429,7 @@ export function ProvidersPage() {
                               {testingId === provider.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : testResult?.id === provider.id ? (
-                                <Activity className={`h-4 w-4 ${testResult.success ? 'text-green-500' : 'text-red-500'}`} />
+                                <Activity className={`h-4 w-4 ${testResult.success ? 'text-primary' : 'text-destructive'}`} />
                               ) : (
                                 <Activity className="h-4 w-4" />
                               )}
@@ -463,7 +463,7 @@ export function ProvidersPage() {
                     {/* 基本信息 */}
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${selectedProvider.enabled ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                        <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${selectedProvider.enabled ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
                           <Server className="h-5 w-5" />
                         </div>
                         <div>

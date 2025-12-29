@@ -164,7 +164,7 @@ export function LogsPage() {
                 <div className="flex-1 overflow-auto p-4 space-y-4">
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
-                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${selectedLog.status === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${selectedLog.status === 'success' ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
                         <Server className="h-5 w-5" />
                       </div>
                       <div>
@@ -188,8 +188,8 @@ export function LogsPage() {
 
                   {selectedLog.error_message && (
                     <div className="space-y-2 pt-3 border-t">
-                      <h5 className="text-sm font-medium text-red-500">错误信息</h5>
-                      <p className="text-sm text-red-500 bg-red-50 p-2 rounded">{selectedLog.error_message}</p>
+                      <h5 className="text-sm font-medium text-destructive">错误信息</h5>
+                      <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{selectedLog.error_message}</p>
                     </div>
                   )}
 

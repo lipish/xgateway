@@ -73,9 +73,9 @@ export function MonitoringPage() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'healthy': return <CheckCircle className="h-4 w-4 text-green-500" />
-      case 'degraded': return <AlertTriangle className="h-4 w-4 text-yellow-500" />
-      case 'unhealthy': return <XCircle className="h-4 w-4 text-red-500" />
+      case 'healthy': return <CheckCircle className="h-4 w-4 text-primary" />
+      case 'degraded': return <AlertTriangle className="h-4 w-4 text-warning" />
+      case 'unhealthy': return <XCircle className="h-4 w-4 text-destructive" />
       default: return <Activity className="h-4 w-4 text-gray-400" />
     }
   }
@@ -110,7 +110,7 @@ export function MonitoringPage() {
         </div>
 
         {error && (
-          <Card><CardContent className="p-6 text-center text-red-500">{error}</CardContent></Card>
+          <Card><CardContent className="p-6 text-center text-destructive">{error}</CardContent></Card>
         )}
 
         {/* Pool Overview */}
@@ -118,10 +118,10 @@ export function MonitoringPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">健康 Providers</CardTitle>
-              <Heart className="h-4 w-4 text-green-500" />
+              <Heart className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-primary">
                 {poolStatus?.healthy_providers ?? '--'} / {poolStatus?.total_providers ?? '--'}
               </div>
             </CardContent>
@@ -181,7 +181,7 @@ export function MonitoringPage() {
                   <CardContent className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">成功率</span>
-                      <span className={provider.success_rate >= 95 ? "text-green-600" : provider.success_rate >= 80 ? "text-yellow-600" : "text-red-600"}>
+                      <span className={provider.success_rate >= 95 ? "text-primary" : provider.success_rate >= 80 ? "text-warning" : "text-destructive"}>
                         {provider.success_rate.toFixed(1)}%
                       </span>
                     </div>

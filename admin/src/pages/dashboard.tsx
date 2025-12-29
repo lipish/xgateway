@@ -193,7 +193,7 @@ export function DashboardPage() {
         {error && (
           <Card>
             <CardContent className="p-6">
-              <div className="text-center text-red-500">{error}</div>
+              <div className="text-center text-destructive">{error}</div>
               <div className="text-center mt-2">
                 <Button onClick={fetchDashboardData}>Retry</Button>
               </div>
@@ -258,7 +258,7 @@ export function DashboardPage() {
                           <div className="flex items-center gap-2">
                             <div
                               className={`h-2 w-2 rounded-full ${
-                                provider.enabled ? "bg-green-500" : "bg-red-500"
+                                provider.enabled ? "bg-primary" : "bg-destructive"
                               }`}
                             />
                             <span className="font-medium">{provider.name}</span>
@@ -292,7 +292,7 @@ export function DashboardPage() {
                               {testingId === provider.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : testResult?.id === provider.id ? (
-                                <Activity className={`h-4 w-4 ${testResult.success ? 'text-green-500' : 'text-red-500'}`} />
+                                <Activity className={`h-4 w-4 ${testResult.success ? 'text-primary' : 'text-destructive'}`} />
                               ) : (
                                 <Activity className="h-4 w-4" />
                               )}
@@ -355,14 +355,14 @@ export function DashboardPage() {
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="flex items-center gap-4 rounded-lg border p-4">
-                <div className="h-3 w-3 rounded-full bg-green-500" />
+                <div className="h-3 w-3 rounded-full bg-primary" />
                 <div>
                   <p className="text-sm font-medium">API 网关</p>
                   <p className="text-xs text-muted-foreground">运行正常 (端口 3000)</p>
                 </div>
               </div>
               <div className="flex items-center gap-4 rounded-lg border p-4">
-                <div className={`h-3 w-3 rounded-full ${stats && stats.enabled > 0 ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                <div className={`h-3 w-3 rounded-full ${stats && stats.enabled > 0 ? 'bg-primary' : 'bg-warning'}`} />
                 <div>
                   <p className="text-sm font-medium">Provider 池</p>
                   <p className="text-xs text-muted-foreground">

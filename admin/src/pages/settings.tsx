@@ -96,7 +96,7 @@ export function SettingsPage() {
       <Header title={t('settings.title')} description={t('settings.description')} />
       <div className="flex-1 space-y-6 p-6 max-w-[1600px] mx-auto w-full">
         {message && (
-          <div className={`p-4 rounded-lg ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+          <div className={`p-4 rounded-lg ${message.type === 'success' ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
             {message.text}
           </div>
         )}
