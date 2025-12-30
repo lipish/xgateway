@@ -160,6 +160,20 @@ impl HealthChecker {
             .collect()
     }
 
+    /// Set health status for a provider
+    pub async fn set_status(&self, provider_id: i64, status: HealthStatus) {
+        let mut states = self.states.write().await;
+        if let Some(state) = states.get_mut(&provider_id) {
+            state.status = status;
+            tracing::debug!("Set provider {} status to {:?}", provider_id, status);
+        } else {
+            // Register provider if not exists
+            let mut new_state = ProviderHealthState::default();
+            new_state.status = status;
+            states.insert(provider_id, new_state);
+        }
+    }
+
     /// Record a successful request for a provider
     pub async fn record_success(&self, provider_id: i64, latency_ms: u64) {
         let mut states = self.states.write().await;

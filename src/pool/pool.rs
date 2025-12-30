@@ -147,6 +147,11 @@ impl ProviderPool {
         self.load_balancer.set_strategy(strategy).await;
     }
 
+    /// Update health status for a provider
+    pub async fn update_health(&self, provider_id: i64, status: HealthStatus) {
+        self.health_checker.set_status(provider_id, status).await;
+    }
+
     /// Record successful request
     pub async fn record_success(&self, provider_id: i64, latency_ms: u64) {
         self.health_checker.record_success(provider_id, latency_ms).await;
@@ -157,6 +162,11 @@ impl ProviderPool {
     pub async fn record_failure(&self, provider_id: i64, error: Option<&str>) {
         self.health_checker.record_failure(provider_id, error).await;
         self.failover_manager.record_failure(provider_id, Some(RetryCondition::ServerError)).await;
+    }
+
+    /// Record request start (increment active connections)
+    pub async fn record_request_start(&self, provider_id: i64) {
+        self.metrics.record_request_start(provider_id).await;
     }
 
     /// Record request metrics

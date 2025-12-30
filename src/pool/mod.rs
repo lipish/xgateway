@@ -14,6 +14,8 @@ pub mod failover;
 pub mod pool;
 pub mod metrics;
 pub mod service;
+pub mod manager;
+pub mod rate_limiter;
 
 pub use health::{HealthChecker, HealthStatus, HealthCheckResult};
 pub use circuit_breaker::{CircuitBreaker, CircuitBreakerConfig, CircuitState};
@@ -22,4 +24,6 @@ pub use failover::{FailoverManager, FailoverConfig};
 pub use pool::{ProviderPool, ProviderInstance, PoolStatus};
 pub use metrics::{ProviderMetrics, RequestMetrics};
 pub use service::{MultiProviderService, MultiProviderConfig};
+pub use manager::{PoolManager, PoolStatusSummary};
+pub use rate_limiter::{RateLimiter, RateLimitConfig, RateLimitResult};
 

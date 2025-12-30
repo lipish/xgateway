@@ -41,6 +41,8 @@ use cli::{Args, ConfigLoader, list_applications, show_application_info};
 use mode::RunMode;
 use db::{DatabasePool, initialize_provider_types};
 use admin::create_admin_app;
+use pool::PoolManager;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -139,8 +141,18 @@ async fn run_multi_mode(args: Args) -> Result<()> {
         warn!("⚠️ Failed to initialize provider types: {}", e);
     }
 
+    // Initialize pool manager for load balancing and health checks
+    let pool_manager = Arc::new(PoolManager::new(db_pool.clone()));
+    if let Err(e) = pool_manager.init().await {
+        warn!("⚠️ Failed to initialize pool manager: {}", e);
+    }
+
+    // Start background health check task
+    let _health_check_handle = Arc::clone(&pool_manager).start_health_check();
+    info!("🏥 Background health check started");
+
     // Build unified application with both Admin API and LLM Proxy
-    let app = build_multi_mode_app(db_pool.clone());
+    let app = build_multi_mode_app(db_pool.clone(), Arc::clone(&pool_manager));
 
     // Use port 3000 as the unified service port
     let port = args.port.unwrap_or(3000);
@@ -157,18 +169,101 @@ async fn run_multi_mode(args: Args) -> Result<()> {
 
     axum::serve(listener, app).await?;
 
+    // Shutdown pool manager on exit
+    pool_manager.shutdown().await;
+
     Ok(())
 }
 
+/// Shared state for LLM proxy routes
+#[derive(Clone)]
+struct ProxyState {
+    db_pool: DatabasePool,
+    pool_manager: Arc<PoolManager>,
+}
+
 /// Build multi-mode application with Admin API and LLM Proxy routes
-fn build_multi_mode_app(db_pool: DatabasePool) -> Router {
+fn build_multi_mode_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -> Router {
     use tower_http::cors::{Any, CorsLayer};
 
     // Admin API routes (/api/*)
     let admin_routes = create_admin_app(db_pool.clone());
 
     // LLM Proxy routes (/v1/*)
-    let llm_proxy_routes = build_llm_proxy_routes(db_pool.clone());
+    let llm_proxy_routes = build_llm_proxy_routes(db_pool.clone(), pool_manager.clone());
+
+    // Pool status route
+    let pool_manager_for_status = pool_manager.clone();
+    let pool_manager_for_metrics = pool_manager.clone();
+    let db_pool_for_metrics = db_pool.clone();
+    let pool_status_route = Router::new()
+        .route("/api/pool/status", get(move || {
+            let pm = pool_manager_for_status.clone();
+            async move {
+                let summary = pm.get_status_summary().await;
+                axum::Json(summary)
+            }
+        }))
+        .route("/api/pool/metrics", get(move || {
+            let pm = pool_manager_for_metrics.clone();
+            let db = db_pool_for_metrics.clone();
+            async move {
+                let metrics = pm.get_all_metrics().await;
+                let providers = db.list_providers().await.unwrap_or_default();
+                let health_statuses = pm.get_health_status().await;
+
+                // Build detailed metrics with provider info
+                let detailed: Vec<serde_json::Value> = providers.iter().map(|p| {
+                    let m = metrics.get(&p.id).cloned().unwrap_or_default();
+                    let health = health_statuses.get(&p.id).map(|s| format!("{:?}", s)).unwrap_or("Unknown".to_string());
+                    let success_rate = if m.total_requests > 0 {
+                        (m.successful_requests as f64 / m.total_requests as f64) * 100.0
+                    } else {
+                        100.0
+                    };
+                    serde_json::json!({
+                        "provider_id": p.id,
+                        "provider_name": p.name,
+                        "enabled": p.enabled,
+                        "health_status": health,
+                        "total_requests": m.total_requests,
+                        "successful_requests": m.successful_requests,
+                        "failed_requests": m.failed_requests,
+                        "success_rate": format!("{:.2}%", success_rate),
+                        "avg_latency_ms": m.avg_latency_ms,
+                        "p50_latency_ms": m.p50_latency_ms,
+                        "p95_latency_ms": m.p95_latency_ms,
+                        "p99_latency_ms": m.p99_latency_ms,
+                        "active_connections": m.active_connections,
+                        "tokens_used": m.tokens_used,
+                        "requests_per_second": m.requests_per_second
+                    })
+                }).collect();
+
+                axum::Json(serde_json::json!({
+                    "providers": detailed,
+                    "timestamp": chrono::Utc::now().to_rfc3339()
+                }))
+            }
+        }))
+        .route("/api/pool/metrics/:provider_id", get({
+            let pm = pool_manager.clone();
+            move |axum::extract::Path(provider_id): axum::extract::Path<i64>| {
+                let pm = pm.clone();
+                async move {
+                    match pm.get_metrics(provider_id).await {
+                        Some(m) => axum::Json(serde_json::json!({
+                            "success": true,
+                            "data": m
+                        })),
+                        None => axum::Json(serde_json::json!({
+                            "success": false,
+                            "error": "Provider not found"
+                        }))
+                    }
+                }
+            }
+        }));
 
     // Basic routes
     let basic_routes = Router::new()
@@ -180,6 +275,8 @@ fn build_multi_mode_app(db_pool: DatabasePool) -> Router {
                 "endpoints": {
                     "llm_api": "/v1/*",
                     "admin_api": "/api/*",
+                    "pool_status": "/api/pool/status",
+                    "pool_metrics": "/api/pool/metrics",
                     "health": "/health"
                 }
             }))
@@ -195,6 +292,7 @@ fn build_multi_mode_app(db_pool: DatabasePool) -> Router {
     let app = basic_routes
         .merge(admin_routes)
         .merge(llm_proxy_routes)
+        .merge(pool_status_route)
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
@@ -206,139 +304,84 @@ fn build_multi_mode_app(db_pool: DatabasePool) -> Router {
 }
 
 /// Build LLM proxy routes for multi-provider mode
-fn build_llm_proxy_routes(db_pool: DatabasePool) -> Router {
-    use axum::{extract::State, Json, http::StatusCode};
-    use serde_json::json;
+fn build_llm_proxy_routes(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -> Router {
+    let state = ProxyState { db_pool, pool_manager };
 
     Router::new()
         // OpenAI compatible endpoints
         .route("/v1/chat/completions", post(handle_chat_completions))
         .route("/v1/models", get(handle_list_models))
         .route("/v1/models/:model", get(handle_get_model))
-        .with_state(db_pool)
+        .with_state(state)
 }
 
-/// Handle chat completions request - routes to appropriate provider
-async fn handle_chat_completions(
-    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
-    axum::Json(request): axum::Json<serde_json::Value>,
-) -> axum::response::Response {
+/// Result of a provider request attempt
+enum RequestResult {
+    Success(axum::response::Response),
+    Failure { error: String, latency_ms: i64 },
+}
+
+/// Send request to a specific provider
+async fn send_to_provider(
+    provider: &db::Provider,
+    req_body: &serde_json::Value,
+    is_stream: bool,
+    request_content: Option<String>,
+    db_pool: &db::DatabasePool,
+    pool_manager: &Arc<PoolManager>,
+) -> RequestResult {
     use axum::http::StatusCode;
     use axum::response::IntoResponse;
     use crate::db::NewRequestLog;
 
-    // Start timing
     let start_time = std::time::Instant::now();
-
-    // Check if streaming is requested
-    let is_stream = request.get("stream").and_then(|v| v.as_bool()).unwrap_or(false);
-
-    // Check if a specific provider_id is requested
-    let requested_provider_id = request.get("provider_id").and_then(|v| v.as_i64());
-
-    // Get providers from database
-    let providers = match db_pool.list_providers().await {
-        Ok(p) => p,
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                axum::Json(serde_json::json!({
-                    "error": {
-                        "message": format!("Failed to get providers: {}", e),
-                        "type": "server_error"
-                    }
-                }))
-            ).into_response();
-        }
-    };
-
-    // Find the provider to use
-    let provider = if let Some(provider_id) = requested_provider_id {
-        // Use specific provider by ID
-        match providers.iter().find(|p| p.id == provider_id) {
-            Some(p) => p.clone(),
-            None => {
-                return (
-                    StatusCode::NOT_FOUND,
-                    axum::Json(serde_json::json!({
-                        "error": {
-                            "message": format!("Provider with id {} not found", provider_id),
-                            "type": "provider_not_found"
-                        }
-                    }))
-                ).into_response();
-            }
-        }
-    } else {
-        // Use first enabled provider (default behavior)
-        let enabled_providers: Vec<_> = providers.into_iter().filter(|p| p.enabled).collect();
-        if enabled_providers.is_empty() {
-            return (
-                StatusCode::SERVICE_UNAVAILABLE,
-                axum::Json(serde_json::json!({
-                    "error": {
-                        "message": "No providers available. Please configure providers in the admin interface.",
-                        "type": "no_providers"
-                    }
-                }))
-            ).into_response();
-        }
-        enabled_providers[0].clone()
-    };
-
-    // Parse provider config and forward request
     let config: serde_json::Value = serde_json::from_str(&provider.config).unwrap_or_default();
     let api_key = config.get("api_key").and_then(|v| v.as_str()).unwrap_or("");
     let base_url = config.get("base_url").and_then(|v| v.as_str()).unwrap_or("");
     let model = config.get("model").and_then(|v| v.as_str()).unwrap_or("");
 
-    // Build the actual request to provider
-    let client = reqwest::Client::new();
+    // Record request start for metrics
+    pool_manager.record_request_start(provider.id).await;
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(120))
+        .build()
+        .unwrap_or_else(|_| reqwest::Client::new());
     let url = format!("{}/chat/completions", base_url.trim_end_matches('/'));
 
-    // Merge model into request if not specified, and remove provider_id from request body
-    let mut req_body = request.clone();
-    if let Some(obj) = req_body.as_object_mut() {
-        obj.remove("provider_id"); // Remove custom field before forwarding
+    // Merge model into request
+    let mut body = req_body.clone();
+    if body.get("model").is_none() || body.get("model").unwrap().as_str() == Some("") {
+        body["model"] = serde_json::json!(model);
     }
-    if req_body.get("model").is_none() || req_body.get("model").unwrap().as_str() == Some("") {
-        req_body["model"] = serde_json::json!(model);
-    }
-
-    // Extract request content (all messages in the conversation)
-    let request_content = req_body.get("messages")
-        .and_then(|m| m.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|m| {
-                    let role = m.get("role").and_then(|r| r.as_str()).unwrap_or("unknown");
-                    let content = m.get("content").and_then(|c| c.as_str()).unwrap_or("");
-                    if content.is_empty() {
-                        None
-                    } else {
-                        Some(format!("[{}]: {}", role, content))
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join("\n\n")
-        })
-        .filter(|s| !s.is_empty());
 
     match client
         .post(&url)
         .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
-        .json(&req_body)
+        .json(&body)
         .send()
         .await
     {
         Ok(response) => {
             let status = StatusCode::from_u16(response.status().as_u16()).unwrap_or(StatusCode::OK);
-            let latency_ms = start_time.elapsed().as_millis() as i64;
+            let latency = start_time.elapsed();
+            let latency_ms = latency.as_millis() as i64;
             let is_success = status.is_success();
 
+            // Record metrics
+            if is_success {
+                pool_manager.record_success(provider.id, latency).await;
+            } else {
+                pool_manager.record_failure(provider.id, Some(&format!("HTTP {}", status.as_u16()))).await;
+                return RequestResult::Failure {
+                    error: format!("HTTP {}", status.as_u16()),
+                    latency_ms,
+                };
+            }
+
             if is_stream {
-                // For streaming, collect the full response while forwarding
+                // Streaming response handling
                 use futures::StreamExt;
                 use std::pin::Pin;
                 use std::task::{Context, Poll};
@@ -348,10 +391,8 @@ async fn handle_chat_completions(
                 let collected_content = std::sync::Arc::new(std::sync::Mutex::new(String::new()));
                 let content_clone = collected_content.clone();
 
-                // Create a stream that collects chunks while forwarding
                 let collecting_stream = stream.map(move |chunk_result| {
                     if let Ok(ref chunk) = chunk_result {
-                        // Parse SSE data to extract content
                         if let Ok(text) = std::str::from_utf8(chunk) {
                             for line in text.lines() {
                                 if line.starts_with("data: ") {
@@ -378,7 +419,6 @@ async fn handle_chat_completions(
                     chunk_result
                 });
 
-                // Wrap with a stream that logs on completion
                 struct LoggingStream<S> {
                     inner: S,
                     collected_content: std::sync::Arc<std::sync::Mutex<String>>,
@@ -440,19 +480,20 @@ async fn handle_chat_completions(
 
                 let body = axum::body::Body::from_stream(logging_stream);
 
-                axum::response::Response::builder()
-                    .status(status)
-                    .header("Content-Type", "text/event-stream")
-                    .header("Cache-Control", "no-cache")
-                    .header("Connection", "keep-alive")
-                    .body(body)
-                    .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
+                RequestResult::Success(
+                    axum::response::Response::builder()
+                        .status(status)
+                        .header("Content-Type", "text/event-stream")
+                        .header("Cache-Control", "no-cache")
+                        .header("Connection", "keep-alive")
+                        .body(body)
+                        .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
+                )
             } else {
-                // For non-streaming, parse JSON response and log with content
+                // Non-streaming response
                 match response.json::<serde_json::Value>().await {
-                    Ok(body) => {
-                        // Extract response content from assistant message
-                        let response_content = body.get("choices")
+                    Ok(resp_body) => {
+                        let response_content = resp_body.get("choices")
                             .and_then(|c| c.as_array())
                             .and_then(|arr| arr.first())
                             .and_then(|c| c.get("message"))
@@ -460,8 +501,7 @@ async fn handle_chat_completions(
                             .and_then(|c| c.as_str())
                             .map(|s| s.to_string());
 
-                        // Extract tokens used
-                        let tokens_used = body.get("usage")
+                        let tokens_used = resp_body.get("usage")
                             .and_then(|u| u.get("total_tokens"))
                             .and_then(|t| t.as_i64())
                             .unwrap_or(0);
@@ -470,67 +510,254 @@ async fn handle_chat_completions(
                             provider_id: Some(provider.id),
                             provider_name: provider.name.clone(),
                             model: model.to_string(),
-                            status: if is_success { "success".to_string() } else { "error".to_string() },
+                            status: "success".to_string(),
                             latency_ms,
                             tokens_used,
-                            error_message: if is_success { None } else { Some(format!("HTTP {}", status.as_u16())) },
+                            error_message: None,
                             request_type: "chat".to_string(),
                             request_content,
                             response_content,
                         };
                         let _ = db_pool.create_request_log(log).await;
 
-                        (status, axum::Json(body)).into_response()
+                        RequestResult::Success((status, axum::Json(resp_body)).into_response())
                     }
-                    Err(e) => (
-                        StatusCode::BAD_GATEWAY,
-                        axum::Json(serde_json::json!({
-                            "error": {
-                                "message": format!("Failed to parse provider response: {}", e),
-                                "type": "proxy_error"
-                            }
-                        }))
-                    ).into_response()
+                    Err(e) => RequestResult::Failure {
+                        error: format!("Failed to parse response: {}", e),
+                        latency_ms,
+                    }
                 }
             }
         }
         Err(e) => {
-            let latency_ms = start_time.elapsed().as_millis() as i64;
+            let latency = start_time.elapsed();
+            let latency_ms = latency.as_millis() as i64;
+            pool_manager.record_failure(provider.id, Some(&e.to_string())).await;
 
-            // Log the failed request
-            let log = NewRequestLog {
-                provider_id: Some(provider.id),
-                provider_name: provider.name.clone(),
-                model: model.to_string(),
-                status: "error".to_string(),
+            RequestResult::Failure {
+                error: e.to_string(),
                 latency_ms,
-                tokens_used: 0,
-                error_message: Some(format!("{}", e)),
-                request_type: "chat".to_string(),
-                request_content,
-                response_content: None,
-            };
-            let _ = db_pool.create_request_log(log).await;
-
-            (
-                StatusCode::BAD_GATEWAY,
-                axum::Json(serde_json::json!({
-                    "error": {
-                        "message": format!("Failed to reach provider: {}", e),
-                        "type": "proxy_error",
-                        "provider": provider.name
-                    }
-                }))
-            ).into_response()
+            }
         }
     }
 }
 
+/// Handle chat completions request - routes to appropriate provider with load balancing and failover
+async fn handle_chat_completions(
+    axum::extract::State(state): axum::extract::State<ProxyState>,
+    axum::Json(request): axum::Json<serde_json::Value>,
+) -> axum::response::Response {
+    use axum::http::StatusCode;
+    use axum::response::IntoResponse;
+    use crate::db::NewRequestLog;
+    use crate::pool::RateLimitResult;
+
+    let db_pool = &state.db_pool;
+    let pool_manager = &state.pool_manager;
+
+    // Check global rate limit
+    if let RateLimitResult::Denied { retry_after } = pool_manager.check_rate_limit(None).await {
+        return (
+            StatusCode::TOO_MANY_REQUESTS,
+            [("Retry-After", retry_after.as_secs().to_string())],
+            axum::Json(serde_json::json!({
+                "error": {
+                    "message": format!("Rate limit exceeded. Retry after {} seconds.", retry_after.as_secs()),
+                    "type": "rate_limit_exceeded",
+                    "retry_after_seconds": retry_after.as_secs()
+                }
+            }))
+        ).into_response();
+    }
+
+    // Check if streaming is requested
+    let is_stream = request.get("stream").and_then(|v| v.as_bool()).unwrap_or(false);
+
+    // Check if a specific provider_id is requested
+    let requested_provider_id = request.get("provider_id").and_then(|v| v.as_i64());
+
+    // Get providers from database
+    let providers = match db_pool.list_providers().await {
+        Ok(p) => p,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                axum::Json(serde_json::json!({
+                    "error": {
+                        "message": format!("Failed to get providers: {}", e),
+                        "type": "server_error"
+                    }
+                }))
+            ).into_response();
+        }
+    };
+
+    // Prepare request body (remove provider_id field)
+    let mut req_body = request.clone();
+    if let Some(obj) = req_body.as_object_mut() {
+        obj.remove("provider_id");
+    }
+
+    // Extract request content for logging
+    let request_content = req_body.get("messages")
+        .and_then(|m| m.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|m| {
+                    let role = m.get("role").and_then(|r| r.as_str()).unwrap_or("unknown");
+                    let content = m.get("content").and_then(|c| c.as_str()).unwrap_or("");
+                    if content.is_empty() {
+                        None
+                    } else {
+                        Some(format!("[{}]: {}", role, content))
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n\n")
+        })
+        .filter(|s| !s.is_empty());
+
+    // If specific provider requested, use only that one (no failover)
+    if let Some(provider_id) = requested_provider_id {
+        match providers.iter().find(|p| p.id == provider_id) {
+            Some(provider) => {
+                match send_to_provider(provider, &req_body, is_stream, request_content.clone(), db_pool, pool_manager).await {
+                    RequestResult::Success(response) => return response,
+                    RequestResult::Failure { error, latency_ms } => {
+                        let log = NewRequestLog {
+                            provider_id: Some(provider.id),
+                            provider_name: provider.name.clone(),
+                            model: "".to_string(),
+                            status: "error".to_string(),
+                            latency_ms,
+                            tokens_used: 0,
+                            error_message: Some(error.clone()),
+                            request_type: "chat".to_string(),
+                            request_content,
+                            response_content: None,
+                        };
+                        let _ = db_pool.create_request_log(log).await;
+
+                        return (
+                            StatusCode::BAD_GATEWAY,
+                            axum::Json(serde_json::json!({
+                                "error": {
+                                    "message": format!("Provider request failed: {}", error),
+                                    "type": "proxy_error",
+                                    "provider": provider.name
+                                }
+                            }))
+                        ).into_response();
+                    }
+                }
+            }
+            None => {
+                return (
+                    StatusCode::NOT_FOUND,
+                    axum::Json(serde_json::json!({
+                        "error": {
+                            "message": format!("Provider with id {} not found", provider_id),
+                            "type": "provider_not_found"
+                        }
+                    }))
+                ).into_response();
+            }
+        }
+    }
+
+    // Load balancing with failover
+    let max_attempts = 3;
+    let mut attempted_providers: Vec<i64> = Vec::new();
+    let mut last_error = String::new();
+
+    for attempt in 0..max_attempts {
+        // Select provider (excluding already attempted ones)
+        let provider_id = if attempt == 0 {
+            pool_manager.select_provider().await
+        } else {
+            // For failover, select from remaining providers
+            let available: Vec<i64> = providers.iter()
+                .filter(|p| p.enabled && !attempted_providers.contains(&p.id))
+                .map(|p| p.id)
+                .collect();
+            if available.is_empty() {
+                break;
+            }
+            pool_manager.select_fallback(*attempted_providers.last().unwrap_or(&0)).await
+                .or_else(|| available.first().copied())
+        };
+
+        let provider = match provider_id {
+            Some(id) => {
+                match providers.iter().find(|p| p.id == id && !attempted_providers.contains(&p.id)) {
+                    Some(p) => p.clone(),
+                    None => {
+                        // Try to find any enabled provider not yet attempted
+                        match providers.iter().find(|p| p.enabled && !attempted_providers.contains(&p.id)) {
+                            Some(p) => p.clone(),
+                            None => break,
+                        }
+                    }
+                }
+            }
+            None => {
+                // No provider from pool, try first enabled not attempted
+                match providers.iter().find(|p| p.enabled && !attempted_providers.contains(&p.id)) {
+                    Some(p) => p.clone(),
+                    None => break,
+                }
+            }
+        };
+
+        attempted_providers.push(provider.id);
+        tracing::info!("Attempt {} with provider {} (id={})", attempt + 1, provider.name, provider.id);
+
+        match send_to_provider(&provider, &req_body, is_stream, request_content.clone(), db_pool, pool_manager).await {
+            RequestResult::Success(response) => {
+                if attempt > 0 {
+                    tracing::info!("Failover successful on attempt {} with provider {}", attempt + 1, provider.name);
+                }
+                return response;
+            }
+            RequestResult::Failure { error, latency_ms: _ } => {
+                last_error = error;
+                tracing::warn!("Provider {} failed: {}, attempting failover...", provider.name, last_error);
+            }
+        }
+    }
+
+    // All attempts failed
+    let log = NewRequestLog {
+        provider_id: None,
+        provider_name: "all_providers".to_string(),
+        model: "".to_string(),
+        status: "error".to_string(),
+        latency_ms: 0,
+        tokens_used: 0,
+        error_message: Some(format!("All {} providers failed. Last error: {}", attempted_providers.len(), last_error)),
+        request_type: "chat".to_string(),
+        request_content,
+        response_content: None,
+    };
+    let _ = db_pool.create_request_log(log).await;
+
+    (
+        StatusCode::BAD_GATEWAY,
+        axum::Json(serde_json::json!({
+            "error": {
+                "message": format!("All providers failed after {} attempts. Last error: {}", attempted_providers.len(), last_error),
+                "type": "all_providers_failed",
+                "attempted_count": attempted_providers.len()
+            }
+        }))
+    ).into_response()
+}
+
 /// Handle list models request
 async fn handle_list_models(
-    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::extract::State(state): axum::extract::State<ProxyState>,
 ) -> impl axum::response::IntoResponse {
-    let providers = db_pool.list_providers().await.unwrap_or_default();
+    let providers = state.db_pool.list_providers().await.unwrap_or_default();
     let models: Vec<serde_json::Value> = providers
         .iter()
         .filter(|p| p.enabled)
