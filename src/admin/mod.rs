@@ -218,7 +218,8 @@ async fn get_provider_types_api(
                     "default_model": t.default_model,
                     "models": models,
                     "enabled": t.enabled,
-                    "sort_order": t.sort_order
+                    "sort_order": t.sort_order,
+                    "docs_url": t.docs_url
                 })
             }).collect();
 
@@ -243,13 +244,18 @@ async fn get_provider_types_api(
 struct CreateProviderTypeRequest {
     id: String,
     label: String,
+    #[serde(default)]
     base_url: String,
+    #[serde(default)]
     default_model: String,
+    #[serde(default)]
     models: Vec<CreateModelInfo>,
     #[serde(default)]
     enabled: Option<bool>,
     #[serde(default)]
     sort_order: Option<i32>,
+    #[serde(default)]
+    docs_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -262,6 +268,10 @@ struct CreateModelInfo {
     supports_tools: Option<bool>,
     #[serde(default)]
     context_length: Option<u32>,
+    #[serde(default)]
+    input_price: Option<f64>,
+    #[serde(default)]
+    output_price: Option<f64>,
 }
 
 /// Create a new provider type
@@ -280,9 +290,12 @@ async fn create_provider_type_api(
             description: m.description,
             supports_tools: m.supports_tools,
             context_length: m.context_length,
+            input_price: m.input_price,
+            output_price: m.output_price,
         }).collect(),
         enabled: req.enabled,
         sort_order: req.sort_order,
+        docs_url: req.docs_url,
     };
 
     match db_pool.create_provider_type(new_type).await {
@@ -308,6 +321,7 @@ struct UpdateProviderTypeRequest {
     models: Option<Vec<CreateModelInfo>>,
     enabled: Option<bool>,
     sort_order: Option<i32>,
+    docs_url: Option<String>,
 }
 
 /// Update a provider type
@@ -327,10 +341,13 @@ async fn update_provider_type_api(
                 description: m.description,
                 supports_tools: m.supports_tools,
                 context_length: m.context_length,
+                input_price: m.input_price,
+                output_price: m.output_price,
             }).collect()
         }),
         enabled: req.enabled,
         sort_order: req.sort_order,
+        docs_url: req.docs_url,
     };
 
     match db_pool.update_provider_type(&id, update).await {

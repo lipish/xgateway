@@ -104,6 +104,8 @@ pub struct ProviderType {
     pub models: String,          // JSON array of model objects
     pub enabled: bool,
     pub sort_order: i32,
+    #[serde(default)]
+    pub docs_url: String,        // Documentation URL for provider's model list
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -119,6 +121,10 @@ pub struct ModelInfo {
     pub supports_tools: Option<bool>,
     #[serde(default)]
     pub context_length: Option<u32>,
+    #[serde(default)]
+    pub input_price: Option<f64>,   // 输入价格 (元/1M tokens)
+    #[serde(default)]
+    pub output_price: Option<f64>,  // 输出价格 (元/1M tokens)
 }
 
 /// For creating a new provider type
@@ -133,6 +139,8 @@ pub struct NewProviderType {
     pub enabled: Option<bool>,
     #[serde(default)]
     pub sort_order: Option<i32>,
+    #[serde(default)]
+    pub docs_url: Option<String>,  // Documentation URL for provider's model list
 }
 
 /// For updating a provider type
@@ -144,6 +152,7 @@ pub struct UpdateProviderType {
     pub models: Option<Vec<ModelInfo>>,
     pub enabled: Option<bool>,
     pub sort_order: Option<i32>,
+    pub docs_url: Option<String>,  // Documentation URL for provider's model list
 }
 
 /// API response format for provider types

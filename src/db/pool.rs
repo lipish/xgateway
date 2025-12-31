@@ -257,7 +257,7 @@ impl DatabasePool {
     pub async fn list_provider_types(&self) -> Result<Vec<ProviderType>> {
         let types = sqlx::query_as::<_, ProviderType>(
             r#"
-            SELECT id, label, base_url, default_model, models, enabled, sort_order, created_at, updated_at
+            SELECT id, label, base_url, default_model, models, enabled, sort_order, docs_url, created_at, updated_at
             FROM provider_types
             WHERE enabled = true
             ORDER BY sort_order ASC, id ASC
@@ -273,7 +273,7 @@ impl DatabasePool {
     pub async fn get_provider_type(&self, id: &str) -> Result<Option<ProviderType>> {
         let pt = sqlx::query_as::<_, ProviderType>(
             r#"
-            SELECT id, label, base_url, default_model, models, enabled, sort_order, created_at, updated_at
+            SELECT id, label, base_url, default_model, models, enabled, sort_order, docs_url, created_at, updated_at
             FROM provider_types
             WHERE id = ?
             "#
@@ -291,8 +291,8 @@ impl DatabasePool {
 
         sqlx::query(
             r#"
-            INSERT INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order, docs_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             "#
         )
         .bind(&pt.id)
@@ -302,6 +302,7 @@ impl DatabasePool {
         .bind(&models_json)
         .bind(pt.enabled.unwrap_or(true))
         .bind(pt.sort_order.unwrap_or(0))
+        .bind(pt.docs_url.unwrap_or_default())
         .execute(&self.pool)
         .await?;
 
@@ -344,6 +345,11 @@ impl DatabasePool {
             query.push_bind(sort_order);
             has_updates = true;
         }
+        if let Some(docs_url) = &update.docs_url {
+            query.push(", docs_url = ");
+            query.push_bind(docs_url);
+            has_updates = true;
+        }
 
         if !has_updates {
             return Ok(false);
@@ -382,8 +388,8 @@ impl DatabasePool {
 
             sqlx::query(
                 r#"
-                INSERT OR IGNORE INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT OR IGNORE INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order, docs_url)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 "#
             )
             .bind(&pt.id)
@@ -393,6 +399,7 @@ impl DatabasePool {
             .bind(&models_json)
             .bind(pt.enabled.unwrap_or(true))
             .bind(pt.sort_order.unwrap_or(i as i32))
+            .bind(pt.docs_url.unwrap_or_default())
             .execute(&self.pool)
             .await?;
         }
