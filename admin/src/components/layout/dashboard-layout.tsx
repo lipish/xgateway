@@ -21,9 +21,13 @@ function getPageTitle(pathname: string): string {
   return t(key)
 }
 
+// Pages that need wider layout
+const widerPages = ["/logs", "/chat"]
+
 export function DashboardLayout() {
   const location = useLocation()
   const pageTitle = getPageTitle(location.pathname)
+  const isWider = widerPages.includes(location.pathname)
 
   return (
     <SidebarProvider>
@@ -35,7 +39,9 @@ export function DashboardLayout() {
           <h1 className="text-base font-medium">{pageTitle}</h1>
         </header>
         <main className="flex-1 overflow-y-auto p-6">
-          <Outlet />
+          <div className={isWider ? "max-w-[1400px] mx-auto h-full" : "max-w-6xl mx-auto"}>
+            <Outlet />
+          </div>
         </main>
       </SidebarInset>
     </SidebarProvider>

@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { DashboardPage } from "@/pages/dashboard"
-import { ProvidersPage } from "@/pages/providers"
+import { ProvidersPage } from "@/pages/instances"
 import { MonitoringPage } from "@/pages/monitoring"
 import { LogsPage } from "@/pages/logs"
 import { SettingsPage } from "@/pages/settings"
@@ -16,7 +16,7 @@ function App() {
       <Routes>
         <Route path="/" element={<DashboardLayout />}>
           <Route index element={<DashboardPage />} />
-          <Route path="providers" element={<ProvidersPage />} />
+          <Route path="instances" element={<ProvidersPage />} />
           <Route path="model-types" element={<ModelTypesPage />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="monitoring" element={<MonitoringPage />} />

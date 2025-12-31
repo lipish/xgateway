@@ -53,7 +53,7 @@ export function ChatPage() {
   }
 
   useEffect(() => {
-    apiGet("/api/providers").then(result => {
+    apiGet("/api/instances").then(result => {
       if (result.success) {
         const enabledProviders = result.data.filter((p: Provider) => p.enabled)
         setProviders(enabledProviders)
@@ -276,7 +276,7 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full -m-6">
       <div className="flex-1 flex overflow-hidden">
         {/* 历史对话侧边栏 */}
         {showHistory && (
@@ -340,7 +340,7 @@ export function ChatPage() {
 
           <div className={`flex-1 grid gap-4 overflow-hidden ${panels.length === 1 ? 'grid-cols-1' : panels.length === 2 ? 'grid-cols-2' : panels.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
             {panels.map(panel => (
-              <Card key={panel.id} className="flex flex-col overflow-hidden">
+              <Card key={panel.id} className="flex flex-col overflow-hidden h-full">
                 <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
                   <Select
                     value={panel.providerId?.toString() || ""}
@@ -413,4 +413,3 @@ export function ChatPage() {
     </div>
   )
 }
-

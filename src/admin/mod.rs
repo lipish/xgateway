@@ -10,12 +10,12 @@ use crate::db::{DatabasePool, NewProviderType, UpdateProviderType, ModelInfo, Ne
 /// Create admin API router (pure REST API, no HTML pages)
 pub fn create_admin_app(db_pool: DatabasePool) -> Router {
     Router::new()
-        // Provider management API
-        .route("/api/providers", get(list_providers_api).post(create_provider_api))
-        .route("/api/providers/stats", get(get_provider_stats_api))
-        .route("/api/providers/:id", get(get_provider_api).put(update_provider_api).delete(delete_provider_api))
-        .route("/api/providers/:id/toggle", post(toggle_provider_api))
-        .route("/api/providers/:id/test", post(test_provider_api))
+        // Service Instance management API
+        .route("/api/instances", get(list_providers_api).post(create_provider_api))
+        .route("/api/instances/stats", get(get_provider_stats_api))
+        .route("/api/instances/:id", get(get_provider_api).put(update_provider_api).delete(delete_provider_api))
+        .route("/api/instances/:id/toggle", post(toggle_provider_api))
+        .route("/api/instances/:id/test", post(test_provider_api))
         // Provider types API (CRUD)
         .route("/api/provider-types", get(get_provider_types_api).post(create_provider_type_api))
         .route("/api/provider-types/:id", put(update_provider_type_api).delete(delete_provider_type_api))

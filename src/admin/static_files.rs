@@ -110,7 +110,7 @@ pub fn admin_dashboard_html() -> String {
     <script>
         async function loadProviders() {
             try {
-                const response = await fetch('/api/providers');
+                const response = await fetch('/api/instances');
                 const result = await response.json();
                 
                 const listDiv = document.getElementById('provider-list');

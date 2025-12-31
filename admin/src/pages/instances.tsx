@@ -154,7 +154,7 @@ export function ProvidersPage() {
   const fetchProviders = async () => {
     try {
       setLoading(true);
-      const result = await apiGet<ApiResponse<Provider[]>>("/api/providers");
+      const result = await apiGet<ApiResponse<Provider[]>>("/api/instances");
 
       if (result.success) {
         const data = result.data || [];
@@ -177,7 +177,7 @@ export function ProvidersPage() {
 
   const toggleProvider = async (id: number) => {
     try {
-      const response = await fetch(`/api/providers/${id}/toggle`, {
+      const response = await fetch(`/api/instances/${id}/toggle`, {
         method: "POST",
       });
       const result = await response.json();
@@ -199,12 +199,12 @@ export function ProvidersPage() {
   };
 
   const deleteProvider = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this provider?")) {
+    if (!confirm(t('providers.confirmDelete'))) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/providers/${id}`, {
+      const response = await fetch(`/api/instances/${id}`, {
         method: "DELETE",
       });
       const result = await response.json();
@@ -213,10 +213,10 @@ export function ProvidersPage() {
         // Remove the provider from local state
         setProviders(providers.filter((p) => p.id !== id));
       } else {
-        alert(result.message || "Failed to delete provider");
+        alert(result.message || t('providers.saveFailed'));
       }
     } catch (err) {
-      alert("Network error: Failed to delete provider");
+      alert(t('providers.networkError'));
       console.error("Error deleting provider:", err);
     }
   };
@@ -252,16 +252,16 @@ export function ProvidersPage() {
   // 提交添加
   const submitAddProvider = async () => {
     if (!addForm.name.trim()) {
-      alert("请输入 Provider 名称");
+      alert(t('providers.pleaseEnterName'));
       return;
     }
     if (!addForm.apiKey.trim()) {
-      alert("请输入 API Key");
+      alert(t('providers.pleaseEnterApiKey'));
       return;
     }
     setAdding(true);
     try {
-      const result = await apiPost<ApiResponse<Provider>>("/api/providers", {
+      const result = await apiPost<ApiResponse<Provider>>("/api/instances", {
         name: addForm.name,
         provider_type: addForm.providerType,
         config: JSON.stringify({
@@ -276,10 +276,10 @@ export function ProvidersPage() {
         setProviders([result.data, ...providers]);
         setAddDialogOpen(false);
       } else {
-        alert(result.message || "Failed to add provider");
+        alert(result.message || t('providers.saveFailed'));
       }
     } catch (err) {
-      alert("Network error: Failed to add provider");
+      alert(t('providers.networkError'));
       console.error("Error adding provider:", err);
     } finally {
       setAdding(false);
@@ -294,7 +294,7 @@ export function ProvidersPage() {
     const minLoadingTime = 800; // 最小加载时间，确保用户能看到加载动画
     try {
       const result = await apiPost<ApiResponse<null>>(
-        `/api/providers/${id}/test`,
+        `/api/instances/${id}/test`,
       );
       const elapsed = Date.now() - startTime;
       if (elapsed < minLoadingTime) {
@@ -305,7 +305,7 @@ export function ProvidersPage() {
       setTestResult({
         id,
         success: result.success,
-        message: result.message || (result.success ? "连接成功" : "连接失败"),
+        message: result.message || (result.success ? t('providers.connectionSuccess') : t('providers.connectionFailed')),
       });
     } catch {
       const elapsed = Date.now() - startTime;
@@ -314,7 +314,7 @@ export function ProvidersPage() {
           setTimeout(resolve, minLoadingTime - elapsed),
         );
       }
-      setTestResult({ id, success: false, message: "网络错误" });
+      setTestResult({ id, success: false, message: t('providers.networkError') });
     } finally {
       setTestingId(null);
     }
@@ -339,7 +339,7 @@ export function ProvidersPage() {
     if (!editingProvider) return;
     setSaving(true);
     try {
-      const response = await fetch(`/api/providers/${editingProvider.id}`, {
+      const response = await fetch(`/api/instances/${editingProvider.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -359,10 +359,10 @@ export function ProvidersPage() {
         );
         setEditDialogOpen(false);
       } else {
-        alert(result.message || "保存失败");
+        alert(result.message || t('providers.saveFailed'));
       }
     } catch {
-      alert("网络错误");
+      alert(t('providers.networkError'));
     } finally {
       setSaving(false);
     }
@@ -414,7 +414,7 @@ export function ProvidersPage() {
                     />
                   </div>
                   <span className="text-sm text-muted-foreground">
-                    共 {filteredProviders.length} 个
+                    {t('providers.total')} {filteredProviders.length} {t('providers.unit')}
                   </span>
                 </div>
                 <Button onClick={openAddDialog} size="sm">
@@ -472,7 +472,7 @@ export function ProvidersPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              title="测试连接"
+                              title={t('providers.testConnection')}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 testProvider(provider.id);
@@ -494,8 +494,8 @@ export function ProvidersPage() {
                               size="icon"
                               title={
                                 provider.enabled
-                                  ? "开始对话"
-                                  : "Provider 已禁用"
+                                  ? t('providers.startChat')
+                                  : t('providers.providerDisabled')
                               }
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -525,7 +525,7 @@ export function ProvidersPage() {
                         size="icon"
                         className="h-8 w-8"
                         onClick={() => openEditDialog(selectedProvider)}
-                        title="编辑"
+                        title={t('providers.edit')}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -537,7 +537,7 @@ export function ProvidersPage() {
                           deleteProvider(selectedProvider.id);
                           setSelectedProvider(null);
                         }}
-                        title="删除"
+                        title={t('providers.delete')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -566,10 +566,10 @@ export function ProvidersPage() {
                           className={selectedProvider.enabled ? "bg-primary/10 text-primary border-0" : ""}
                           variant={selectedProvider.enabled ? "outline" : "destructive"}
                         >
-                          {selectedProvider.enabled ? "已启用" : "已禁用"}
+                          {selectedProvider.enabled ? t('providers.enabled') : t('providers.disabled')}
                         </Badge>
                         <Badge variant="outline">
-                          优先级: {selectedProvider.priority}
+                          {t('providers.priority')}: {selectedProvider.priority}
                         </Badge>
                       </div>
                     </div>
@@ -577,7 +577,7 @@ export function ProvidersPage() {
                     {/* 配置详情 */}
                     <div className="space-y-3 pt-3 border-t">
                       <h5 className="text-sm font-medium text-muted-foreground">
-                        配置信息
+                        {t('providers.configInfo')}
                       </h5>
                       {(() => {
                         try {
@@ -588,7 +588,7 @@ export function ProvidersPage() {
                                 <Link className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
                                 <div>
                                   <p className="text-muted-foreground">
-                                    Base URL
+                                    {t('providers.baseUrl')}
                                   </p>
                                   <p className="font-mono text-xs break-all">
                                     {config.base_url || "-"}
@@ -598,7 +598,7 @@ export function ProvidersPage() {
                               <div className="flex items-start gap-2">
                                 <Settings className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
                                 <div>
-                                  <p className="text-muted-foreground">模型</p>
+                                  <p className="text-muted-foreground">{t('providers.model')}</p>
                                   <p className="font-medium">
                                     {config.model || "-"}
                                   </p>
@@ -622,7 +622,7 @@ export function ProvidersPage() {
                         } catch {
                           return (
                             <p className="text-sm text-muted-foreground">
-                              无法解析配置
+                              {t('providers.cannotParseConfig')}
                             </p>
                           );
                         }
@@ -632,12 +632,12 @@ export function ProvidersPage() {
                     {/* 时间信息 */}
                     <div className="space-y-2 pt-3 border-t">
                       <h5 className="text-sm font-medium text-muted-foreground">
-                        时间信息
+                        {t('providers.timeInfo')}
                       </h5>
                       <div className="space-y-1 text-sm">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">创建于</span>
+                          <span className="text-muted-foreground">{t('providers.createdAt')}</span>
                           <span>
                             {new Date(
                               selectedProvider.created_at,
@@ -646,7 +646,7 @@ export function ProvidersPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">更新于</span>
+                          <span className="text-muted-foreground">{t('providers.updatedAt')}</span>
                           <span>
                             {new Date(
                               selectedProvider.updated_at,
@@ -660,8 +660,8 @@ export function ProvidersPage() {
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-6">
                   <Server className="h-12 w-12 mb-3 opacity-20" />
-                  <p className="text-sm">点击左侧列表选择 Provider</p>
-                  <p className="text-xs mt-1">查看详细配置信息</p>
+                  <p className="text-sm">{t('providers.selectProvider')}</p>
+                  <p className="text-xs mt-1">{t('providers.viewConfig')}</p>
                 </div>
               )}
             </div>
@@ -673,25 +673,25 @@ export function ProvidersPage() {
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>添加 Provider</DialogTitle>
-            <DialogDescription>配置新的 AI 服务提供商</DialogDescription>
+            <DialogTitle>{t('providers.addProvider')}</DialogTitle>
+            <DialogDescription>{t('providers.addProviderDesc')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="add-type">Provider 类型</Label>
+                <Label htmlFor="add-type">{t('providers.providerType')}</Label>
                 <Select
                   id="add-type"
                   value={addForm.providerType}
                   onChange={handleProviderTypeChange}
-                  options={providerTypes.map((t) => ({
-                    value: t.id,
-                    label: t.label,
+                  options={providerTypes.map((pt) => ({
+                    value: pt.id,
+                    label: pt.label,
                   }))}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="add-model">模型</Label>
+                <Label htmlFor="add-model">{t('providers.model')}</Label>
                 <Select
                   id="add-model"
                   value={addForm.model}
@@ -706,10 +706,10 @@ export function ProvidersPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="add-name">名称 *</Label>
+                <Label htmlFor="add-name">{t('providers.name')} *</Label>
                 <Input
                   id="add-name"
-                  placeholder="如：我的 OpenAI"
+                  placeholder={t('providers.namePlaceholder')}
                   value={addForm.name}
                   onChange={(e) =>
                     setAddForm({ ...addForm, name: e.target.value })
@@ -717,7 +717,7 @@ export function ProvidersPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="add-priority">优先级 (1-100)</Label>
+                <Label htmlFor="add-priority">{t('providers.priorityRange')}</Label>
                 <Input
                   id="add-priority"
                   type="number"
@@ -743,7 +743,7 @@ export function ProvidersPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="add-baseUrl">Base URL</Label>
+              <Label htmlFor="add-baseUrl">{t('providers.baseUrl')}</Label>
               <Input
                 id="add-baseUrl"
                 value={addForm.baseUrl}
@@ -755,13 +755,13 @@ export function ProvidersPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
-              取消
+              {t('common.cancel')}
             </Button>
             <Button onClick={submitAddProvider} disabled={adding}>
               {adding ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
-              添加
+              {t('common.add')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -771,12 +771,12 @@ export function ProvidersPage() {
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>编辑 Provider</DialogTitle>
-            <DialogDescription>修改 Provider 配置信息</DialogDescription>
+            <DialogTitle>{t('providers.editProvider')}</DialogTitle>
+            <DialogDescription>{t('providers.editProviderDesc')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="edit-name">名称</Label>
+              <Label htmlFor="edit-name">{t('providers.name')}</Label>
               <Input
                 id="edit-name"
                 value={editForm.name}
@@ -797,7 +797,7 @@ export function ProvidersPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-model">模型</Label>
+              <Label htmlFor="edit-model">{t('providers.model')}</Label>
               <Input
                 id="edit-model"
                 value={editForm.model}
@@ -807,7 +807,7 @@ export function ProvidersPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-baseUrl">Base URL</Label>
+              <Label htmlFor="edit-baseUrl">{t('providers.baseUrl')}</Label>
               <Input
                 id="edit-baseUrl"
                 value={editForm.baseUrl}
@@ -817,7 +817,7 @@ export function ProvidersPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-priority">优先级</Label>
+              <Label htmlFor="edit-priority">{t('providers.priority')}</Label>
               <Input
                 id="edit-priority"
                 type="number"
@@ -830,13 +830,13 @@ export function ProvidersPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              取消
+              {t('common.cancel')}
             </Button>
             <Button onClick={saveEdit} disabled={saving}>
               {saving ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
-              保存
+              {t('common.save')}
             </Button>
           </DialogFooter>
         </DialogContent>

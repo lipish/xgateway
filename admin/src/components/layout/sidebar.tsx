@@ -36,7 +36,7 @@ function getNavigation() {
       items: [
         { name: t('nav.dashboard'), href: "/", icon: LayoutDashboard },
         { name: t('nav.modelTypes'), href: "/model-types", icon: Library },
-        { name: t('nav.providers'), href: "/providers", icon: Server },
+        { name: t('nav.providers'), href: "/instances", icon: Server },
         { name: t('nav.chat'), href: "/chat", icon: MessageSquare },
         { name: t('nav.logs'), href: "/logs", icon: FileText },
       ],
@@ -64,11 +64,11 @@ export function AppSidebar() {
 
   return (
     <SidebarBase className="border-r-0 shadow-sm">
-      <SidebarHeader className="px-5 py-5">
-        <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/favicon.svg" alt="XGateway" className="h-8 w-8" />
-            <span className="text-lg font-semibold">XGateway</span>
+      <SidebarHeader className="px-4 py-4">
+        <div className="flex items-center justify-between gap-2">
+          <Link to="/" className="flex items-center gap-2 min-w-0">
+            <img src="/favicon.svg" alt="XGateway" className="h-7 w-7 shrink-0" />
+            <span className="text-base font-semibold truncate">XGateway</span>
           </Link>
           <LanguageSwitcher />
         </div>

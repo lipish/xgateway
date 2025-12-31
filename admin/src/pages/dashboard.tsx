@@ -68,8 +68,8 @@ export function DashboardPage() {
 
       // Fetch stats and providers in parallel
       const [statsResult, providersResult] = await Promise.all([
-        apiGet('/api/providers/stats'),
-        apiGet('/api/providers')
+        apiGet('/api/instances/stats'),
+        apiGet('/api/instances')
       ])
 
       if (statsResult.success) {
@@ -99,18 +99,18 @@ export function DashboardPage() {
     const startTime = Date.now()
     const minLoadingTime = 800
     try {
-      const result = await apiPost(`/api/providers/${id}/test`)
+      const result = await apiPost(`/api/instances/${id}/test`)
       const elapsed = Date.now() - startTime
       if (elapsed < minLoadingTime) {
         await new Promise(resolve => setTimeout(resolve, minLoadingTime - elapsed))
       }
-      setTestResult({ id, success: result.success, message: result.message || (result.success ? '连接成功' : '连接失败') })
+      setTestResult({ id, success: result.success, message: result.message || (result.success ? t('dashboard.connectionSuccess') : t('dashboard.connectionFailed')) })
     } catch {
       const elapsed = Date.now() - startTime
       if (elapsed < minLoadingTime) {
         await new Promise(resolve => setTimeout(resolve, minLoadingTime - elapsed))
       }
-      setTestResult({ id, success: false, message: '网络错误' })
+      setTestResult({ id, success: false, message: t('dashboard.networkError') })
     } finally {
       setTestingId(null)
     }
@@ -118,11 +118,11 @@ export function DashboardPage() {
 
   const toggleProvider = async (id: number) => {
     try {
-      const result = await apiPost(`/api/providers/${id}/toggle`)
+      const result = await apiPost(`/api/instances/${id}/toggle`)
       if (result.success) {
         setRecentProviders(recentProviders.map(p => p.id === id ? result.data : p))
         // 静默更新统计数据，不触发 loading 状态
-        const statsResult = await apiGet('/api/providers/stats')
+        const statsResult = await apiGet('/api/instances/stats')
         if (statsResult.success) {
           setStats(statsResult.data)
         }
@@ -188,7 +188,7 @@ export function DashboardPage() {
             <CardContent className="p-6">
               <div className="text-center text-destructive">{error}</div>
               <div className="text-center mt-2">
-                <Button onClick={fetchDashboardData}>Retry</Button>
+                <Button onClick={fetchDashboardData}>{t('dashboard.retry')}</Button>
               </div>
             </CardContent>
           </Card>
@@ -221,9 +221,9 @@ export function DashboardPage() {
             <Card className="flex-1 min-w-0">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle>最近的模型服务商</CardTitle>
-                  <Button variant="outline" size="sm" onClick={() => navigate('/providers')}>
-                    查看全部
+                  <CardTitle>{t('dashboard.recentProviders')}</CardTitle>
+                  <Button variant="outline" size="sm" onClick={() => navigate('/instances')}>
+                    {t('dashboard.viewAll')}
                   </Button>
                 </div>
               </CardHeader>
@@ -231,11 +231,11 @@ export function DashboardPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>名称</TableHead>
-                      <TableHead>状态</TableHead>
-                      <TableHead>模型名称</TableHead>
-                      <TableHead>优先级</TableHead>
-                      <TableHead className="w-[100px]">操作</TableHead>
+                      <TableHead>{t('providers.name')}</TableHead>
+                      <TableHead>{t('providers.status')}</TableHead>
+                      <TableHead>{t('providers.model')}</TableHead>
+                      <TableHead>{t('providers.priority')}</TableHead>
+                      <TableHead className="w-[100px]">{t('providers.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -257,7 +257,7 @@ export function DashboardPage() {
                               className={provider.enabled ? "bg-primary/10 text-primary border-0" : ""}
                               variant={provider.enabled ? "outline" : "destructive"}
                             >
-                              {provider.enabled ? "启用" : "禁用"}
+                              {provider.enabled ? t('providers.enabled') : t('providers.disabled')}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -273,7 +273,7 @@ export function DashboardPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                title="测试连接"
+                                title={t('dashboard.testConnection')}
                                 onClick={() => testProvider(provider.id)}
                                 disabled={testingId === provider.id}
                               >
@@ -288,7 +288,7 @@ export function DashboardPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                title={provider.enabled ? "开始对话" : "Provider 已禁用"}
+                                title={provider.enabled ? t('dashboard.startChat') : t('dashboard.providerDisabled')}
                                 onClick={() => navigate(`/chat?provider=${provider.id}`)}
                                 disabled={!provider.enabled}
                               >
@@ -307,7 +307,7 @@ export function DashboardPage() {
             {/* Comprehensive Monitoring */}
             <Card className="w-80 shrink-0 flex flex-col">
               <CardHeader className="pb-3">
-                <CardTitle>综合监控</CardTitle>
+                <CardTitle>{t('dashboard.comprehensiveMonitoring')}</CardTitle>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <div className="space-y-2 flex-1">
@@ -315,51 +315,51 @@ export function DashboardPage() {
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 rounded-full bg-emerald-500" />
                       <Activity className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">系统负载</span>
+                      <span className="text-sm font-medium">{t('dashboard.systemLoad')}</span>
                     </div>
-                    <span className="text-sm font-semibold">正常</span>
+                    <span className="text-sm font-semibold">{t('dashboard.normal')}</span>
                   </div>
                   <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/50">
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 rounded-full bg-emerald-500" />
                       <Zap className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">响应速度</span>
+                      <span className="text-sm font-medium">{t('dashboard.responseSpeed')}</span>
                     </div>
-                    <span className="text-sm font-semibold">良好</span>
+                    <span className="text-sm font-semibold">{t('dashboard.good')}</span>
                   </div>
                   <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/50">
                     <div className="flex items-center gap-3">
                       <div className={`w-2 h-2 rounded-full ${stats && stats.enabled > 0 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                       <Server className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Provider 池</span>
+                      <span className="text-sm font-medium">{t('dashboard.providerPool')}</span>
                     </div>
                     <span className="text-sm font-semibold">
-                      {stats && stats.enabled > 0 ? `${stats.enabled} 个活跃` : '无可用'}
+                      {stats && stats.enabled > 0 ? `${stats.enabled}${t('dashboard.active')}` : t('dashboard.noAvailable')}
                     </span>
                   </div>
                   <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/50">
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 rounded-full bg-emerald-500" />
                       <Database className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">数据库</span>
+                      <span className="text-sm font-medium">{t('dashboard.database')}</span>
                     </div>
-                    <span className="text-sm font-semibold">已连接</span>
+                    <span className="text-sm font-semibold">{t('dashboard.connected')}</span>
                   </div>
                   <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/50">
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 rounded-full bg-emerald-500" />
                       <Shield className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">健康检查</span>
+                      <span className="text-sm font-medium">{t('dashboard.healthCheck')}</span>
                     </div>
-                    <span className="text-sm font-semibold">通过</span>
+                    <span className="text-sm font-semibold">{t('dashboard.passed')}</span>
                   </div>
                   <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/50">
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 rounded-full bg-emerald-500" />
                       <Clock className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">运行时间</span>
+                      <span className="text-sm font-medium">{t('dashboard.uptime')}</span>
                     </div>
-                    <span className="text-sm font-semibold">稳定</span>
+                    <span className="text-sm font-semibold">{t('dashboard.stable')}</span>
                   </div>
                 </div>
                 <div className="pt-3 mt-auto">
@@ -369,7 +369,7 @@ export function DashboardPage() {
                     onClick={() => navigate('/monitoring')}
                   >
                     <BarChart3 className="mr-2 h-4 w-4" />
-                    查看详细监控
+                    {t('dashboard.viewDetailedMonitoring')}
                   </Button>
                 </div>
               </CardContent>
