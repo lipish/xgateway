@@ -352,7 +352,7 @@ pub async fn validate_key(
                     info!("✅ API key validated successfully, found {} models", models.len());
                     
                     // 从配置中获取完整的模型信息（包含 name 和 description）
-                    use crate::models::ModelsConfig;
+                    use crate::db::ModelsConfig;
                     let models_config = ModelsConfig::load_with_fallback();
                     let model_infos = models_config.get_models_for_provider(&request.provider);
                     
@@ -498,7 +498,7 @@ pub async fn validate_key_for_update(
                     info!("✅ API key validated successfully for hot update, found {} models", models.len());
                     
                     // 从配置中获取完整的模型信息（包含 name 和 description）
-                    use crate::models::ModelsConfig;
+                    use crate::db::ModelsConfig;
                     let models_config = ModelsConfig::load_with_fallback();
                     let model_infos = models_config.get_models_for_provider(&request.provider);
                     

@@ -1,4 +1,4 @@
-use llm_link::models::ModelsConfig;
+use llm_link::db::ModelsConfig;
 use llm_link::provider::ProviderRegistry;
 
 fn main() {

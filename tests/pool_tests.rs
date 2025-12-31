@@ -7,6 +7,8 @@
 //! - Failover manager
 //! - Provider pool
 
+#![allow(unused_imports)]
+
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -142,4 +144,3 @@ mod metrics_tests {
 fn main() {
     println!("Run with: cargo test --test pool_tests");
 }
-

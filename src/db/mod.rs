@@ -1,10 +1,12 @@
 pub mod models;
 pub mod pool;
 pub mod init;
+pub mod models_config;
 
 pub use models::*;
 pub use pool::*;
 pub use init::*;
+pub use models_config::ModelsConfig;
 
 use sqlx::SqlitePool;
 use std::path::Path;

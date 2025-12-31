@@ -1,7 +1,7 @@
 use sqlx::SqlitePool;
 use std::path::Path;
 use tracing::info;
-use crate::db::{initialize_database, Provider, NewProvider, UpdateProvider, ProviderStats, ProviderType, NewProviderType, UpdateProviderType, ModelInfo, Conversation, NewConversation, UpdateConversation, Message, NewMessage, ConversationListItem, ConversationWithMessages, RequestLog, NewRequestLog};
+use crate::db::{initialize_database, Provider, NewProvider, UpdateProvider, ProviderStats, ProviderType, NewProviderType, UpdateProviderType, Conversation, NewConversation, UpdateConversation, Message, NewMessage, ConversationListItem, ConversationWithMessages, RequestLog, NewRequestLog};
 use anyhow::Result;
 
 #[derive(Clone)]
@@ -180,6 +180,7 @@ impl DatabasePool {
     }
 
     /// Check if this is the first run (no providers configured)
+    #[allow(dead_code)]
     pub async fn is_first_run(&self) -> Result<bool> {
         let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM providers")
             .fetch_one(&self.pool)
@@ -189,6 +190,7 @@ impl DatabasePool {
     }
 
     /// Store configuration value
+    #[allow(dead_code)]
     pub async fn set_config(&self, key: &str, value: &str) -> Result<()> {
         sqlx::query(
             "INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)"
@@ -202,6 +204,7 @@ impl DatabasePool {
     }
 
     /// Get configuration value
+    #[allow(dead_code)]
     pub async fn get_config(&self, key: &str) -> Result<Option<String>> {
         let value: Option<String> = sqlx::query_scalar(
             "SELECT value FROM config WHERE key = ?"
@@ -644,6 +647,7 @@ impl DatabasePool {
     }
 
     /// Get request log count
+    #[allow(dead_code)]
     pub async fn get_request_log_count(&self, status_filter: Option<&str>) -> Result<i64> {
         let count: (i64,) = if let Some(status) = status_filter {
             sqlx::query_as("SELECT COUNT(*) FROM request_logs WHERE status = ?")
@@ -660,6 +664,7 @@ impl DatabasePool {
     }
 
     /// Delete old request logs (cleanup)
+    #[allow(dead_code)]
     pub async fn delete_old_request_logs(&self, days: i64) -> Result<u64> {
         let result = sqlx::query(
             "DELETE FROM request_logs WHERE created_at < datetime('now', ? || ' days')"

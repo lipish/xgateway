@@ -34,6 +34,7 @@ pub struct UpdateProvider {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct Config {
     pub key: String,
     pub value: String,
@@ -81,6 +82,7 @@ impl Provider {
 }
 
 impl NewProvider {
+    #[allow(dead_code)]
     pub fn new(name: String, provider_type: String, config: String) -> Self {
         Self {
             name,
@@ -146,6 +148,7 @@ pub struct UpdateProviderType {
 
 /// API response format for provider types
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ProviderTypeResponse {
     pub id: String,
     pub label: String,
@@ -156,6 +159,7 @@ pub struct ProviderTypeResponse {
 
 impl ProviderType {
     /// Convert to API response format
+    #[allow(dead_code)]
     pub fn to_response(&self) -> ProviderTypeResponse {
         let model_ids: Vec<String> = serde_json::from_str(&self.models)
             .map(|models: Vec<ModelInfo>| models.into_iter().map(|m| m.id).collect())

@@ -1,87 +1,162 @@
-//! Database initialization from models.yaml
-//! 
-//! This module handles loading provider types from models.yaml and
-//! initializing the database with default configurations.
+//! Database initialization with default provider types
+//!
+//! This module handles initializing the database with default provider configurations.
+//! All provider type data is stored in the database and can be managed via the admin UI.
 
-use std::collections::HashMap;
-use serde::Deserialize;
-use tracing::{info, warn};
+use tracing::info;
 use crate::db::{DatabasePool, NewProviderType, ModelInfo};
 use anyhow::Result;
 
-/// Raw model entry from models.yaml
-#[derive(Debug, Deserialize)]
-struct YamlModel {
-    id: String,
-    name: String,
-    #[serde(default)]
-    description: Option<String>,
-    #[serde(default)]
-    supports_tools: Option<bool>,
-    #[serde(default)]
-    context_length: Option<u32>,
+/// Get default provider types for initialization
+fn get_default_provider_types() -> Vec<NewProviderType> {
+    vec![
+        // 智谱 AI
+        NewProviderType {
+            id: "zhipu".to_string(),
+            label: "智谱 AI".to_string(),
+            base_url: "https://open.bigmodel.cn/api/paas/v4".to_string(),
+            default_model: "glm-4-flash".to_string(),
+            models: vec![
+                ModelInfo { id: "glm-4-flash".to_string(), name: "GLM-4 Flash".to_string(), description: Some("快速版 GLM-4 模型".to_string()), supports_tools: Some(true), context_length: Some(128000) },
+                ModelInfo { id: "glm-4".to_string(), name: "GLM-4".to_string(), description: Some("标准 GLM-4 模型".to_string()), supports_tools: Some(true), context_length: Some(128000) },
+                ModelInfo { id: "glm-4-plus".to_string(), name: "GLM-4 Plus".to_string(), description: Some("增强版 GLM-4 模型".to_string()), supports_tools: Some(true), context_length: Some(128000) },
+                ModelInfo { id: "glm-4-0520".to_string(), name: "GLM-4 0520".to_string(), description: Some("GLM-4 0520 版本".to_string()), supports_tools: Some(true), context_length: Some(128000) },
+                ModelInfo { id: "glm-4-air".to_string(), name: "GLM-4 Air".to_string(), description: Some("轻量版 GLM-4 模型".to_string()), supports_tools: Some(true), context_length: Some(128000) },
+                ModelInfo { id: "glm-4-airx".to_string(), name: "GLM-4 AirX".to_string(), description: Some("GLM-4 AirX 模型".to_string()), supports_tools: Some(true), context_length: Some(8192) },
+                ModelInfo { id: "glm-4-long".to_string(), name: "GLM-4 Long".to_string(), description: Some("长上下文 GLM-4 模型".to_string()), supports_tools: Some(true), context_length: Some(1000000) },
+                ModelInfo { id: "glm-4-flashx".to_string(), name: "GLM-4 FlashX".to_string(), description: Some("GLM-4 FlashX 模型".to_string()), supports_tools: Some(true), context_length: Some(128000) },
+                ModelInfo { id: "glm-4.7".to_string(), name: "GLM-4.7".to_string(), description: Some("GLM-4.7 最新模型".to_string()), supports_tools: Some(true), context_length: Some(128000) },
+            ],
+            enabled: Some(true),
+            sort_order: Some(0),
+        },
+        // 阿里云百炼
+        NewProviderType {
+            id: "aliyun".to_string(),
+            label: "阿里云百炼".to_string(),
+            base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1".to_string(),
+            default_model: "qwen-turbo".to_string(),
+            models: vec![
+                ModelInfo { id: "qwen-turbo".to_string(), name: "Qwen Turbo".to_string(), description: Some("快速版通义千问".to_string()), supports_tools: Some(true), context_length: Some(8192) },
+                ModelInfo { id: "qwen-plus".to_string(), name: "Qwen Plus".to_string(), description: Some("增强版通义千问".to_string()), supports_tools: Some(true), context_length: Some(32768) },
+                ModelInfo { id: "qwen-max".to_string(), name: "Qwen Max".to_string(), description: Some("最强版通义千问".to_string()), supports_tools: Some(true), context_length: Some(32768) },
+                ModelInfo { id: "qwen-long".to_string(), name: "Qwen Long".to_string(), description: Some("长上下文通义千问".to_string()), supports_tools: Some(true), context_length: Some(1000000) },
+            ],
+            enabled: Some(true),
+            sort_order: Some(1),
+        },
+        // 月之暗面
+        NewProviderType {
+            id: "moonshot".to_string(),
+            label: "月之暗面".to_string(),
+            base_url: "https://api.moonshot.cn/v1".to_string(),
+            default_model: "moonshot-v1-8k".to_string(),
+            models: vec![
+                ModelInfo { id: "moonshot-v1-8k".to_string(), name: "Moonshot V1 8K".to_string(), description: Some("8K 上下文模型".to_string()), supports_tools: Some(true), context_length: Some(8192) },
+                ModelInfo { id: "moonshot-v1-32k".to_string(), name: "Moonshot V1 32K".to_string(), description: Some("32K 上下文模型".to_string()), supports_tools: Some(true), context_length: Some(32768) },
+                ModelInfo { id: "moonshot-v1-128k".to_string(), name: "Moonshot V1 128K".to_string(), description: Some("128K 上下文模型".to_string()), supports_tools: Some(true), context_length: Some(128000) },
+            ],
+            enabled: Some(true),
+            sort_order: Some(2),
+        },
+        // MiniMax
+        NewProviderType {
+            id: "minimax".to_string(),
+            label: "MiniMax".to_string(),
+            base_url: "https://api.minimax.chat/v1".to_string(),
+            default_model: "MiniMax-Text-01".to_string(),
+            models: vec![
+                ModelInfo { id: "MiniMax-Text-01".to_string(), name: "MiniMax Text 01".to_string(), description: Some("MiniMax 文本模型".to_string()), supports_tools: Some(true), context_length: Some(1000000) },
+                ModelInfo { id: "abab6.5s-chat".to_string(), name: "ABAB 6.5s Chat".to_string(), description: Some("ABAB 6.5s 对话模型".to_string()), supports_tools: Some(true), context_length: Some(245760) },
+            ],
+            enabled: Some(true),
+            sort_order: Some(3),
+        },
+        // DeepSeek
+        NewProviderType {
+            id: "deepseek".to_string(),
+            label: "DeepSeek".to_string(),
+            base_url: "https://api.deepseek.com".to_string(),
+            default_model: "deepseek-chat".to_string(),
+            models: vec![
+                ModelInfo { id: "deepseek-chat".to_string(), name: "DeepSeek Chat".to_string(), description: Some("DeepSeek 对话模型".to_string()), supports_tools: Some(true), context_length: Some(64000) },
+                ModelInfo { id: "deepseek-coder".to_string(), name: "DeepSeek Coder".to_string(), description: Some("DeepSeek 编程模型".to_string()), supports_tools: Some(true), context_length: Some(64000) },
+                ModelInfo { id: "deepseek-reasoner".to_string(), name: "DeepSeek Reasoner".to_string(), description: Some("DeepSeek 推理模型".to_string()), supports_tools: Some(false), context_length: Some(64000) },
+            ],
+            enabled: Some(true),
+            sort_order: Some(4),
+        },
+        // 硅基流动
+        NewProviderType {
+            id: "siliconflow".to_string(),
+            label: "硅基流动".to_string(),
+            base_url: "https://api.siliconflow.cn/v1".to_string(),
+            default_model: "Qwen/Qwen2.5-7B-Instruct".to_string(),
+            models: vec![
+                ModelInfo { id: "Qwen/Qwen2.5-7B-Instruct".to_string(), name: "Qwen 2.5 7B".to_string(), description: Some("通义千问 2.5 7B".to_string()), supports_tools: Some(true), context_length: Some(32768) },
+                ModelInfo { id: "Qwen/Qwen2.5-32B-Instruct".to_string(), name: "Qwen 2.5 32B".to_string(), description: Some("通义千问 2.5 32B".to_string()), supports_tools: Some(true), context_length: Some(32768) },
+                ModelInfo { id: "deepseek-ai/DeepSeek-V3".to_string(), name: "DeepSeek V3".to_string(), description: Some("DeepSeek V3 模型".to_string()), supports_tools: Some(true), context_length: Some(64000) },
+            ],
+            enabled: Some(true),
+            sort_order: Some(5),
+        },
+        // 火山引擎
+        NewProviderType {
+            id: "volcengine".to_string(),
+            label: "火山引擎".to_string(),
+            base_url: "https://ark.cn-beijing.volces.com/api/v3".to_string(),
+            default_model: "doubao-pro-32k".to_string(),
+            models: vec![
+                ModelInfo { id: "doubao-pro-32k".to_string(), name: "Doubao Pro 32K".to_string(), description: Some("豆包 Pro 32K 模型".to_string()), supports_tools: Some(true), context_length: Some(32768) },
+                ModelInfo { id: "doubao-pro-128k".to_string(), name: "Doubao Pro 128K".to_string(), description: Some("豆包 Pro 128K 模型".to_string()), supports_tools: Some(true), context_length: Some(128000) },
+            ],
+            enabled: Some(true),
+            sort_order: Some(6),
+        },
+        // 腾讯混元
+        NewProviderType {
+            id: "tencent".to_string(),
+            label: "腾讯混元".to_string(),
+            base_url: "https://api.hunyuan.cloud.tencent.com/v1".to_string(),
+            default_model: "hunyuan-lite".to_string(),
+            models: vec![
+                ModelInfo { id: "hunyuan-lite".to_string(), name: "Hunyuan Lite".to_string(), description: Some("混元 Lite 模型".to_string()), supports_tools: Some(true), context_length: Some(256000) },
+                ModelInfo { id: "hunyuan-standard".to_string(), name: "Hunyuan Standard".to_string(), description: Some("混元标准模型".to_string()), supports_tools: Some(true), context_length: Some(256000) },
+                ModelInfo { id: "hunyuan-pro".to_string(), name: "Hunyuan Pro".to_string(), description: Some("混元 Pro 模型".to_string()), supports_tools: Some(true), context_length: Some(32768) },
+            ],
+            enabled: Some(true),
+            sort_order: Some(7),
+        },
+        // LongCat
+        NewProviderType {
+            id: "longcat".to_string(),
+            label: "LongCat".to_string(),
+            base_url: "https://api.longcat.chat/v1".to_string(),
+            default_model: "LongCat-Flash-Chat".to_string(),
+            models: vec![
+                ModelInfo { id: "LongCat-Flash-Chat".to_string(), name: "LongCat Flash Chat".to_string(), description: Some("LongCat 快速对话模型".to_string()), supports_tools: Some(false), context_length: Some(4096) },
+            ],
+            enabled: Some(true),
+            sort_order: Some(8),
+        },
+        // Ollama (本地)
+        NewProviderType {
+            id: "ollama".to_string(),
+            label: "Ollama (本地)".to_string(),
+            base_url: "http://localhost:11434/v1".to_string(),
+            default_model: "llama3.2".to_string(),
+            models: vec![
+                ModelInfo { id: "llama3.2".to_string(), name: "Llama 3.2".to_string(), description: Some("Llama 3.2 模型".to_string()), supports_tools: Some(false), context_length: Some(128000) },
+                ModelInfo { id: "llama2".to_string(), name: "Llama 2".to_string(), description: Some("Llama 2 模型".to_string()), supports_tools: Some(false), context_length: Some(4096) },
+                ModelInfo { id: "qwen2.5".to_string(), name: "Qwen 2.5".to_string(), description: Some("通义千问 2.5".to_string()), supports_tools: Some(true), context_length: Some(32768) },
+            ],
+            enabled: Some(true),
+            sort_order: Some(9),
+        },
+    ]
 }
 
-/// Raw provider entry from models.yaml
-#[derive(Debug, Deserialize)]
-struct YamlProvider {
-    models: Vec<YamlModel>,
-}
-
-/// Provider metadata (not in yaml, hardcoded)
-struct ProviderMeta {
-    label: &'static str,
-    base_url: &'static str,
-}
-
-/// Get provider metadata
-fn get_provider_meta(id: &str) -> Option<ProviderMeta> {
-    match id {
-        "zhipu" => Some(ProviderMeta {
-            label: "智谱 AI",
-            base_url: "https://open.bigmodel.cn/api/paas/v4",
-        }),
-        "aliyun" => Some(ProviderMeta {
-            label: "阿里云百炼",
-            base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-        }),
-        "moonshot" => Some(ProviderMeta {
-            label: "月之暗面",
-            base_url: "https://api.moonshot.cn/v1",
-        }),
-        "minimax" => Some(ProviderMeta {
-            label: "MiniMax",
-            base_url: "https://api.minimax.chat/v1",
-        }),
-        "longcat" => Some(ProviderMeta {
-            label: "LongCat",
-            base_url: "https://api.longcat.chat/v1",
-        }),
-        "tencent" => Some(ProviderMeta {
-            label: "腾讯混元",
-            base_url: "https://api.hunyuan.cloud.tencent.com/v1",
-        }),
-        "volcengine" => Some(ProviderMeta {
-            label: "火山引擎",
-            base_url: "https://ark.cn-beijing.volces.com/api/v3",
-        }),
-        "deepseek" => Some(ProviderMeta {
-            label: "DeepSeek",
-            base_url: "https://api.deepseek.com",
-        }),
-        "siliconflow" => Some(ProviderMeta {
-            label: "硅基流动",
-            base_url: "https://api.siliconflow.cn/v1",
-        }),
-        "ollama" => Some(ProviderMeta {
-            label: "Ollama (本地)",
-            base_url: "http://localhost:11434/v1",
-        }),
-        _ => None,
-    }
-}
-
-/// Load models.yaml and initialize provider_types table
+/// Initialize provider_types table with default values
 pub async fn initialize_provider_types(db: &DatabasePool) -> Result<()> {
     // Check if already initialized
     if !db.is_provider_types_empty().await? {
@@ -89,61 +164,14 @@ pub async fn initialize_provider_types(db: &DatabasePool) -> Result<()> {
         return Ok(());
     }
 
-    info!("Initializing provider types from models.yaml...");
+    info!("Initializing provider types with defaults...");
 
-    // Load and parse models.yaml
-    let yaml_content = include_str!("../models/models.yaml");
-    let providers: HashMap<String, YamlProvider> = serde_yaml::from_str(yaml_content)?;
-
-    // Convert to NewProviderType
-    let mut provider_types = Vec::new();
-    
-    for (id, provider) in providers {
-        // Skip ollama (dynamic models)
-        if id == "ollama" {
-            continue;
-        }
-
-        let meta = match get_provider_meta(&id) {
-            Some(m) => m,
-            None => {
-                warn!("Unknown provider '{}', skipping", id);
-                continue;
-            }
-        };
-
-        // Convert models
-        let models: Vec<ModelInfo> = provider.models.into_iter().map(|m| ModelInfo {
-            id: m.id,
-            name: m.name,
-            description: m.description,
-            supports_tools: m.supports_tools,
-            context_length: m.context_length,
-        }).collect();
-
-        if models.is_empty() {
-            warn!("Provider '{}' has no models, skipping", id);
-            continue;
-        }
-
-        let default_model = models.first().map(|m| m.id.clone()).unwrap_or_default();
-
-        provider_types.push(NewProviderType {
-            id: id.clone(),
-            label: meta.label.to_string(),
-            base_url: meta.base_url.to_string(),
-            default_model,
-            models,
-            enabled: Some(true),
-            sort_order: None,
-        });
-    }
-
-    // Insert into database
+    let provider_types = get_default_provider_types();
     let count = provider_types.len();
+
     db.batch_insert_provider_types(provider_types).await?;
-    
-    info!("✅ Initialized {} provider types from models.yaml", count);
+
+    info!("✅ Initialized {} provider types", count);
     Ok(())
 }
 

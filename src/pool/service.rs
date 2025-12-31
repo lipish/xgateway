@@ -7,14 +7,12 @@
 //! - Failover with retry
 
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tokio::sync::RwLock;
 use anyhow::{Result, anyhow};
 
 use super::pool::{ProviderPool, ProviderInstanceConfig, PoolStatus};
 use super::load_balancer::LoadBalanceStrategy;
-use super::failover::RetryCondition;
-use super::health::HealthStatus;
 use crate::db::Provider;
 use crate::settings::LlmBackendSettings;
 use crate::service::Service;
@@ -160,4 +158,3 @@ impl MultiProviderService {
         self.services.read().await.get(&provider_id).cloned()
     }
 }
-

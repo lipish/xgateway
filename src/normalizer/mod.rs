@@ -6,7 +6,7 @@ mod model_resolver;
 
 pub use types::{Model, Response};
 
-use crate::models::ModelsConfig;
+use crate::db::ModelsConfig;
 use crate::settings::LlmBackendSettings;
 use anyhow::Result;
 use llm_connector::LlmClient;

@@ -5,7 +5,6 @@ mod settings;
 mod service;
 mod normalizer;
 mod api;
-mod models;
 mod cli;
 mod provider;
 
@@ -80,7 +79,7 @@ async fn main() -> Result<()> {
 /// Run in single provider mode (traditional)
 async fn run_single_mode(args: Args) -> Result<()> {
     info!("📋 Single provider mode: Using YAML configuration");
-    
+
     // Load configuration (required for single mode)
     let (config, config_source) = ConfigLoader::load_config(&args)?;
     let config = ConfigLoader::apply_cli_overrides(config, &args);
@@ -88,12 +87,16 @@ async fn run_single_mode(args: Args) -> Result<()> {
     // Log configuration
     log_configuration(&config, &config_source);
 
+    // Initialize in-memory database for model list
+    let db_pool = db::DatabasePool::new_memory().await?;
+    db::init::initialize_provider_types(&db_pool).await?;
+
     // Initialize LLM service
     let llm_service = initialize_llm_service(&config)?;
     let app_state = AppState::new(llm_service, config.clone());
 
     // Build and start server
-    let app = build_single_mode_app(app_state, &config);
+    let app = build_single_mode_app(app_state, &config, db_pool);
     start_server(app, &config).await?;
 
     Ok(())
@@ -948,10 +951,10 @@ fn initialize_llm_service(config: &Settings) -> Result<service::Service> {
 }
 
 /// Build single mode application and add middleware
-fn build_single_mode_app(app_state: AppState, config: &Settings) -> Router {
+fn build_single_mode_app(app_state: AppState, config: &Settings, db_pool: db::DatabasePool) -> Router {
     info!("🏗️ Building single-mode application routes...");
 
-    build_single_mode_routes(app_state, config)
+    build_single_mode_routes(app_state, config, db_pool)
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request<_>| {
@@ -998,7 +1001,7 @@ async fn start_server(app: Router, config: &Settings) -> Result<()> {
     Ok(())
 }
 
-fn build_single_mode_routes(state: AppState, config: &Settings) -> Router {
+fn build_single_mode_routes(state: AppState, config: &Settings, db_pool: db::DatabasePool) -> Router {
     // Create basic routes (no state required)
     let basic_routes = Router::new()
         .route("/", get(|| {
@@ -1035,7 +1038,7 @@ fn build_single_mode_routes(state: AppState, config: &Settings) -> Router {
     if let Some(ollama_config) = &config.apis.ollama {
         if ollama_config.enabled {
             info!("Enabling Ollama API on path: {}", ollama_config.path);
-            let ollama_routes = api::ollama::build_ollama_routes(state.clone(), ollama_config);
+            let ollama_routes = api::ollama::build_ollama_routes(state.clone(), ollama_config, db_pool.clone());
             app = app.merge(ollama_routes);
         }
     }

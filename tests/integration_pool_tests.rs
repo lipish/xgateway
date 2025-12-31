@@ -3,6 +3,8 @@
 //! Tests real provider connectivity with actual API keys
 //! Run with: cargo test --test integration_pool_tests -- --nocapture
 
+#![allow(unused_imports)]
+
 use std::time::Duration;
 
 /// Provider test configuration
@@ -120,4 +122,3 @@ async fn test_metrics_simulation() {
 fn main() {
     println!("Run integration tests with: cargo test --test integration_pool_tests -- --nocapture");
 }
-

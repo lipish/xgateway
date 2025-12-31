@@ -7,6 +7,8 @@
 //! - Failover management
 //! - Provider pool management
 
+#![allow(dead_code)]
+
 pub mod health;
 pub mod circuit_breaker;
 pub mod load_balancer;
@@ -17,13 +19,8 @@ pub mod service;
 pub mod manager;
 pub mod rate_limiter;
 
-pub use health::{HealthChecker, HealthStatus, HealthCheckResult};
-pub use circuit_breaker::{CircuitBreaker, CircuitBreakerConfig, CircuitState};
-pub use load_balancer::{LoadBalancer, LoadBalanceStrategy};
-pub use failover::{FailoverManager, FailoverConfig};
-pub use pool::{ProviderPool, ProviderInstance, PoolStatus};
-pub use metrics::{ProviderMetrics, RequestMetrics};
-pub use service::{MultiProviderService, MultiProviderConfig};
-pub use manager::{PoolManager, PoolStatusSummary};
-pub use rate_limiter::{RateLimiter, RateLimitConfig, RateLimitResult};
-
+pub use health::HealthStatus;
+pub use load_balancer::LoadBalanceStrategy;
+pub use pool::{ProviderPool, PoolStatus};
+pub use manager::PoolManager;
+pub use rate_limiter::RateLimitResult;

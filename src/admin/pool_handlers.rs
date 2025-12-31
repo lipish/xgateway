@@ -6,6 +6,8 @@
 //! - Metrics
 //! - Load balancing configuration
 
+#![allow(dead_code)]
+
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -17,7 +19,6 @@ use std::sync::Arc;
 
 use crate::pool::{
     ProviderPool, PoolStatus, LoadBalanceStrategy, HealthStatus,
-    metrics::ProviderMetricsSummary,
 };
 
 /// Pool state for handlers
@@ -152,4 +153,3 @@ pub async fn set_fallback_chain(
         "fallback_ids": request.fallback_ids
     }))
 }
-

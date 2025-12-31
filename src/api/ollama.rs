@@ -17,7 +17,7 @@ use tracing::{info, warn, error};
 
 use crate::adapters::{ClientAdapter, FormatDetector};
 use crate::api::{AppState, convert};
-use crate::models::ModelsConfig;
+use crate::db::DatabasePool;
 use crate::settings;
 use crate::provider::minimax::MinimaxClient;
 
@@ -369,7 +369,7 @@ pub async fn show_handler(
     State(state): State<AppState>,
     Json(request): Json<Value>,
 ) -> Result<Json<Value>, StatusCode> {
-    use crate::models::ModelsConfig;
+    use crate::db::ModelsConfig;
 
     // Extract model name from request
     let model_name = request.get("name")
@@ -530,15 +530,17 @@ pub async fn ps(
 
 /// Build Ollama routes (used by main.rs)
 #[allow(dead_code)]
-pub fn build_ollama_routes(state: AppState, ollama_config: &settings::OllamaApiSettings) -> Router {
+pub fn build_ollama_routes(state: AppState, ollama_config: &settings::OllamaApiSettings, db_pool: DatabasePool) -> Router {
     let state_for_chat = state.clone();
-    let state_for_tags = state.clone();
+    let db_pool_for_tags = db_pool.clone();
 
     Router::new()
         .route(&format!("{}/api/tags", ollama_config.path), get(move || {
-            let state = state_for_tags.clone();
+            let state = state.clone();
+            let db = db_pool_for_tags.clone();
             async move {
                 use axum::Json;
+                use crate::db::ModelInfo;
 
                 // Determine current provider name from backend
                 let provider_name = {
@@ -558,9 +560,13 @@ pub fn build_ollama_routes(state: AppState, ollama_config: &settings::OllamaApiS
                     name.to_string()
                 };
 
-                // Load models from embedded models.yaml
-                let models_config = ModelsConfig::load_with_fallback();
-                let provider_models = models_config.get_models_for_provider(&provider_name);
+                // Load models from database
+                let provider_models: Vec<ModelInfo> = match db.get_provider_type(&provider_name).await {
+                    Ok(Some(pt)) => {
+                        serde_json::from_str(&pt.models).unwrap_or_default()
+                    }
+                    _ => Vec::new(),
+                };
 
                 // Map to Ollama tags format
                 let ollama_models: Vec<serde_json::Value> = provider_models
@@ -570,7 +576,7 @@ pub fn build_ollama_routes(state: AppState, ollama_config: &settings::OllamaApiS
 
                         // Build model tags - include "tools" if model supports it
                         let mut tags = Vec::new();
-                        if m.supports_tools {
+                        if m.supports_tools.unwrap_or(false) {
                             tags.push("tools");
                             info!("✅ Model {} supports tools", m.id);
                         } else {

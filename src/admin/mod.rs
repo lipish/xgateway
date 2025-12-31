@@ -43,6 +43,7 @@ struct ApiResponse<T: Serialize> {
 }
 
 /// Get pool status API
+#[allow(dead_code)]
 async fn get_pool_status_api() -> Json<ApiResponse<serde_json::Value>> {
     Json(ApiResponse {
         success: true,

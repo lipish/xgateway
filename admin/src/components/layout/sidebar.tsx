@@ -25,17 +25,18 @@ import {
   FileText,
   HelpCircle,
   MessageSquare,
-  Users,
+  Library,
+  User,
 } from "lucide-react"
 
 function getNavigation() {
   return [
     {
-      title: t('nav.dashboard'),
+      title: t('nav.main'),
       items: [
         { name: t('nav.dashboard'), href: "/", icon: LayoutDashboard },
+        { name: t('nav.modelTypes'), href: "/model-types", icon: Library },
         { name: t('nav.providers'), href: "/providers", icon: Server },
-        { name: t('nav.modelTypes'), href: "/model-types", icon: Users },
         { name: t('nav.chat'), href: "/chat", icon: MessageSquare },
         { name: t('nav.logs'), href: "/logs", icon: FileText },
       ],
@@ -112,7 +113,7 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-border/30 px-4 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
-            <Users className="h-4 w-4 text-primary" />
+            <User className="h-4 w-4 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-foreground truncate">{t('common.admin')}</p>

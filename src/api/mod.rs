@@ -6,7 +6,7 @@ pub mod config;
 
 use crate::settings::{Settings, LlmBackendSettings};
 use crate::service::Service as LlmService;
-use crate::models::ModelsConfig;
+use crate::db::ModelsConfig;
 use axum::response::Json;
 use axum::extract::State;
 use axum::http::StatusCode;

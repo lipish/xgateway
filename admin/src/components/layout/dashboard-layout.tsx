@@ -9,6 +9,7 @@ function getPageTitle(pathname: string): string {
   const routes: Record<string, string> = {
     "/": "nav.dashboard",
     "/providers": "nav.providers",
+    "/model-types": "nav.modelTypes",
     "/chat": "nav.chat",
     "/logs": "nav.logs",
     "/settings": "nav.settings",
