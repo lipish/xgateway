@@ -9,13 +9,9 @@
 
 // Get API URL from environment or use default
 const getApiUrl = (): string => {
-  // In development, use the environment variable or default
-  if (import.meta.env.DEV) {
-    return import.meta.env.VITE_API_URL || 'http://localhost:8000'
-  }
-  
-  // In production, use relative paths (served from same origin)
-  return ''
+  // Use environment variable if set, otherwise use empty string
+  // (Vite proxy will forward /api/* requests to the backend)
+  return import.meta.env.VITE_API_URL || ''
 }
 
 export const API_URL = getApiUrl()

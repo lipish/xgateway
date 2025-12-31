@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Header } from "@/components/layout/header"
+
 import { useI18n, t } from "@/lib/i18n"
 import { Settings, Save, RotateCcw } from "lucide-react"
 
@@ -93,7 +93,6 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-col">
-      <Header title={t('settings.title')} description={t('settings.description')} />
       <div className="flex-1 space-y-6 p-6 max-w-[1600px] mx-auto w-full">
         {message && (
           <div className={`p-4 rounded-lg ${message.type === 'success' ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>

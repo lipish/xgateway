@@ -22,8 +22,9 @@ export const translations = {
   zh: {
     // Navigation
     nav: {
-      dashboard: '仪表板',
+      dashboard: '工作台',
       providers: '模型服务商',
+      modelTypes: '模型列表',
       chat: '对话测试',
       logs: '请求日志',
       settings: '设置',
@@ -33,7 +34,7 @@ export const translations = {
     },
     // Dashboard
     dashboard: {
-      title: '仪表板',
+      title: '工作台',
       description: 'XGateway 多模型服务商 AI 网关概览',
       totalProviders: '总模型服务商',
       totalProvidersDesc: '已配置的模型服务商数量',
@@ -151,6 +152,26 @@ export const translations = {
       maxRetries: '最大重试次数',
       retryDelay: '重试延迟（毫秒）',
     },
+    // Model Types
+    modelTypes: {
+      title: '模型列表',
+      description: '管理可用的 AI 模型列表',
+      allTypes: '所有模型列表',
+      models: '可用模型',
+      modelsCount: '模型数量',
+      addModel: '添加模型',
+      editModel: '编辑模型',
+      deleteModel: '删除模型',
+      modelId: '模型 ID',
+      modelName: '模型名称',
+      modelDescription: '模型描述',
+      supportsTools: '支持工具调用',
+      contextLength: '上下文长度',
+      baseUrl: '默认 API 地址',
+      defaultModel: '默认模型',
+      noModels: '暂无模型',
+      confirmDeleteModel: '确定要删除这个模型吗？',
+    },
     // Help
     help: {
       title: '帮助中心',
@@ -185,6 +206,7 @@ export const translations = {
     nav: {
       dashboard: 'Dashboard',
       providers: 'Model Providers',
+      modelTypes: 'Model Types',
       chat: 'Chat Test',
       logs: 'Request Logs',
       settings: 'Settings',
@@ -311,6 +333,26 @@ export const translations = {
       retryDesc: 'Configure retry parameters',
       maxRetries: 'Max Retries',
       retryDelay: 'Retry Delay (milliseconds)',
+    },
+    // Model Types
+    modelTypes: {
+      title: 'Model Types',
+      description: 'Manage available AI model types and model lists',
+      allTypes: 'All Model Types',
+      models: 'Available Models',
+      modelsCount: 'Model Count',
+      addModel: 'Add Model',
+      editModel: 'Edit Model',
+      deleteModel: 'Delete Model',
+      modelId: 'Model ID',
+      modelName: 'Model Name',
+      modelDescription: 'Model Description',
+      supportsTools: 'Supports Tools',
+      contextLength: 'Context Length',
+      baseUrl: 'Default API URL',
+      defaultModel: 'Default Model',
+      noModels: 'No models yet',
+      confirmDeleteModel: 'Are you sure you want to delete this model?',
     },
     // Help
     help: {

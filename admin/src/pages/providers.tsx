@@ -24,7 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Header } from "@/components/layout/header";
+
 import {
   Plus,
   Search,
@@ -38,6 +38,8 @@ import {
   Settings,
   Activity,
   MessageSquare,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
@@ -374,11 +376,6 @@ export function ProvidersPage() {
 
   return (
     <div className="flex flex-col">
-      <Header
-        title={t("providers.title")}
-        description={t("providers.description")}
-      />
-
       <div className="flex-1 p-6 max-w-[1600px] mx-auto w-full">
         {/* Loading and Error States */}
         {loading && (
@@ -406,14 +403,6 @@ export function ProvidersPage() {
             {/* Left: Provider List (Master) */}
             <div className="bg-white rounded-xl shadow-sm border p-6 flex flex-col w-[65%]">
               <div className="flex items-center justify-between gap-4 mb-4">
-                <div>
-                  <h2 className="text-lg font-semibold">
-                    {t("providers.allProviders")}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {t("providers.allProviders")} {filteredProviders.length}
-                  </p>
-                </div>
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -424,21 +413,24 @@ export function ProvidersPage() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
-                  <Button onClick={openAddDialog} size="sm">
-                    <Plus className="mr-1 h-4 w-4" />
-                    {t("providers.add")}
-                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    共 {filteredProviders.length} 个
+                  </span>
                 </div>
+                <Button onClick={openAddDialog} size="sm">
+                  <Plus className="mr-1 h-4 w-4" />
+                  {t("providers.add")}
+                </Button>
               </div>
               <div className="flex-1 overflow-auto border rounded-lg">
                 <Table>
                   <TableHeader className="sticky top-0 bg-white">
                     <TableRow>
-                      <TableHead>{t("providers.name")}</TableHead>
-                      <TableHead>{t("providers.type")}</TableHead>
-                      <TableHead>{t("providers.status")}</TableHead>
-                      <TableHead>{t("providers.priority")}</TableHead>
-                      <TableHead className="w-[100px]">
+                      <TableHead className="text-center">{t("providers.name")}</TableHead>
+                      <TableHead className="text-center">{t("providers.type")}</TableHead>
+                      <TableHead className="text-center">{t("providers.status")}</TableHead>
+                      <TableHead className="text-center">{t("providers.priority")}</TableHead>
+                      <TableHead className="text-center w-[100px]">
                         {t("providers.actions")}
                       </TableHead>
                     </TableRow>
@@ -450,37 +442,27 @@ export function ProvidersPage() {
                         className={`cursor-pointer hover:bg-muted/50 ${selectedProvider?.id === provider.id ? "bg-muted" : ""}`}
                         onClick={() => setSelectedProvider(provider)}
                       >
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`h-2 w-2 rounded-full ${
-                                provider.enabled
-                                  ? "bg-primary"
-                                  : "bg-destructive"
-                              }`}
-                            />
-                            <span className="font-medium">{provider.name}</span>
-                          </div>
+                        <TableCell className="text-center">
+                          <span className="font-medium">{provider.name}</span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           <Badge variant="secondary">
                             {provider.provider_type}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           <Badge
-                            variant={
-                              provider.enabled ? "success" : "destructive"
-                            }
+                            className={provider.enabled ? "bg-primary/10 text-primary border-0" : ""}
+                            variant={provider.enabled ? "outline" : "destructive"}
                           >
                             {provider.enabled
                               ? t("providers.enabled")
                               : t("providers.disabled")}
                           </Badge>
                         </TableCell>
-                        <TableCell>{provider.priority}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
+                        <TableCell className="text-center">{provider.priority}</TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-2">
                             <Switch
                               checked={provider.enabled}
                               onCheckedChange={() =>
@@ -536,8 +518,30 @@ export function ProvidersPage() {
             <div className="w-[35%] bg-white rounded-xl shadow-sm border flex flex-col overflow-hidden">
               {selectedProvider ? (
                 <>
-                  <div className="p-4 border-b flex items-center justify-between">
-                    <h3 className="font-semibold">Provider 详情</h3>
+                  <div className="p-4 border-b flex items-center justify-end">
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => openEditDialog(selectedProvider)}
+                        title="编辑"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => {
+                          deleteProvider(selectedProvider.id);
+                          setSelectedProvider(null);
+                        }}
+                        title="删除"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="flex-1 overflow-auto p-4 space-y-4">
                     {/* 基本信息 */}
@@ -559,9 +563,8 @@ export function ProvidersPage() {
                       </div>
                       <div className="flex gap-2">
                         <Badge
-                          variant={
-                            selectedProvider.enabled ? "success" : "destructive"
-                          }
+                          className={selectedProvider.enabled ? "bg-primary/10 text-primary border-0" : ""}
+                          variant={selectedProvider.enabled ? "outline" : "destructive"}
                         >
                           {selectedProvider.enabled ? "已启用" : "已禁用"}
                         </Badge>
@@ -652,50 +655,6 @@ export function ProvidersPage() {
                         </div>
                       </div>
                     </div>
-                  </div>
-
-                  {/* 操作按钮 */}
-                  <div className="p-4 border-t flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => testProvider(selectedProvider.id)}
-                      disabled={testingId === selectedProvider.id}
-                    >
-                      {testingId === selectedProvider.id ? (
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <Activity className="h-4 w-4 mr-1" />
-                      )}
-                      测试
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => openEditDialog(selectedProvider)}
-                    >
-                      <Pencil className="h-4 w-4 mr-1" />
-                      编辑
-                    </Button>
-                    <Switch
-                      checked={selectedProvider.enabled}
-                      onCheckedChange={() =>
-                        toggleProvider(selectedProvider.id)
-                      }
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-destructive"
-                      onClick={() => {
-                        deleteProvider(selectedProvider.id);
-                        setSelectedProvider(null);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </div>
                 </>
               ) : (

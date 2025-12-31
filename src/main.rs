@@ -185,6 +185,7 @@ struct ProxyState {
 /// Build multi-mode application with Admin API and LLM Proxy routes
 fn build_multi_mode_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -> Router {
     use tower_http::cors::{Any, CorsLayer};
+    use tower_http::services::{ServeDir, ServeFile};
 
     // Admin API routes (/api/*)
     let admin_routes = create_admin_app(db_pool.clone());
@@ -265,9 +266,16 @@ fn build_multi_mode_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -
             }
         }));
 
-    // Basic routes
+    // Basic routes (health check and API info)
+    // Note: Root path "/" is handled by static file service for frontend
     let basic_routes = Router::new()
-        .route("/", get(|| async {
+        .route("/health", get(|| async {
+            axum::Json(serde_json::json!({
+                "status": "healthy",
+                "timestamp": chrono::Utc::now().to_rfc3339()
+            }))
+        }))
+        .route("/api/info", get(|| async {
             axum::Json(serde_json::json!({
                 "service": "LLM Link",
                 "version": env!("CARGO_PKG_VERSION"),
@@ -280,19 +288,24 @@ fn build_multi_mode_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -
                     "health": "/health"
                 }
             }))
-        }))
-        .route("/health", get(|| async {
-            axum::Json(serde_json::json!({
-                "status": "healthy",
-                "timestamp": chrono::Utc::now().to_rfc3339()
-            }))
         }));
 
+    // Static file service for admin frontend
+    // Serve files from admin/dist directory, fallback to index.html for SPA routing
+    let static_dir = std::env::current_dir()
+        .unwrap_or_default()
+        .join("admin/dist");
+
+    let serve_dir = ServeDir::new(&static_dir)
+        .not_found_service(ServeFile::new(static_dir.join("index.html")));
+
     // Merge all routes
+    // API routes take precedence, static files are fallback
     let app = basic_routes
         .merge(admin_routes)
         .merge(llm_proxy_routes)
         .merge(pool_status_route)
+        .fallback_service(serve_dir)
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)

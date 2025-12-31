@@ -48,7 +48,7 @@
     /* Neutral borders - no purple tint */
     --border: 220 14% 90%;
     --input: 220 14% 90%;
-    --ring: 270 76% 64%;
+    --ring: 220 14% 80%;
 
     /* Large radius for friendly feel */
     --radius: 0.875rem;
@@ -60,7 +60,7 @@
     --sidebar-accent: 220 14% 96%;
     --sidebar-accent-foreground: 220 10% 20%;
     --sidebar-border: 220 14% 92%;
-    --sidebar-ring: 270 76% 64%;
+    --sidebar-ring: 220 14% 80%;
 
     /* Chart colors - purple theme related palette */
     --chart-1: 270 60% 65%;
@@ -124,7 +124,7 @@
 
     --border: 270 20% 18%;
     --input: 270 20% 18%;
-    --ring: 270 76% 64%;
+    --ring: 270 20% 40%;
 
     --sidebar-background: 270 20% 10%;
     --sidebar-foreground: 264 30% 70%;
@@ -133,7 +133,7 @@
     --sidebar-accent: 270 50% 20%;
     --sidebar-accent-foreground: 270 76% 75%;
     --sidebar-border: 270 20% 18%;
-    --sidebar-ring: 270 76% 64%;
+    --sidebar-ring: 270 20% 40%;
 
     /* Chart colors - purple theme related palette for dark mode */
     --chart-1: 270 55% 60%;

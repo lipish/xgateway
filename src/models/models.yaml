@@ -13,9 +13,14 @@
 
 zhipu:
   models:
+    - id: "glm-4.7"
+      name: "GLM-4.7"
+      description: "Latest flagship model with 200K context, superior coding and agent capabilities"
+      supports_tools: true
+      context_length: 200000
     - id: "glm-4.6"
       name: "GLM-4.6"
-      description: "Latest flagship model with 200K context, advanced coding ability"
+      description: "Flagship model with 200K context, advanced coding ability"
       supports_tools: true
       context_length: 200000
     - id: "glm-4.5"

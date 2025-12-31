@@ -19,8 +19,7 @@ pub fn create_admin_app(db_pool: DatabasePool) -> Router {
         // Provider types API (CRUD)
         .route("/api/provider-types", get(get_provider_types_api).post(create_provider_type_api))
         .route("/api/provider-types/:id", put(update_provider_type_api).delete(delete_provider_type_api))
-        // Pool management API
-        .route("/api/pool/status", get(get_pool_status_api))
+        // Pool management API (note: /api/pool/status is defined in main.rs with pool_manager)
         .route("/api/pool/health", get(get_pool_health_api))
         .route("/api/pool/settings", get(get_pool_settings_api).post(save_pool_settings_api))
         // Logs API
@@ -207,12 +206,18 @@ async fn get_provider_types_api(
     match db_pool.list_provider_types().await {
         Ok(types) => {
             let provider_types: Vec<serde_json::Value> = types.iter().map(|t| {
+                // Parse models JSON to return full model info
+                let models: Vec<serde_json::Value> = serde_json::from_str(&t.models)
+                    .unwrap_or_default();
+
                 serde_json::json!({
                     "id": t.id,
                     "label": t.label,
                     "base_url": t.base_url,
                     "default_model": t.default_model,
-                    "models": t.to_response().models
+                    "models": models,
+                    "enabled": t.enabled,
+                    "sort_order": t.sort_order
                 })
             }).collect();
 

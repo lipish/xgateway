@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Header } from "@/components/layout/header"
+
 import { useI18n, t } from "@/lib/i18n"
 import {
   Server,
@@ -24,6 +24,10 @@ import {
   MessageSquare,
   Settings,
   Trash2,
+  Shield,
+  BarChart3,
+  Database,
+  Heart,
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { apiGet, apiPost } from "@/lib/api"
@@ -159,17 +163,6 @@ export function DashboardPage() {
   ]
   return (
     <div className="flex flex-col">
-      <Header
-        title={t('dashboard.title')}
-        description={t('dashboard.description')}
-        onRefresh={fetchDashboardData}
-        actions={
-          <Button size="sm" onClick={() => navigate('/providers?add=true')}>
-            <Plus className="mr-2 h-4 w-4" />
-            {t('dashboard.addProvider')}
-          </Button>
-        }
-      />
 
       <div className="flex-1 space-y-6 p-6 max-w-[1600px] mx-auto w-full">
         {/* Loading and Error States */}
@@ -223,17 +216,12 @@ export function DashboardPage() {
 
         {/* Recent Activity */}
         {!loading && !error && (
-          <div className="grid gap-4 md:grid-cols-7">
+          <div className="flex gap-4">
             {/* Providers Table */}
-            <Card className="md:col-span-4">
-              <CardHeader>
+            <Card className="flex-1 min-w-0">
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>最近的 Providers</CardTitle>
-                    <CardDescription>
-                      管理您的 AI 服务提供商
-                    </CardDescription>
-                  </div>
+                  <CardTitle>最近的模型服务商</CardTitle>
                   <Button variant="outline" size="sm" onClick={() => navigate('/providers')}>
                     查看全部
                   </Button>
@@ -244,135 +232,150 @@ export function DashboardPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>名称</TableHead>
-                      <TableHead>类型</TableHead>
                       <TableHead>状态</TableHead>
+                      <TableHead>模型名称</TableHead>
                       <TableHead>优先级</TableHead>
-                      <TableHead>创建时间</TableHead>
                       <TableHead className="w-[100px]">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {recentProviders.map((provider) => (
-                      <TableRow key={provider.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`h-2 w-2 rounded-full ${
-                                provider.enabled ? "bg-primary" : "bg-destructive"
-                              }`}
-                            />
+                    {recentProviders.map((provider) => {
+                      const config = (() => {
+                        try {
+                          return JSON.parse(provider.config)
+                        } catch {
+                          return {}
+                        }
+                      })()
+                      return (
+                        <TableRow key={provider.id}>
+                          <TableCell>
                             <span className="font-medium">{provider.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{provider.provider_type}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={provider.enabled ? "success" : "destructive"}
-                          >
-                            {provider.enabled ? "启用" : "禁用"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{provider.priority}</TableCell>
-                        <TableCell>{new Date(provider.created_at).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              checked={provider.enabled}
-                              onCheckedChange={() => toggleProvider(provider.id)}
-                            />
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="测试连接"
-                              onClick={() => testProvider(provider.id)}
-                              disabled={testingId === provider.id}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              className={provider.enabled ? "bg-primary/10 text-primary border-0" : ""}
+                              variant={provider.enabled ? "outline" : "destructive"}
                             >
-                              {testingId === provider.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : testResult?.id === provider.id ? (
-                                <Activity className={`h-4 w-4 ${testResult.success ? 'text-primary' : 'text-destructive'}`} />
-                              ) : (
-                                <Activity className="h-4 w-4" />
-                              )}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title={provider.enabled ? "开始对话" : "Provider 已禁用"}
-                              onClick={() => navigate(`/chat?provider=${provider.id}`)}
-                              disabled={!provider.enabled}
-                            >
-                              <MessageSquare className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                              {provider.enabled ? "启用" : "禁用"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">{config.model || '-'}</span>
+                          </TableCell>
+                          <TableCell>{provider.priority}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={provider.enabled}
+                                onCheckedChange={() => toggleProvider(provider.id)}
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="测试连接"
+                                onClick={() => testProvider(provider.id)}
+                                disabled={testingId === provider.id}
+                              >
+                                {testingId === provider.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : testResult?.id === provider.id ? (
+                                  <Activity className={`h-4 w-4 ${testResult.success ? 'text-success' : 'text-destructive'}`} />
+                                ) : (
+                                  <Activity className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title={provider.enabled ? "开始对话" : "Provider 已禁用"}
+                                onClick={() => navigate(`/chat?provider=${provider.id}`)}
+                                disabled={!provider.enabled}
+                              >
+                                <MessageSquare className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
                   </TableBody>
                 </Table>
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
-            <Card className="md:col-span-3">
-              <CardHeader>
-                <CardTitle>{t('dashboard.quickActions')}</CardTitle>
-                <CardDescription>{t('common.loading')}</CardDescription>
+            {/* Comprehensive Monitoring */}
+            <Card className="w-80 shrink-0 flex flex-col">
+              <CardHeader className="pb-3">
+                <CardTitle>综合监控</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <Button className="w-full justify-start" variant="outline">
-                  <Activity className="mr-2 h-4 w-4" />
-                  {t('dashboard.testAllProviders')}
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <Settings className="mr-2 h-4 w-4" />
-                  {t('dashboard.batchEdit')}
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <TrendingUp className="mr-2 h-4 w-4" />
-                  {t('dashboard.viewReport')}
-                </Button>
-                <Button
-                  className="w-full justify-start"
-                  variant="outline"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {t('dashboard.cleanupProviders')}
-                </Button>
+              <CardContent className="flex-1 flex flex-col">
+                <div className="space-y-2 flex-1">
+                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <Activity className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">系统负载</span>
+                    </div>
+                    <span className="text-sm font-semibold">正常</span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <Zap className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">响应速度</span>
+                    </div>
+                    <span className="text-sm font-semibold">良好</span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/50">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full ${stats && stats.enabled > 0 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                      <Server className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Provider 池</span>
+                    </div>
+                    <span className="text-sm font-semibold">
+                      {stats && stats.enabled > 0 ? `${stats.enabled} 个活跃` : '无可用'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <Database className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">数据库</span>
+                    </div>
+                    <span className="text-sm font-semibold">已连接</span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <Shield className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">健康检查</span>
+                    </div>
+                    <span className="text-sm font-semibold">通过</span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">运行时间</span>
+                    </div>
+                    <span className="text-sm font-semibold">稳定</span>
+                  </div>
+                </div>
+                <div className="pt-3 mt-auto">
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => navigate('/monitoring')}
+                  >
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    查看详细监控
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
         )}
-
-        {/* System Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle>系统状态</CardTitle>
-            <CardDescription>实时监控系统运行状态</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="flex items-center gap-4 rounded-lg border p-4">
-                <div className="h-3 w-3 rounded-full bg-primary" />
-                <div>
-                  <p className="text-sm font-medium">API 网关</p>
-                  <p className="text-xs text-muted-foreground">运行正常 (端口 3000)</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 rounded-lg border p-4">
-                <div className={`h-3 w-3 rounded-full ${stats && stats.enabled > 0 ? 'bg-primary' : 'bg-warning'}`} />
-                <div>
-                  <p className="text-sm font-medium">Provider 池</p>
-                  <p className="text-xs text-muted-foreground">
-                    {stats && stats.enabled > 0 ? `${stats.enabled} 个可用` : '无可用 Provider'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   )

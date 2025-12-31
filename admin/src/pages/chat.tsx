@@ -4,7 +4,7 @@ import { apiGet, apiPost } from "@/lib/api"
 import { useI18n, t } from "@/lib/i18n"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Header } from "@/components/layout/header"
+
 import { Send, Loader2, Bot, Plus, X, MessageSquarePlus, History, Trash2, PanelLeftClose, PanelLeft } from "lucide-react"
 import { Select } from "@/components/ui/select"
 
@@ -277,8 +277,6 @@ export function ChatPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Header title={t('chat.title')} description={t('chat.description')} />
-
       <div className="flex-1 flex overflow-hidden">
         {/* 历史对话侧边栏 */}
         {showHistory && (

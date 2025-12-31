@@ -219,6 +219,7 @@ impl PoolManager {
     }
 
     /// Check single provider health by calling /v1/models endpoint
+    /// For providers that don't support /models (like MiniMax), skip the check
     async fn check_provider_health(&self, provider: &Provider) -> Result<u64> {
         let config: serde_json::Value = serde_json::from_str(&provider.config)?;
         let api_key = config.get("api_key").and_then(|v| v.as_str()).unwrap_or("");
@@ -228,25 +229,59 @@ impl PoolManager {
             return Err(anyhow::anyhow!("No base_url configured"));
         }
 
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(10))
-            .build()?;
+        // Some providers (like MiniMax) don't support /models endpoint
+        // For these, we just assume they're healthy if API key is configured
+        let provider_type = provider.provider_type.as_str();
+        let providers_without_models = ["minimax"];
 
-        let url = format!("{}/models", base_url.trim_end_matches('/'));
-        let start = std::time::Instant::now();
+        if providers_without_models.contains(&provider_type) {
+            // For providers without /models endpoint, just verify the base_url is reachable
+            // by doing a lightweight HEAD request to the base URL
+            let client = reqwest::Client::builder()
+                .timeout(Duration::from_secs(5))
+                .build()?;
 
-        let response = client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", api_key))
-            .send()
-            .await?;
+            let start = std::time::Instant::now();
 
-        let latency_ms = start.elapsed().as_millis() as u64;
+            // Try HEAD request to base URL - we just want to check connectivity
+            let response = client
+                .head(base_url)
+                .header("Authorization", format!("Bearer {}", api_key))
+                .send()
+                .await;
 
-        if response.status().is_success() {
-            Ok(latency_ms)
+            let latency_ms = start.elapsed().as_millis() as u64;
+
+            // For these providers, any response (even 404) means the server is reachable
+            // Only connection errors should be treated as failures
+            match response {
+                Ok(_) => Ok(latency_ms),
+                Err(e) if e.is_timeout() => Err(anyhow::anyhow!("Health check timeout")),
+                Err(e) if e.is_connect() => Err(anyhow::anyhow!("Connection failed: {}", e)),
+                Err(_) => Ok(latency_ms), // Other errors (like 404) are OK for these providers
+            }
         } else {
-            Err(anyhow::anyhow!("Health check failed: HTTP {}", response.status()))
+            // Standard /models endpoint check for OpenAI-compatible providers
+            let client = reqwest::Client::builder()
+                .timeout(Duration::from_secs(10))
+                .build()?;
+
+            let url = format!("{}/models", base_url.trim_end_matches('/'));
+            let start = std::time::Instant::now();
+
+            let response = client
+                .get(&url)
+                .header("Authorization", format!("Bearer {}", api_key))
+                .send()
+                .await?;
+
+            let latency_ms = start.elapsed().as_millis() as u64;
+
+            if response.status().is_success() {
+                Ok(latency_ms)
+            } else {
+                Err(anyhow::anyhow!("Health check failed: HTTP {}", response.status()))
+            }
         }
     }
 
