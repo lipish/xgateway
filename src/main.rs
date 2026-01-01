@@ -88,7 +88,7 @@ async fn run_single_mode(args: Args) -> Result<()> {
     log_configuration(&config, &config_source);
 
     // Initialize in-memory database for model list
-    let db_pool = db::DatabasePool::new_memory().await?;
+    let db_pool = db::DatabasePool::new_sqlite_memory().await?;
     db::init::initialize_provider_types(&db_pool).await?;
 
     // Initialize LLM service
@@ -116,17 +116,17 @@ async fn run_multi_mode(args: Args) -> Result<()> {
         }
     }
 
-    // Try file-based database first, fallback to in-memory if it fails
-    let db_pool = match try_file_database().await {
+    // Try database connection (PostgreSQL if DATABASE_URL is set, otherwise file-based SQLite)
+    let db_pool = match try_database().await {
         Ok(pool) => {
-            info!("✅ File-based database initialized successfully");
+            info!("✅ Database initialized successfully");
             pool
         }
         Err(e) => {
             warn!("⚠️ File-based database failed: {}", e);
             info!("🔄 Falling back to in-memory database for Phase 1");
 
-            match DatabasePool::new_memory().await {
+            match DatabasePool::new_sqlite_memory().await {
                 Ok(pool) => {
                     info!("✅ In-memory database initialized successfully");
                     pool
@@ -806,6 +806,20 @@ async fn handle_get_model(
     }))
 }
 
+/// Try to initialize database from DATABASE_URL or file-based SQLite
+async fn try_database() -> Result<DatabasePool> {
+    // Check for DATABASE_URL environment variable (for PostgreSQL)
+    if let Ok(database_url) = std::env::var("DATABASE_URL") {
+        if database_url.starts_with("postgres://") || database_url.starts_with("postgresql://") {
+            info!("Found PostgreSQL DATABASE_URL, connecting...");
+            return DatabasePool::new_postgres(&database_url).await;
+        }
+    }
+    
+    // Fall back to file-based SQLite
+    try_file_database().await
+}
+
 /// Try to initialize file-based database
 async fn try_file_database() -> Result<DatabasePool> {
     info!("Attempting file-based database initialization...");
@@ -863,7 +877,7 @@ async fn try_file_database() -> Result<DatabasePool> {
     }
     
     // Initialize database
-    DatabasePool::new(&db_path).await
+    DatabasePool::new_sqlite(&db_path).await
 }
 
 /// Test in-memory database to verify SQLite library works

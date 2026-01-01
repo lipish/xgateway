@@ -53,12 +53,22 @@ interface Provider {
 }
 
 // Provider 类型配置接口
+interface ModelInfo {
+  id: string;
+  name: string;
+  description?: string;
+  supports_tools?: boolean;
+  context_length?: number;
+  input_price?: number;
+  output_price?: number;
+}
+
 interface ProviderTypeConfig {
   id: string;
   label: string;
   base_url: string;
   default_model: string;
-  models: string[];
+  models: ModelInfo[];
 }
 
 // API 响应类型
@@ -696,7 +706,7 @@ export function ProvidersPage() {
                   onChange={(val) => setAddForm({ ...addForm, model: val })}
                   options={
                     getProviderTypeConfig(addForm.providerType)?.models.map(
-                      (m) => ({ value: m, label: m }),
+                      (m) => ({ value: m.id, label: m.name }),
                     ) || []
                   }
                 />

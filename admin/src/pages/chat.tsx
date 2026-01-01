@@ -352,7 +352,7 @@ export function ChatPage() {
                     onChange={v => setProviderForPanel(panel.id, parseInt(v))}
                     options={providers.map(p => ({ value: p.id.toString(), label: `${p.name} (${p.provider_type})` }))}
                     placeholder="选择 Provider"
-                    className="w-[180px]"
+                    className="w-[220px]"
                   />
                   <div className="flex gap-1">
                     <Button variant="ghost" size="icon" onClick={() => clearPanel(panel.id)} title="新对话">
