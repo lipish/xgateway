@@ -16,7 +16,7 @@ impl Provider for VolcengineProvider {
     }
     
     fn default_model() -> &'static str {
-        "doubao-pro-32k"
+        "doubao-seed-1-8-251215"
     }
     
     fn env_var_name() -> &'static str {
@@ -31,4 +31,3 @@ impl Provider for VolcengineProvider {
         true
     }
 }
-

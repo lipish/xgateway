@@ -107,7 +107,16 @@ impl Default for ModelsConfig {
         // Volcengine
         providers.insert("volcengine".to_string(), ProviderModels {
             models: vec![
-                ModelInfo { id: "doubao-pro-32k".to_string(), name: "Doubao Pro 32K".to_string(), description: "豆包 Pro 32K 模型".to_string(), supports_tools: true, context_length: 32768 },
+                ModelInfo { id: "Doubao-1.5-pro-32k".to_string(), name: "Doubao 1.5 Pro 32K".to_string(), description: "豆包 1.5 Pro 32K 模型".to_string(), supports_tools: true, context_length: 32768 },
+                ModelInfo { id: "Doubao-1.5-pro-256k".to_string(), name: "Doubao 1.5 Pro 256K".to_string(), description: "豆包 1.5 Pro 256K 模型".to_string(), supports_tools: true, context_length: 262144 },
+                ModelInfo { id: "Doubao-1.5-lite-32k".to_string(), name: "Doubao 1.5 Lite 32K".to_string(), description: "豆包 1.5 Lite 32K 模型".to_string(), supports_tools: true, context_length: 32768 },
+                ModelInfo { id: "Doubao-pro-4k".to_string(), name: "Doubao Pro 4K".to_string(), description: "豆包 Pro 4K 模型".to_string(), supports_tools: true, context_length: 4096 },
+                ModelInfo { id: "Doubao-pro-32k".to_string(), name: "Doubao Pro 32K".to_string(), description: "豆包 Pro 32K 模型".to_string(), supports_tools: true, context_length: 32768 },
+                ModelInfo { id: "Doubao-pro-128k".to_string(), name: "Doubao Pro 128K".to_string(), description: "豆包 Pro 128K 模型".to_string(), supports_tools: true, context_length: 131072 },
+                ModelInfo { id: "Doubao-pro-256k".to_string(), name: "Doubao Pro 256K".to_string(), description: "豆包 Pro 256K 模型".to_string(), supports_tools: true, context_length: 262144 },
+                ModelInfo { id: "Doubao-lite-4k".to_string(), name: "Doubao Lite 4K".to_string(), description: "豆包 Lite 4K 模型".to_string(), supports_tools: true, context_length: 4096 },
+                ModelInfo { id: "Doubao-lite-32k".to_string(), name: "Doubao Lite 32K".to_string(), description: "豆包 Lite 32K 模型".to_string(), supports_tools: true, context_length: 32768 },
+                ModelInfo { id: "Doubao-lite-128k".to_string(), name: "Doubao Lite 128K".to_string(), description: "豆包 Lite 128K 模型".to_string(), supports_tools: true, context_length: 131072 },
             ],
         });
 
@@ -153,4 +162,3 @@ impl Default for ModelsConfig {
         Self { providers }
     }
 }
-

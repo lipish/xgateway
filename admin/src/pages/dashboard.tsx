@@ -305,7 +305,7 @@ export function DashboardPage() {
             </Card>
 
             {/* Comprehensive Monitoring */}
-            <Card className="w-80 shrink-0 flex flex-col">
+            <Card className="w-96 shrink-0 flex flex-col">
               <CardHeader className="pb-3">
                 <CardTitle>{t('dashboard.comprehensiveMonitoring')}</CardTitle>
               </CardHeader>

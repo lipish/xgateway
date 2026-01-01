@@ -251,12 +251,12 @@ export function ModelTypesPage() {
                           <Box className={`h-5 w-5 shrink-0 mt-0.5 ${selectedType?.id === pt.id ? 'text-primary' : 'text-muted-foreground'}`} />
                         )}
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold truncate">{pt.label}</div>
+                          <div className="font-semibold truncate">{pt.id === 'volcengine' ? (localStorage.getItem('language') === 'zh' ? 'Volcengine (火山引擎)' : 'Volcengine') : pt.label}</div>
                           <div className="text-xs text-muted-foreground truncate mt-0.5">{pt.id}</div>
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="text-xs text-muted-foreground whitespace-nowrap">可用模型</div>
+                        <div className="text-xs text-muted-foreground whitespace-nowrap">{t("modelTypes.availableModels")}</div>
                         <div className="text-lg font-semibold mt-0.5">{pt.models.length}</div>
                       </div>
                     </div>
@@ -273,7 +273,7 @@ export function ModelTypesPage() {
                   <div className="p-6 border-b">
                     <div className="flex items-center justify-between mb-6">
                       <div>
-                        <h2 className="text-2xl font-semibold">{selectedType.label}</h2>
+                        <h2 className="text-2xl font-semibold">{selectedType.id === 'volcengine' ? (localStorage.getItem('language') === 'zh' ? 'Volcengine (火山引擎)' : 'Volcengine') : selectedType.label}</h2>
                         <p className="text-sm text-muted-foreground mt-1">{selectedType.id}</p>
                       </div>
                       <div className="flex gap-1">
