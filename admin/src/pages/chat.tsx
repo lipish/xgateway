@@ -4,6 +4,10 @@ import { apiGet, apiPost } from "@/lib/api"
 import { useI18n, t } from "@/lib/i18n"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"
 
 import { Send, Loader2, Bot, Plus, X, MessageSquarePlus, History, Trash2, PanelLeftClose, PanelLeft } from "lucide-react"
 import { Select } from "@/components/ui/select"
@@ -276,8 +280,8 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-full -m-6">
-      <div className="flex-1 flex overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-5rem)] -m-6">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {/* 历史对话侧边栏 */}
         {showHistory && (
           <div className="w-64 border-r bg-muted/30 flex flex-col">
@@ -325,8 +329,8 @@ export function ChatPage() {
         )}
 
         {/* 主内容区 */}
-        <div className="flex-1 p-6 flex flex-col overflow-hidden">
-          <div className="flex gap-2 mb-4">
+        <div className="flex-1 p-6 flex flex-col overflow-hidden min-h-0">
+          <div className="flex gap-2 mb-4 shrink-0">
             {!showHistory && (
               <Button variant="outline" size="sm" onClick={() => setShowHistory(true)}>
                 <PanelLeft className="w-4 h-4 mr-1" /> 历史对话
@@ -338,9 +342,9 @@ export function ChatPage() {
             <span className="text-sm text-muted-foreground self-center">最多 4 个窗口并排对比</span>
           </div>
 
-          <div className={`flex-1 grid gap-4 overflow-hidden ${panels.length === 1 ? 'grid-cols-1' : panels.length === 2 ? 'grid-cols-2' : panels.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+          <div className={`flex-1 grid gap-4 overflow-hidden min-h-0 ${panels.length === 1 ? 'grid-cols-1' : panels.length === 2 ? 'grid-cols-2' : panels.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
             {panels.map(panel => (
-              <Card key={panel.id} className="flex flex-col overflow-hidden h-full">
+              <Card key={panel.id} className="flex flex-col overflow-hidden min-h-0">
                 <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
                   <Select
                     value={panel.providerId?.toString() || ""}
@@ -360,8 +364,8 @@ export function ChatPage() {
                     )}
                   </div>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col overflow-hidden">
-                  <div className="flex-1 overflow-y-auto space-y-3 text-sm">
+                <CardContent className="flex-1 flex flex-col overflow-hidden p-0 min-h-0">
+                  <div className="flex-1 overflow-y-auto space-y-3 text-sm p-6 pb-0 scrollbar-hide min-h-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                     {panel.messages.length === 0 && !panel.providerId && (
                       <div className="text-center text-muted-foreground py-8">请先选择 Provider</div>
                     )}
@@ -371,8 +375,38 @@ export function ChatPage() {
                     {panel.messages.map((msg, i) => (
                       <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : ""}`}>
                         {msg.role === "assistant" && <Bot className="w-5 h-5 shrink-0 mt-1" />}
-                        <div className={`max-w-[90%] rounded-lg px-3 py-2 ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                          <pre className="whitespace-pre-wrap font-sans text-sm">{msg.content}</pre>
+                        <div className={`max-w-[90%] rounded-lg px-3 py-2 overflow-hidden ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                          {msg.role === "user" ? (
+                            <pre className="whitespace-pre-wrap break-all font-sans text-sm">{msg.content}</pre>
+                          ) : (
+                            <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-pre:my-2 prose-pre:p-0 prose-pre:bg-transparent">
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                  code({ className, children, ...props }) {
+                                    const match = /language-(\w+)/.exec(className || '')
+                                    const isInline = !match && !String(children).includes('\n')
+                                    return isInline ? (
+                                      <code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-sm" {...props}>
+                                        {children}
+                                      </code>
+                                    ) : (
+                                      <SyntaxHighlighter
+                                        style={oneDark}
+                                        language={match?.[1] || 'text'}
+                                        PreTag="div"
+                                        className="rounded-md text-sm !my-2"
+                                      >
+                                        {String(children).replace(/\n$/, '')}
+                                      </SyntaxHighlighter>
+                                    )
+                                  }
+                                }}
+                              >
+                                {msg.content}
+                              </ReactMarkdown>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -384,7 +418,7 @@ export function ChatPage() {
                     )}
                     <div ref={el => messagesEndRefs.current[panel.id] = el} />
                   </div>
-                  <div className="flex gap-2 mt-3 pt-3">
+                  <div className="flex gap-2 px-6 py-4 border-t bg-white shrink-0">
                     <textarea
                       ref={el => inputRefs.current[panel.id] = el}
                       className="flex-1 min-h-[40px] max-h-24 px-3 py-2 rounded-xl bg-muted/50 text-sm resize-none focus:outline-none focus:bg-muted transition-colors placeholder:text-muted-foreground/60"

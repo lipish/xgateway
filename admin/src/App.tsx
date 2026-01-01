@@ -8,7 +8,7 @@ import { SettingsPage } from "@/pages/settings"
 import { ApiKeysPage } from "@/pages/api-keys"
 import { HelpPage } from "@/pages/help"
 import { ChatPage } from "@/pages/chat"
-import { ModelTypesPage } from "@/pages/model-types"
+import { ModelTypesPage } from "@/pages/providers"
 
 function App() {
   return (
@@ -17,7 +17,7 @@ function App() {
         <Route path="/" element={<DashboardLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="instances" element={<ProvidersPage />} />
-          <Route path="model-types" element={<ModelTypesPage />} />
+          <Route path="providers" element={<ModelTypesPage />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="monitoring" element={<MonitoringPage />} />
           <Route path="logs" element={<LogsPage />} />

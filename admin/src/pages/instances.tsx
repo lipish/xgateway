@@ -38,8 +38,6 @@ import {
   Settings,
   Activity,
   MessageSquare,
-  ToggleLeft,
-  ToggleRight,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 

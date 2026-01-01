@@ -8,8 +8,8 @@ import { t } from "@/lib/i18n"
 function getPageTitle(pathname: string): string {
   const routes: Record<string, string> = {
     "/": "nav.dashboard",
-    "/providers": "nav.providers",
-    "/model-types": "nav.modelTypes",
+    "/instances": "nav.providers",
+    "/providers": "nav.modelTypes",
     "/chat": "nav.chat",
     "/logs": "nav.logs",
     "/settings": "nav.settings",
@@ -22,7 +22,7 @@ function getPageTitle(pathname: string): string {
 }
 
 // Pages that need wider layout
-const widerPages = ["/logs", "/chat", "/model-types"]
+const widerPages = ["/logs", "/chat", "/providers"]
 
 export function DashboardLayout() {
   const location = useLocation()

@@ -39,7 +39,12 @@ export function LogsPage() {
       setLoading(true)
       const data = await apiGet('/api/logs?limit=100')
       if (data.success) {
-        setLogs(data.data || [])
+        const logsData = data.data || []
+        setLogs(logsData)
+        // 默认选中第一条日志
+        if (logsData.length > 0 && !selectedLog) {
+          setSelectedLog(logsData[0])
+        }
       }
     } catch (err) {
       console.error('Failed to fetch logs:', err)

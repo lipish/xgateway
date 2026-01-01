@@ -4,7 +4,6 @@ import { t } from "@/lib/i18n"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
@@ -18,8 +17,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Pencil, Trash2, Loader2, Box, Search, MoreVertical } from "lucide-react"
+
+// Provider icon mapping
+const getProviderIcon = (providerId: string): string | null => {
+  const iconMap: Record<string, string> = {
+    'aliyun': '/ali.svg',
+    'volcengine': '/volcengine.svg',
+    'moonshot': '/moonshot.svg',
+  }
+  return iconMap[providerId] || null
+}
 
 interface ModelInfo {
   id: string
@@ -68,10 +76,6 @@ export function ModelTypesPage() {
     setProviderForm({ ...providerForm, label, id })
   }
 
-  useEffect(() => {
-    fetchProviderTypes()
-  }, [])
-
   const fetchProviderTypes = async () => {
     try {
       setLoading(true)
@@ -89,6 +93,11 @@ export function ModelTypesPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchProviderTypes()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const openAddModel = (typeId: string) => {
     setEditingModel({ typeId, model: null })
@@ -121,14 +130,14 @@ export function ModelTypesPage() {
         ? providerType.models.map(m => m.id === editingModel.model!.id ? modelForm : m)
         : [...providerType.models, modelForm]
 
-      const response = await apiPut(`/api/provider-types/${editingModel.typeId}`, { models: updatedModels })
+      const response = await apiPut<{ success: boolean; message?: string }>(`/api/provider-types/${editingModel.typeId}`, { models: updatedModels })
       if (response.success) {
         await fetchProviderTypes()
         closeDialog()
       } else {
         alert(response.message || t("common.saveFailed"))
       }
-    } catch (err) {
+    } catch {
       alert(t("common.networkError"))
     } finally {
       setSaving(false)
@@ -142,7 +151,7 @@ export function ModelTypesPage() {
     if (!providerType) return
 
     const updatedModels = providerType.models.filter(m => m.id !== modelId)
-    const response = await apiPut(`/api/provider-types/${typeId}`, { models: updatedModels })
+    const response = await apiPut<{ success: boolean }>(`/api/provider-types/${typeId}`, { models: updatedModels })
     if (response.success) {
       await fetchProviderTypes()
     }
@@ -156,7 +165,7 @@ export function ModelTypesPage() {
 
     setSaving(true)
     try {
-      const response = await apiPost("/api/provider-types", {
+      const response = await apiPost<{ success: boolean; message?: string }>("/api/provider-types", {
         ...providerForm,
         models: [],
         enabled: true,
@@ -169,7 +178,7 @@ export function ModelTypesPage() {
       } else {
         alert(response.message || t("common.saveFailed"))
       }
-    } catch (err) {
+    } catch {
       alert(t("common.networkError"))
     } finally {
       setSaving(false)
@@ -233,16 +242,21 @@ export function ModelTypesPage() {
                     }`}
                     onClick={() => setSelectedType(pt)}
                   >
-                    <div className="flex items-start gap-3">
-                      <Box className={`h-5 w-5 shrink-0 mt-0.5 ${selectedType?.id === pt.id ? 'text-primary' : 'text-muted-foreground'}`} />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold truncate">{pt.label}</div>
-                        <div className="text-xs text-muted-foreground truncate mt-0.5">{pt.id}</div>
-                        <div className="mt-2">
-                          <Badge className="text-xs font-medium min-w-[32px] justify-center bg-gray-200 text-gray-700 hover:bg-gray-200 border-0">
-                            {pt.models.length}
-                          </Badge>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        {getProviderIcon(pt.id) ? (
+                          <img src={getProviderIcon(pt.id)!} alt={pt.label} className="h-5 w-5 shrink-0 mt-0.5" />
+                        ) : (
+                          <Box className={`h-5 w-5 shrink-0 mt-0.5 ${selectedType?.id === pt.id ? 'text-primary' : 'text-muted-foreground'}`} />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold truncate">{pt.label}</div>
+                          <div className="text-xs text-muted-foreground truncate mt-0.5">{pt.id}</div>
                         </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-xs text-muted-foreground whitespace-nowrap">可用模型</div>
+                        <div className="text-lg font-semibold mt-0.5">{pt.models.length}</div>
                       </div>
                     </div>
                   </div>
@@ -438,7 +452,7 @@ export function ModelTypesPage() {
                 <div className="flex items-center gap-2 pt-6">
                   <Switch
                     checked={modelForm.supports_tools || false}
-                    onCheckedChange={checked => setModelForm({ ...modelForm, supports_tools: checked })}
+                    onCheckedChange={(checked: boolean) => setModelForm({ ...modelForm, supports_tools: checked })}
                   />
                   <label className="text-sm">{t("modelTypes.supportsTools")}</label>
                 </div>

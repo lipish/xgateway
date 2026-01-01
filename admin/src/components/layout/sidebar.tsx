@@ -35,7 +35,7 @@ function getNavigation() {
       title: t('nav.main'),
       items: [
         { name: t('nav.dashboard'), href: "/", icon: LayoutDashboard },
-        { name: t('nav.modelTypes'), href: "/model-types", icon: Library },
+        { name: t('nav.modelTypes'), href: "/providers", icon: Library },
         { name: t('nav.providers'), href: "/instances", icon: Server },
         { name: t('nav.chat'), href: "/chat", icon: MessageSquare },
         { name: t('nav.logs'), href: "/logs", icon: FileText },
