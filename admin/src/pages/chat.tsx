@@ -344,7 +344,8 @@ export function ChatPage() {
 
           <div className={`flex-1 grid gap-4 overflow-hidden min-h-0 ${panels.length === 1 ? 'grid-cols-1' : panels.length === 2 ? 'grid-cols-2' : panels.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
             {panels.map(panel => (
-              <Card key={panel.id} className="flex flex-col overflow-hidden min-h-0">
+              <div key={panel.id} className={panels.length === 1 ? "max-w-[50%] mx-auto w-full flex min-h-0" : "flex min-h-0"}>
+              <Card className="flex flex-col overflow-hidden min-h-0 flex-1">
                 <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
                   <Select
                     value={panel.providerId?.toString() || ""}
@@ -440,6 +441,7 @@ export function ChatPage() {
                   </div>
                 </CardContent>
               </Card>
+              </div>
             ))}
           </div>
         </div>

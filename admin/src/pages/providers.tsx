@@ -324,7 +324,7 @@ export function ModelTypesPage() {
                   <div className="flex-1 overflow-auto p-6 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                     <h3 className="text-base font-semibold mb-4">可用模型 ({selectedType.models.length})</h3>
                     {selectedType.models.length === 0 ? (
-                      <div className="text-center py-12 text-muted-foreground">
+                      <div className="text-center py-12 text-muted-foreground text-sm">
                         {t("modelTypes.noModels")}
                       </div>
                     ) : (
@@ -332,23 +332,23 @@ export function ModelTypesPage() {
                         <Table>
                           <TableHeader>
                             <TableRow className="bg-muted/30">
-                              <TableHead className="font-semibold text-sm">模型 ID</TableHead>
-                              <TableHead className="font-semibold text-sm">模型名称</TableHead>
-                              <TableHead className="font-semibold text-sm text-center">
+                              <TableHead className="font-medium text-xs">模型 ID</TableHead>
+                              <TableHead className="font-medium text-xs">模型名称</TableHead>
+                              <TableHead className="font-medium text-xs text-center">
                                 <div>{t('modelTypes.contextLength')}</div>
                               </TableHead>
-                              <TableHead className="font-semibold text-sm text-center">
+                              <TableHead className="font-medium text-xs text-center">
                                 <div>{t('modelTypes.inputPrice')}</div>
                                 <div className="text-xs font-normal text-muted-foreground whitespace-nowrap">({t('modelTypes.priceUnit')})</div>
                               </TableHead>
-                              <TableHead className="font-semibold text-sm text-center">
+                              <TableHead className="font-medium text-xs text-center">
                                 <div>{t('modelTypes.outputPrice')}</div>
                                 <div className="text-xs font-normal text-muted-foreground whitespace-nowrap">({t('modelTypes.priceUnit')})</div>
                               </TableHead>
-                              <TableHead className="font-semibold text-sm text-center">
+                              <TableHead className="font-medium text-xs text-center">
                                 <div>{t('modelTypes.supportsTools')}</div>
                               </TableHead>
-                              <TableHead className="font-semibold text-sm text-center w-[60px]"></TableHead>
+                              <TableHead className="font-medium text-xs text-center w-[60px]"></TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -356,14 +356,14 @@ export function ModelTypesPage() {
                               <TableRow key={model.id} className="hover:bg-muted/30">
                                 <TableCell className="font-mono text-xs">{model.id}</TableCell>
                                 <TableCell className="font-mono text-xs">{model.name}</TableCell>
-                                <TableCell className="text-sm text-center">{model.context_length ? `${(model.context_length / 1000).toFixed(0)}K` : "-"}</TableCell>
-                                <TableCell className="text-sm text-center">{formatPrice(model.input_price)}</TableCell>
-                                <TableCell className="text-sm text-center">{formatPrice(model.output_price)}</TableCell>
+                                <TableCell className="text-xs text-center">{model.context_length ? `${(model.context_length / 1000).toFixed(0)}K` : "-"}</TableCell>
+                                <TableCell className="text-xs text-center">{formatPrice(model.input_price)}</TableCell>
+                                <TableCell className="text-xs text-center">{formatPrice(model.output_price)}</TableCell>
                                 <TableCell className="text-center">
                                   {model.supports_tools ? (
-                                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-sm">✓</span>
+                                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs">✓</span>
                                   ) : (
-                                    <span className="text-muted-foreground text-sm">-</span>
+                                    <span className="text-muted-foreground text-xs">-</span>
                                   )}
                                 </TableCell>
                                 <TableCell>
