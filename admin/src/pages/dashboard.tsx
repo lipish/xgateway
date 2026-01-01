@@ -232,7 +232,7 @@ export function DashboardPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>{t('providers.name')}</TableHead>
-                      <TableHead>{t('providers.status')}</TableHead>
+                      <TableHead className="w-[100px]">{t('providers.status')}</TableHead>
                       <TableHead>{t('providers.model')}</TableHead>
                       <TableHead>{t('providers.priority')}</TableHead>
                       <TableHead className="w-[100px]">{t('providers.actions')}</TableHead>
