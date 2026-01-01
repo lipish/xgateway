@@ -26,6 +26,10 @@ const getProviderIcon = (providerId: string): string | null => {
     'volcengine': '/volcengine.svg',
     'moonshot': '/moonshot.svg',
     'deepseek': '/deepseek.png',
+    'zhipu': '/zhipu.svg',
+    'tencent': '/tencent.svg',
+    'minimax': '/minimax.svg',
+    'longcat': '/longcat.png',
   }
   return iconMap[providerId] || null
 }
