@@ -48,9 +48,9 @@ export function ApiKeysPage() {
   }
 
   const createApiKey = async () => {
-    const name = prompt('请输入 API Key 名称：')
+    const name = prompt(t('apiKeys.enterName'))
     if (!name) return
-    const rateLimit = prompt('请输入速率限制 (每分钟请求数)：', '100')
+    const rateLimit = prompt(t('apiKeys.enterRateLimit'), '100')
     
     try {
       const response = await fetch('/api/api-keys', {
@@ -60,28 +60,28 @@ export function ApiKeysPage() {
       })
       const data = await response.json()
       if (data.success) {
-        alert(`API Key 创建成功!\n\n请保存您的密钥（仅显示一次）:\n${data.data.full_key}`)
+        alert(`${t('apiKeys.createSuccess')}\n\n${t('apiKeys.saveKeyHint')}\n${data.data.full_key}`)
         fetchApiKeys()
       } else {
-        alert(data.message || '创建失败')
+        alert(data.message || t('apiKeys.createFailed'))
       }
     } catch (err) {
-      alert('网络错误')
+      alert(t('common.networkError'))
     }
   }
 
   const deleteApiKey = async (id: number) => {
-    if (!confirm('确定要删除这个 API Key 吗？此操作不可撤销。')) return
+    if (!confirm(t('apiKeys.confirmDelete'))) return
     try {
       const response = await fetch(`/api/api-keys/${id}`, { method: 'DELETE' })
       const data = await response.json()
       if (data.success) {
         setApiKeys(apiKeys.filter(k => k.id !== id))
       } else {
-        alert(data.message || '删除失败')
+        alert(data.message || t('apiKeys.deleteFailed'))
       }
     } catch (err) {
-      alert('网络错误')
+      alert(t('common.networkError'))
     }
   }
 
@@ -93,13 +93,13 @@ export function ApiKeysPage() {
         setApiKeys(apiKeys.map(k => k.id === id ? { ...k, enabled: !k.enabled } : k))
       }
     } catch (err) {
-      alert('网络错误')
+      alert(t('common.networkError'))
     }
   }
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
-    alert('已复制到剪贴板')
+    alert(t('apiKeys.copiedToClipboard'))
   }
 
   return (
@@ -156,7 +156,7 @@ export function ApiKeysPage() {
                           variant={key.enabled ? "outline" : "destructive"} 
                           onClick={() => toggleApiKey(key.id)}
                         >
-                          {key.enabled ? "启用" : "禁用"}
+                          {key.enabled ? t('apiKeys.enabled') : t('apiKeys.disabled')}
                         </Badge>
                       </TableCell>
                       <TableCell>{key.rate_limit}/min</TableCell>

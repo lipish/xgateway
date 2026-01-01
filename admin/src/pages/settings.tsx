@@ -16,12 +16,12 @@ interface PoolSettings {
 }
 
 const STRATEGIES = [
-  { value: "round_robin", label: "轮询 (Round Robin)" },
-  { value: "least_connections", label: "最少连接 (Least Connections)" },
-  { value: "weighted", label: "加权轮询 (Weighted)" },
-  { value: "random", label: "随机 (Random)" },
-  { value: "priority", label: "优先级 (Priority)" },
-  { value: "latency", label: "最低延迟 (Latency Based)" },
+  { value: "round_robin", label: "round_robin" },
+  { value: "least_connections", label: "least_connections" },
+  { value: "weighted", label: "weighted" },
+  { value: "random", label: "random" },
+  { value: "priority", label: "priority" },
+  { value: "latency", label: "latency" },
 ]
 
 export function SettingsPage() {
@@ -68,12 +68,12 @@ export function SettingsPage() {
       })
       const data = await response.json()
       if (data.success) {
-        setMessage({ type: 'success', text: '设置已保存' })
+        setMessage({ type: 'success', text: t('settings.settingsSaved') })
       } else {
-        setMessage({ type: 'error', text: data.message || '保存失败' })
+        setMessage({ type: 'error', text: data.message || t('settings.saveFailed') })
       }
     } catch (err) {
-      setMessage({ type: 'error', text: '网络错误' })
+      setMessage({ type: 'error', text: t('common.networkError') })
     } finally {
       setSaving(false)
       setTimeout(() => setMessage(null), 3000)
@@ -129,7 +129,7 @@ export function SettingsPage() {
                     onChange={(e) => setSettings({ ...settings, load_balance_strategy: e.target.value })}
                   >
                     {STRATEGIES.map(s => (
-                      <option key={s.value} value={s.value}>{s.label}</option>
+                      <option key={s.value} value={s.value}>{t(`settings.${s.value}` as any)}</option>
                     ))}
                   </select>
                 </div>
@@ -138,12 +138,12 @@ export function SettingsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>健康检查</CardTitle>
-                <CardDescription>配置 Provider 健康检查参数</CardDescription>
+                <CardTitle>{t('settings.healthCheck')}</CardTitle>
+                <CardDescription>{t('settings.healthCheckProviderDesc')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium">检查间隔 (秒)</label>
+                  <label className="text-sm font-medium">{t('settings.interval')}</label>
                   <Input
                     type="number"
                     value={settings.health_check_interval_secs}
@@ -155,39 +155,39 @@ export function SettingsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>熔断器</CardTitle>
-                <CardDescription>配置熔断器阈值和恢复时间</CardDescription>
+                <CardTitle>{t('settings.circuitBreaker')}</CardTitle>
+                <CardDescription>{t('settings.circuitBreakerThresholdDesc')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium">失败阈值 (次数)</label>
+                  <label className="text-sm font-medium">{t('settings.threshold')} ({t('settings.thresholdUnit')})</label>
                   <Input
                     type="number"
                     value={settings.circuit_breaker_threshold}
                     onChange={(e) => setSettings({ ...settings, circuit_breaker_threshold: parseInt(e.target.value) || 5 })}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">连续失败次数达到阈值后触发熔断</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('settings.thresholdHint')}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">熔断超时 (秒)</label>
+                  <label className="text-sm font-medium">{t('settings.timeout')}</label>
                   <Input
                     type="number"
                     value={settings.circuit_breaker_timeout_secs}
                     onChange={(e) => setSettings({ ...settings, circuit_breaker_timeout_secs: parseInt(e.target.value) || 60 })}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">熔断后等待多久尝试恢复</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('settings.timeoutHint')}</p>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>故障重试</CardTitle>
-                <CardDescription>配置请求失败后的重试策略</CardDescription>
+                <CardTitle>{t('settings.retry')}</CardTitle>
+                <CardDescription>{t('settings.retryStrategyDesc')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium">最大重试次数</label>
+                  <label className="text-sm font-medium">{t('settings.maxRetries')}</label>
                   <Input
                     type="number"
                     value={settings.max_retries}
@@ -195,7 +195,7 @@ export function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">重试延迟 (毫秒)</label>
+                  <label className="text-sm font-medium">{t('settings.retryDelay')}</label>
                   <Input
                     type="number"
                     value={settings.retry_delay_ms}
@@ -210,4 +210,3 @@ export function SettingsPage() {
     </div>
   )
 }
-

@@ -19,20 +19,20 @@ export function HelpPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <h4 className="font-medium">1. 添加 Provider</h4>
-                <p className="text-sm text-muted-foreground">在 Providers 页面添加您的 AI 服务提供商配置，包括 API Key 和模型设置。</p>
+                <h4 className="font-medium">{t('help.step1Title')}</h4>
+                <p className="text-sm text-muted-foreground">{t('help.step1Desc')}</p>
               </div>
               <div className="space-y-2">
-                <h4 className="font-medium">2. 配置负载均衡</h4>
-                <p className="text-sm text-muted-foreground">在设置页面选择合适的负载均衡策略，如轮询、最少连接或基于延迟。</p>
+                <h4 className="font-medium">{t('help.step2Title')}</h4>
+                <p className="text-sm text-muted-foreground">{t('help.step2Desc')}</p>
               </div>
               <div className="space-y-2">
-                <h4 className="font-medium">3. 创建 API Key</h4>
-                <p className="text-sm text-muted-foreground">生成 API Key 用于客户端访问 XGateway 网关。</p>
+                <h4 className="font-medium">{t('help.step3Title')}</h4>
+                <p className="text-sm text-muted-foreground">{t('help.step3Desc')}</p>
               </div>
               <div className="space-y-2">
-                <h4 className="font-medium">4. 发送请求</h4>
-                <p className="text-sm text-muted-foreground">使用 OpenAI 兼容格式向网关发送请求，系统会自动路由到可用的 Provider。</p>
+                <h4 className="font-medium">{t('help.step4Title')}</h4>
+                <p className="text-sm text-muted-foreground">{t('help.step4Desc')}</p>
               </div>
             </CardContent>
           </Card>
@@ -67,19 +67,19 @@ export function HelpPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                支持的 Providers
+                {t('help.supportedProviders')}
               </CardTitle>
-              <CardDescription>XGateway 支持的 AI 服务提供商</CardDescription>
+              <CardDescription>{t('help.supportedProvidersDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 <Badge>OpenAI</Badge>
                 <Badge>Anthropic</Badge>
-                <Badge>智谱 (Zhipu)</Badge>
-                <Badge>阿里云 (Aliyun)</Badge>
-                <Badge>百度 (Baidu)</Badge>
-                <Badge>腾讯 (Tencent)</Badge>
-                <Badge>火山引擎 (Volcengine)</Badge>
+                <Badge>{t('help.zhipu')}</Badge>
+                <Badge>{t('help.aliyun')}</Badge>
+                <Badge>{t('help.baidu')}</Badge>
+                <Badge>{t('help.tencent')}</Badge>
+                <Badge>{t('help.volcengine')}</Badge>
                 <Badge>Minimax</Badge>
                 <Badge>DeepSeek</Badge>
                 <Badge>Moonshot</Badge>
@@ -90,30 +90,30 @@ export function HelpPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                核心功能
+                {t('help.coreFeatures')}
               </CardTitle>
-              <CardDescription>Multi-Provider Expansion 特性</CardDescription>
+              <CardDescription>{t('help.coreFeaturesDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-start gap-2">
-                <Badge variant="outline">负载均衡</Badge>
-                <span className="text-sm text-muted-foreground">支持 6 种策略：轮询、最少连接、加权、随机、优先级、延迟</span>
+                <Badge variant="outline">{t('help.loadBalancing')}</Badge>
+                <span className="text-sm text-muted-foreground">{t('help.loadBalancingDesc')}</span>
               </div>
               <div className="flex items-start gap-2">
-                <Badge variant="outline">健康检查</Badge>
-                <span className="text-sm text-muted-foreground">自动检测 Provider 可用性，标记健康/降级/不健康状态</span>
+                <Badge variant="outline">{t('help.healthCheck')}</Badge>
+                <span className="text-sm text-muted-foreground">{t('help.healthCheckDesc')}</span>
               </div>
               <div className="flex items-start gap-2">
-                <Badge variant="outline">熔断器</Badge>
-                <span className="text-sm text-muted-foreground">失败次数达到阈值自动熔断，防止雪崩效应</span>
+                <Badge variant="outline">{t('help.circuitBreaker')}</Badge>
+                <span className="text-sm text-muted-foreground">{t('help.circuitBreakerDesc')}</span>
               </div>
               <div className="flex items-start gap-2">
-                <Badge variant="outline">故障转移</Badge>
-                <span className="text-sm text-muted-foreground">自动切换到备用 Provider，支持降级链配置</span>
+                <Badge variant="outline">{t('help.failover')}</Badge>
+                <span className="text-sm text-muted-foreground">{t('help.failoverDesc')}</span>
               </div>
               <div className="flex items-start gap-2">
-                <Badge variant="outline">指标收集</Badge>
-                <span className="text-sm text-muted-foreground">延迟统计、成功率、请求量等实时指标</span>
+                <Badge variant="outline">{t('help.metricsCollection')}</Badge>
+                <span className="text-sm text-muted-foreground">{t('help.metricsCollectionDesc')}</span>
               </div>
             </CardContent>
           </Card>
@@ -136,4 +136,3 @@ export function HelpPage() {
     </div>
   )
 }
-

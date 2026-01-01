@@ -121,6 +121,7 @@ export const en = {
     close: 'Close',
     error: 'Error',
     networkError: 'Network error',
+    selectProviderPlaceholder: 'Select Provider',
   },
   logs: {
     title: 'Request Logs',
@@ -140,6 +141,7 @@ export const en = {
     user: 'User',
     assistant: 'Assistant',
     selectLogToView: 'Select a log entry to view details',
+    timeout: 'Timeout',
   },
   apiKeys: {
     title: 'API Keys',
@@ -233,6 +235,8 @@ export const en = {
     random: 'Random',
     priority: 'Priority',
     latency: 'Latency Based',
+    round_robin: 'Round Robin',
+    least_connections: 'Least Connections',
   },
   modelTypes: {
     title: 'Provider Catalog',
@@ -295,6 +299,11 @@ export const en = {
     failoverDesc: 'Automatic switch to backup service instance, supports fallback chain configuration',
     metricsCollection: 'Metrics Collection',
     metricsCollectionDesc: 'Real-time metrics including latency statistics, success rate, request volume',
+    zhipu: 'Zhipu AI',
+    aliyun: 'Aliyun',
+    baidu: 'Baidu',
+    tencent: 'Tencent',
+    volcengine: 'Volcengine',
   },
   common: {
     loading: 'Loading...',

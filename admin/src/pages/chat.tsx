@@ -200,7 +200,7 @@ export function ChatPage() {
         const text = await response.text()
         setPanels(prev => prev.map(p => p.id === panelId ? {
           ...p,
-          messages: [...p.messages.slice(0, -1), { role: "assistant" as const, content: `错误: ${text}` }],
+          messages: [...p.messages.slice(0, -1), { role: "assistant" as const, content: `${t('chat.error')}: ${text}` }],
           loading: false
         } : p))
         return
@@ -249,7 +249,7 @@ export function ChatPage() {
     } catch (err) {
       setPanels(prev => prev.map(p => p.id === panelId ? {
         ...p,
-        messages: [...p.messages.slice(0, -1), { role: "assistant" as const, content: `网络错误: ${err}` }],
+        messages: [...p.messages.slice(0, -1), { role: "assistant" as const, content: `${t('chat.networkError')}: ${err}` }],
         loading: false
       } : p))
       // 错误后也聚焦到输入框
@@ -272,10 +272,10 @@ export function ChatPage() {
     const hours = Math.floor(diff / 3600000)
     const days = Math.floor(diff / 86400000)
 
-    if (minutes < 1) return "刚刚"
-    if (minutes < 60) return `${minutes}分钟前`
-    if (hours < 24) return `${hours}小时前`
-    if (days < 7) return `${days}天前`
+    if (minutes < 1) return t('chat.justNow')
+    if (minutes < 60) return `${minutes}${t('chat.minutesAgo')}`
+    if (hours < 24) return `${hours}${t('chat.hoursAgo')}`
+    if (days < 7) return `${days}${t('chat.daysAgo')}`
     return date.toLocaleDateString()
   }
 
@@ -308,7 +308,7 @@ export function ChatPage() {
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium truncate">{conv.title}</div>
                         <div className="text-xs text-muted-foreground truncate">
-                          {conv.provider_name || "未知"} · {conv.message_count}条消息
+                          {conv.provider_name || t('chat.unknown')} · {conv.message_count}{t('chat.messages')}
                         </div>
                         <div className="text-xs text-muted-foreground">{formatTime(conv.updated_at)}</div>
                       </div>
@@ -333,13 +333,13 @@ export function ChatPage() {
           <div className="flex gap-2 mb-4 shrink-0">
             {!showHistory && (
               <Button variant="outline" size="sm" onClick={() => setShowHistory(true)}>
-                <PanelLeft className="w-4 h-4 mr-1" /> 历史对话
+                <PanelLeft className="w-4 h-4 mr-1" /> {t('chat.history')}
               </Button>
             )}
             <Button variant="outline" size="sm" onClick={addPanel} disabled={panels.length >= 4}>
-              <Plus className="w-4 h-4 mr-1" /> 添加对话窗口
+              <Plus className="w-4 h-4 mr-1" /> {t('chat.addChatWindow')}
             </Button>
-            <span className="text-sm text-muted-foreground self-center">最多 4 个窗口并排对比</span>
+            <span className="text-sm text-muted-foreground self-center">{t('chat.maxWindows')}</span>
           </div>
 
           <div className={`flex-1 grid gap-4 overflow-hidden min-h-0 ${panels.length === 1 ? 'grid-cols-1' : panels.length === 2 ? 'grid-cols-2' : panels.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
@@ -351,15 +351,15 @@ export function ChatPage() {
                     value={panel.providerId?.toString() || ""}
                     onChange={v => setProviderForPanel(panel.id, parseInt(v))}
                     options={providers.map(p => ({ value: p.id.toString(), label: `${p.name} (${p.provider_type})` }))}
-                    placeholder="选择 Provider"
+                    placeholder={t('chat.selectProviderPlaceholder')}
                     className="w-[220px]"
                   />
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => clearPanel(panel.id)} title="新对话">
+                    <Button variant="ghost" size="icon" onClick={() => clearPanel(panel.id)} title={t('chat.newChat')}>
                       <MessageSquarePlus className="w-4 h-4" />
                     </Button>
                     {panels.length > 1 && (
-                      <Button variant="ghost" size="icon" onClick={() => removePanel(panel.id)} title="关闭">
+                      <Button variant="ghost" size="icon" onClick={() => removePanel(panel.id)} title={t('chat.close')}>
                         <X className="w-4 h-4" />
                       </Button>
                     )}
@@ -368,10 +368,10 @@ export function ChatPage() {
                 <CardContent className="flex-1 flex flex-col overflow-hidden p-0 min-h-0">
                   <div className="flex-1 overflow-y-auto space-y-3 text-sm p-6 pb-0 scrollbar-hide min-h-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                     {panel.messages.length === 0 && !panel.providerId && (
-                      <div className="text-center text-muted-foreground py-8">请先选择 Provider</div>
+                      <div className="text-center text-muted-foreground py-8">{t('chat.selectProviderFirst')}</div>
                     )}
                     {panel.messages.length === 0 && panel.providerId && (
-                      <div className="text-center text-muted-foreground py-8">发送消息开始测试</div>
+                      <div className="text-center text-muted-foreground py-8">{t('chat.sendMessageToStart')}</div>
                     )}
                     {panel.messages.map((msg, i) => (
                       <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : ""}`}>
@@ -423,7 +423,7 @@ export function ChatPage() {
                     <textarea
                       ref={el => inputRefs.current[panel.id] = el}
                       className="flex-1 min-h-[40px] max-h-24 px-3 py-2 rounded-xl bg-muted/50 text-sm resize-none focus:outline-none focus:bg-muted transition-colors placeholder:text-muted-foreground/60"
-                      placeholder="输入消息..."
+                      placeholder={t('chat.inputMessage')}
                       value={panel.input}
                       onChange={e => setInputForPanel(panel.id, e.target.value)}
                       onKeyDown={e => handleKeyDownForPanel(panel.id, e)}

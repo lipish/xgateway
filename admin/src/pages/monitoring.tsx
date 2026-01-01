@@ -82,10 +82,10 @@ export function MonitoringPage() {
 
   const getCircuitBadge = (state: string) => {
     switch (state) {
-      case 'closed': return <Badge className="bg-primary/10 text-primary border-0" variant="outline">闭合</Badge>
-      case 'open': return <Badge variant="destructive">断开</Badge>
-      case 'half_open': return <Badge variant="secondary">半开</Badge>
-      default: return <Badge variant="outline">未知</Badge>
+      case 'closed': return <Badge className="bg-primary/10 text-primary border-0" variant="outline">{t('monitoring.circuitClosed')}</Badge>
+      case 'open': return <Badge variant="destructive">{t('monitoring.circuitOpen')}</Badge>
+      case 'half_open': return <Badge variant="secondary">{t('monitoring.circuitHalfOpen')}</Badge>
+      default: return <Badge variant="outline">{t('monitoring.circuitUnknown')}</Badge>
     }
   }
 
@@ -117,7 +117,7 @@ export function MonitoringPage() {
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">健康 Providers</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('monitoring.healthyProviders')}</CardTitle>
               <Heart className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
@@ -128,7 +128,7 @@ export function MonitoringPage() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">负载均衡策略</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('monitoring.loadBalanceStrategy')}</CardTitle>
               <Gauge className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -137,7 +137,7 @@ export function MonitoringPage() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">今日请求</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('monitoring.todayRequests')}</CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -146,7 +146,7 @@ export function MonitoringPage() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">平均延迟</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('monitoring.avgLatency')}</CardTitle>
               <Shield className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -158,13 +158,13 @@ export function MonitoringPage() {
         {/* Provider Health Details */}
         <Card>
           <CardHeader>
-            <CardTitle>Provider 健康状态</CardTitle>
-            <CardDescription>各 Provider 的实时健康指标和熔断器状态</CardDescription>
+            <CardTitle>{t('monitoring.providerHealthStatus')}</CardTitle>
+            <CardDescription>{t('monitoring.providerHealthDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
-            {loading && <div className="text-center py-4">加载中...</div>}
+            {loading && <div className="text-center py-4">{t('common.loading')}</div>}
             {!loading && providerHealth.length === 0 && (
-              <div className="text-center py-4 text-muted-foreground">暂无 Provider 数据</div>
+              <div className="text-center py-4 text-muted-foreground">{t('monitoring.noProviderData')}</div>
             )}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {providerHealth.map((provider) => (
@@ -180,21 +180,21 @@ export function MonitoringPage() {
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">成功率</span>
+                      <span className="text-muted-foreground">{t('monitoring.successRate')}</span>
                       <span className={provider.success_rate >= 95 ? "text-primary" : provider.success_rate >= 80 ? "text-warning" : "text-destructive"}>
                         {provider.success_rate.toFixed(1)}%
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">平均延迟</span>
+                      <span className="text-muted-foreground">{t('monitoring.avgLatencyLabel')}</span>
                       <span>{provider.latency_avg.toFixed(0)} ms</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">活跃连接</span>
+                      <span className="text-muted-foreground">{t('monitoring.activeConnections')}</span>
                       <span>{provider.active_connections}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">总请求数</span>
+                      <span className="text-muted-foreground">{t('monitoring.totalRequestsLabel')}</span>
                       <span>{provider.total_requests}</span>
                     </div>
                   </CardContent>

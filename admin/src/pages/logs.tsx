@@ -102,7 +102,7 @@ export function LogsPage() {
               <option value="all">{t('logs.allStatus')}</option>
               <option value="success">{t('common.success')}</option>
               <option value="error">{t('common.error')}</option>
-              <option value="timeout">超时</option>
+              <option value="timeout">{t('logs.timeout')}</option>
             </select>
           </div>
           <div className="flex gap-2">
@@ -129,7 +129,7 @@ export function LogsPage() {
                       <TableHead>{t('logs.provider')}</TableHead>
                       <TableHead>{t('logs.model')}</TableHead>
                       <TableHead>{t('logs.status')}</TableHead>
-                      <TableHead>延迟</TableHead>
+                      <TableHead>{t('logs.latency')}</TableHead>
                       <TableHead>Tokens</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -159,7 +159,7 @@ export function LogsPage() {
             {selectedLog ? (
               <>
                 <div className="p-4 border-b">
-                  <h3 className="font-semibold">请求详情</h3>
+                  <h3 className="font-semibold">{t('logs.requestDetails')}</h3>
                 </div>
                 <div className="flex-1 overflow-auto p-4 space-y-4 scrollbar-hide">
                   <div className="space-y-3">
@@ -188,13 +188,13 @@ export function LogsPage() {
 
                   {selectedLog.error_message && (
                     <div className="space-y-2 pt-3 border-t">
-                      <h5 className="text-sm font-medium text-destructive">错误信息</h5>
+                      <h5 className="text-sm font-medium text-destructive">{t('logs.errorMessage')}</h5>
                       <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{selectedLog.error_message}</p>
                     </div>
                   )}
 
                   <div className="space-y-2 pt-3 border-t">
-                    <h5 className="text-sm font-medium mb-3">对话内容</h5>
+                    <h5 className="text-sm font-medium mb-3">{t('logs.chatContent')}</h5>
                     <div className="space-y-3 max-h-[400px] overflow-auto scrollbar-hide">
                       {(() => {
                         const messages: { role: string; content: string }[] = []
@@ -212,7 +212,7 @@ export function LogsPage() {
                         }
 
                         if (messages.length === 0) {
-                          return <p className="text-sm text-muted-foreground">无对话内容</p>
+                          return <p className="text-sm text-muted-foreground">{t('logs.noChatContent')}</p>
                         }
 
                         return messages.map((msg, idx) => (
@@ -222,7 +222,7 @@ export function LogsPage() {
                                 ? 'bg-primary text-primary-foreground'
                                 : 'bg-muted'
                             }`}>
-                              <div className="text-xs opacity-70 mb-1">{msg.role === 'user' ? '用户' : '助手'}</div>
+                              <div className="text-xs opacity-70 mb-1">{msg.role === 'user' ? t('logs.user') : t('logs.assistant')}</div>
                               <div className="whitespace-pre-wrap">{msg.content}</div>
                             </div>
                           </div>
@@ -234,7 +234,7 @@ export function LogsPage() {
               </>
             ) : (
               <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                <p>选择一条日志查看详情</p>
+                <p>{t('logs.selectLogToView')}</p>
               </div>
             )}
           </div>
