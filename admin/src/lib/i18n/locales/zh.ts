@@ -300,10 +300,10 @@ export const zh = {
     metricsCollection: '指标收集',
     metricsCollectionDesc: '延迟统计、成功率、请求量等实时指标',
     zhipu: '智谱',
-    aliyun: '阿里云 (Aliyun)',
+    aliyun: '阿里云',
     baidu: '百度 (Baidu)',
-    tencent: '腾讯云 (Tencent)',
-    volcengine: '火山引擎 (Volcengine)',
+    tencent: '腾讯云',
+    volcengine: '火山引擎',
   },
   common: {
     loading: '加载中...',

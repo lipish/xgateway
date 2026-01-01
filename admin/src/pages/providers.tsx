@@ -40,11 +40,11 @@ const getLocalizedProviderName = (id: string, label: string) => {
   if (language === 'zh') {
     switch (id) {
       case 'volcengine':
-        return '火山引擎 (Volcengine)';
+        return '火山引擎';
       case 'aliyun':
-        return '阿里云 (Aliyun)';
+        return '阿里云';
       case 'tencent':
-        return '腾讯云 (Tencent)';
+        return '腾讯云';
       case 'zhipu':
         return '智谱';
       default:
