@@ -315,11 +315,11 @@ export function ModelTypesPage() {
                     {/* Info Cards */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="p-4 rounded-lg bg-muted/30">
-                        <div className="text-xs text-muted-foreground mb-1">默认 API 地址</div>
+                        <div className="text-xs text-muted-foreground mb-1">{t('modelTypes.baseUrl')}</div>
                         <div className="text-xs font-mono">{selectedType.base_url || '-'}</div>
                       </div>
                       <div className="p-4 rounded-lg bg-muted/30">
-                        <div className="text-xs text-muted-foreground mb-1">默认模型</div>
+                        <div className="text-xs text-muted-foreground mb-1">{t('modelTypes.defaultModel')}</div>
                         <div className="text-xs">{selectedType.default_model || '-'}</div>
                       </div>
                     </div>
@@ -327,7 +327,7 @@ export function ModelTypesPage() {
 
                   {/* Models List */}
                   <div className="flex-1 overflow-auto p-6 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                    <h3 className="text-base font-semibold mb-4">可用模型 ({selectedType.models.length})</h3>
+                    <h3 className="text-base font-semibold mb-4">{t('modelTypes.availableModels')} ({selectedType.models.length})</h3>
                     {selectedType.models.length === 0 ? (
                       <div className="text-center py-12 text-muted-foreground text-sm">
                         {t("modelTypes.noModels")}
@@ -337,8 +337,8 @@ export function ModelTypesPage() {
                         <Table>
                           <TableHeader>
                             <TableRow className="bg-muted/30">
-                              <TableHead className="font-medium text-xs">模型 ID</TableHead>
-                              <TableHead className="font-medium text-xs">模型名称</TableHead>
+                              <TableHead className="font-medium text-xs">{t('modelTypes.modelId')}</TableHead>
+                              <TableHead className="font-medium text-xs">{t('modelTypes.modelName')}</TableHead>
                               <TableHead className="font-medium text-xs text-center">
                                 <div>{t('modelTypes.contextLength')}</div>
                               </TableHead>
