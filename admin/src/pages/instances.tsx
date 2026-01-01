@@ -422,7 +422,7 @@ export function ProvidersPage() {
                   {t("providers.add")}
                 </Button>
               </div>
-              <div className="flex-1 overflow-auto border rounded-lg">
+              <div className="flex-1 overflow-auto border rounded-lg scrollbar-hide">
                 <Table>
                   <TableHeader className="sticky top-0 bg-white">
                     <TableRow>
@@ -543,7 +543,7 @@ export function ProvidersPage() {
                       </Button>
                     </div>
                   </div>
-                  <div className="flex-1 overflow-auto p-4 space-y-4">
+                  <div className="flex-1 overflow-auto p-4 space-y-4 scrollbar-hide">
                     {/* 基本信息 */}
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">

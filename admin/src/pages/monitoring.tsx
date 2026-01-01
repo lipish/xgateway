@@ -82,7 +82,7 @@ export function MonitoringPage() {
 
   const getCircuitBadge = (state: string) => {
     switch (state) {
-      case 'closed': return <Badge variant="success">闭合</Badge>
+      case 'closed': return <Badge className="bg-primary/10 text-primary border-0" variant="outline">闭合</Badge>
       case 'open': return <Badge variant="destructive">断开</Badge>
       case 'half_open': return <Badge variant="secondary">半开</Badge>
       default: return <Badge variant="outline">未知</Badge>

@@ -9,6 +9,20 @@ interface DialogProps {
 }
 
 const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
+  React.useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.paddingRight = '0px'
+    } else {
+      document.body.style.overflow = ''
+      document.body.style.paddingRight = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.paddingRight = ''
+    }
+  }, [open])
+
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -59,4 +73,3 @@ const DialogDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttri
 DialogDescription.displayName = "DialogDescription"
 
 export { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription }
-

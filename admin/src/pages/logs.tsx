@@ -58,7 +58,7 @@ export function LogsPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'success': return <Badge variant="success">{t('common.success')}</Badge>
+      case 'success': return <Badge className="bg-primary/10 text-primary border-0" variant="outline">{t('common.success')}</Badge>
       case 'error': return <Badge variant="destructive">{t('common.error')}</Badge>
       case 'timeout': return <Badge variant="secondary">{t('common.timeout')}</Badge>
       default: return <Badge variant="outline">{status}</Badge>
@@ -82,7 +82,6 @@ export function LogsPage() {
 
   return (
     <div className="flex flex-col h-screen">
-      <Header title={t('logs.title')} description={t('logs.description')} />
       <div className="flex-1 p-6 max-w-[1600px] mx-auto w-full overflow-hidden">
         <div className="flex items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-2 flex-1">
@@ -114,18 +113,14 @@ export function LogsPage() {
         <div className="flex gap-6 h-[calc(100%-60px)]">
           {/* Left: Log List */}
           <div className="flex-1 bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col">
-            <div className="p-4 border-b">
-              <h3 className="font-semibold">{t('logs.title')}</h3>
-              <p className="text-sm text-muted-foreground">{filteredLogs.length} {t('logs.title')}</p>
-            </div>
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-auto scrollbar-hide">
               {loading ? (
                 <div className="text-center py-4">{t('common.loading')}</div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{t('logs.timestamp')}</TableHead>
+                      <TableHead className="pl-6">{t('logs.timestamp')}</TableHead>
                       <TableHead>{t('logs.provider')}</TableHead>
                       <TableHead>{t('logs.model')}</TableHead>
                       <TableHead>{t('logs.status')}</TableHead>
@@ -140,7 +135,7 @@ export function LogsPage() {
                         className={`cursor-pointer hover:bg-muted/50 ${selectedLog?.id === log.id ? 'bg-muted' : ''}`}
                         onClick={() => setSelectedLog(log)}
                       >
-                        <TableCell className="text-sm whitespace-nowrap">{new Date(log.created_at).toLocaleString()}</TableCell>
+                        <TableCell className="text-sm whitespace-nowrap pl-6">{new Date(log.created_at).toLocaleString()}</TableCell>
                         <TableCell>{log.provider_name}</TableCell>
                         <TableCell><Badge variant="outline">{log.model}</Badge></TableCell>
                         <TableCell>{getStatusBadge(log.status)}</TableCell>
@@ -161,7 +156,7 @@ export function LogsPage() {
                 <div className="p-4 border-b">
                   <h3 className="font-semibold">请求详情</h3>
                 </div>
-                <div className="flex-1 overflow-auto p-4 space-y-4">
+                <div className="flex-1 overflow-auto p-4 space-y-4 scrollbar-hide">
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
                       <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${selectedLog.status === 'success' ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
@@ -195,7 +190,7 @@ export function LogsPage() {
 
                   <div className="space-y-2 pt-3 border-t">
                     <h5 className="text-sm font-medium mb-3">对话内容</h5>
-                    <div className="space-y-3 max-h-[400px] overflow-auto">
+                    <div className="space-y-3 max-h-[400px] overflow-auto scrollbar-hide">
                       {(() => {
                         const messages: { role: string; content: string }[] = []
                         if (selectedLog.request_content) {
@@ -243,4 +238,3 @@ export function LogsPage() {
     </div>
   )
 }
-

@@ -151,7 +151,11 @@ export function ApiKeysPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={key.enabled ? "success" : "destructive"} className="cursor-pointer" onClick={() => toggleApiKey(key.id)}>
+                        <Badge 
+                          className={key.enabled ? "bg-primary/10 text-primary border-0 cursor-pointer" : "cursor-pointer"}
+                          variant={key.enabled ? "outline" : "destructive"} 
+                          onClick={() => toggleApiKey(key.id)}
+                        >
                           {key.enabled ? "启用" : "禁用"}
                         </Badge>
                       </TableCell>
@@ -174,4 +178,3 @@ export function ApiKeysPage() {
     </div>
   )
 }
-
