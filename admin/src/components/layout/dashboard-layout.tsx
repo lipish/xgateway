@@ -22,7 +22,7 @@ function getPageTitle(pathname: string): string {
 }
 
 // Pages that need wider layout
-const widerPages = ["/logs", "/chat"]
+const widerPages = ["/logs", "/chat", "/model-types"]
 
 export function DashboardLayout() {
   const location = useLocation()
@@ -38,7 +38,7 @@ export function DashboardLayout() {
           <Separator orientation="vertical" className="mr-2 h-4" />
           <h1 className="text-base font-medium">{pageTitle}</h1>
         </header>
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           <div className={isWider ? "max-w-[1400px] mx-auto h-full" : "max-w-6xl mx-auto"}>
             <Outlet />
           </div>

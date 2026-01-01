@@ -162,6 +162,8 @@
 
   body {
     @apply bg-background text-foreground;
+    overflow-y: scroll !important;
+    padding-right: 0 !important;
   }
 
   /* Hide scrollbar for Chrome, Safari and Opera */

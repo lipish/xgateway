@@ -12,8 +12,14 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Pencil, Trash2, Loader2, Box, Search } from "lucide-react"
+import { Plus, Pencil, Trash2, Loader2, Box, Search, MoreVertical } from "lucide-react"
 
 interface ModelInfo {
   id: string
@@ -194,7 +200,7 @@ export function ModelTypesPage() {
         {!loading && (
           <div className="flex gap-6 h-[calc(100vh-8rem)]">
             {/* Left: Provider Type List */}
-            <div className="bg-white rounded-xl shadow-sm border p-6 flex flex-col w-[35%]">
+            <div className="bg-white rounded-xl shadow-sm border p-6 flex flex-col w-[28%]">
               <div className="flex items-center justify-between gap-4 mb-4">
                 <div className="flex items-center gap-3 flex-1">
                   <div className="relative flex-1">
@@ -222,25 +228,20 @@ export function ModelTypesPage() {
                 {filteredProviderTypes.map(pt => (
                   <div
                     key={pt.id}
-                    className={`p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors ${
-                      selectedType?.id === pt.id ? 'bg-muted border-primary' : 'bg-white'
+                    className={`p-4 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors ${
+                      selectedType?.id === pt.id ? 'bg-muted' : 'bg-white'
                     }`}
                     onClick={() => setSelectedType(pt)}
                   >
                     <div className="flex items-start gap-3">
-                      <Box className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <Box className={`h-5 w-5 shrink-0 mt-0.5 ${selectedType?.id === pt.id ? 'text-primary' : 'text-muted-foreground'}`} />
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold truncate">{pt.label}</div>
-                        <div className="text-xs text-muted-foreground truncate">{pt.id}</div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="secondary" className="text-xs">
-                            {pt.models.length} {t("modelTypes.models")}
+                        <div className="text-xs text-muted-foreground truncate mt-0.5">{pt.id}</div>
+                        <div className="mt-2">
+                          <Badge className="text-xs font-medium min-w-[32px] justify-center bg-gray-200 text-gray-700 hover:bg-gray-200 border-0">
+                            {pt.models.length}
                           </Badge>
-                          {pt.enabled && (
-                            <Badge className="bg-primary/10 text-primary border-0 text-xs">
-                              {t('providers.enabled')}
-                            </Badge>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -253,71 +254,126 @@ export function ModelTypesPage() {
             <div className="bg-white rounded-xl shadow-sm border flex-1 flex flex-col overflow-hidden">
               {selectedType ? (
                 <>
-                  <CardHeader className="border-b">
-                    <div className="flex items-start justify-between">
+                  {/* Header with title and actions */}
+                  <div className="p-6 border-b">
+                    <div className="flex items-center justify-between mb-6">
                       <div>
-                        <CardTitle className="text-xl">{selectedType.label}</CardTitle>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {selectedType.id}
-                        </p>
+                        <h2 className="text-2xl font-semibold">{selectedType.label}</h2>
+                        <p className="text-sm text-muted-foreground mt-1">{selectedType.id}</p>
                       </div>
-                      <Button size="sm" onClick={() => openAddModel(selectedType.id)}>
-                        <Plus className="h-4 w-4 mr-1" /> {t("modelTypes.addModel")}
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" onClick={() => openAddModel(selectedType.id)} title={t("modelTypes.addModel")}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          size="icon" 
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            // TODO: 实现编辑服务商功能
+                          }}
+                          title={t("providers.edit")}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (confirm(t("modelTypes.confirmDelete"))) {
+                              // TODO: 实现删除服务商功能
+                            }
+                          }}
+                          title={t("providers.delete")}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 mt-4">
-                      <div>
-                        <div className="text-xs text-muted-foreground">{t("modelTypes.baseUrl")}</div>
-                        <div className="text-sm font-mono truncate">{selectedType.base_url || '-'}</div>
+                    
+                    {/* Info Cards */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 rounded-lg bg-muted/30">
+                        <div className="text-xs text-muted-foreground mb-1">默认 API 地址</div>
+                        <div className="text-sm font-mono">{selectedType.base_url || '-'}</div>
                       </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground">{t("modelTypes.defaultModel")}</div>
-                        <div className="text-sm truncate">{selectedType.default_model || '-'}</div>
+                      <div className="p-4 rounded-lg bg-muted/30">
+                        <div className="text-xs text-muted-foreground mb-1">默认模型</div>
+                        <div className="text-sm">{selectedType.default_model || '-'}</div>
                       </div>
                     </div>
-                  </CardHeader>
+                  </div>
 
-                  <CardContent className="flex-1 overflow-auto p-6">
-                    <h3 className="font-semibold mb-3">{t("modelTypes.models")} ({selectedType.models.length})</h3>
+                  {/* Models List */}
+                  <div className="flex-1 overflow-auto p-6 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    <h3 className="text-base font-semibold mb-4">可用模型 ({selectedType.models.length})</h3>
                     {selectedType.models.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
+                      <div className="text-center py-12 text-muted-foreground">
                         {t("modelTypes.noModels")}
                       </div>
                     ) : (
-                      <div className="border rounded-lg overflow-hidden">
+                      <div className="border rounded-xl overflow-hidden">
                         <Table>
                           <TableHeader>
-                            <TableRow>
-                              <TableHead>{t("modelTypes.modelId")}</TableHead>
-                              <TableHead>{t("modelTypes.modelName")}</TableHead>
-                              <TableHead>{t("modelTypes.contextLength")}</TableHead>
-                              <TableHead>{t("modelTypes.inputPrice")}</TableHead>
-                              <TableHead>{t("modelTypes.outputPrice")}</TableHead>
-                              <TableHead>{t("modelTypes.supportsTools")}</TableHead>
-                              <TableHead className="w-[100px]">{t("providers.actions")}</TableHead>
+                            <TableRow className="bg-muted/30">
+                              <TableHead className="font-semibold text-sm">模型 ID</TableHead>
+                              <TableHead className="font-semibold text-sm">模型名称</TableHead>
+                              <TableHead className="font-semibold text-sm text-center">
+                                <div>{t('modelTypes.contextLength')}</div>
+                              </TableHead>
+                              <TableHead className="font-semibold text-sm text-center">
+                                <div>{t('modelTypes.inputPrice')}</div>
+                                <div className="text-xs font-normal text-muted-foreground whitespace-nowrap">({t('modelTypes.priceUnit')})</div>
+                              </TableHead>
+                              <TableHead className="font-semibold text-sm text-center">
+                                <div>{t('modelTypes.outputPrice')}</div>
+                                <div className="text-xs font-normal text-muted-foreground whitespace-nowrap">({t('modelTypes.priceUnit')})</div>
+                              </TableHead>
+                              <TableHead className="font-semibold text-sm text-center">
+                                <div>{t('modelTypes.supportsTools')}</div>
+                              </TableHead>
+                              <TableHead className="font-semibold text-sm text-center w-[60px]"></TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {selectedType.models.map(model => (
-                              <TableRow key={model.id}>
-                                <TableCell className="font-mono text-sm">{model.id}</TableCell>
-                                <TableCell>{model.name}</TableCell>
-                                <TableCell>{model.context_length ? `${(model.context_length / 1000).toFixed(0)}K` : "-"}</TableCell>
-                                <TableCell>{formatPrice(model.input_price)}</TableCell>
-                                <TableCell>{formatPrice(model.output_price)}</TableCell>
-                                <TableCell>{model.supports_tools ? "✓" : "-"}</TableCell>
+                              <TableRow key={model.id} className="hover:bg-muted/30">
+                                <TableCell className="font-mono text-xs">{model.id}</TableCell>
+                                <TableCell className="font-mono text-xs">{model.name}</TableCell>
+                                <TableCell className="text-sm text-center">{model.context_length ? `${(model.context_length / 1000).toFixed(0)}K` : "-"}</TableCell>
+                                <TableCell className="text-sm text-center">{formatPrice(model.input_price)}</TableCell>
+                                <TableCell className="text-sm text-center">{formatPrice(model.output_price)}</TableCell>
+                                <TableCell className="text-center">
+                                  {model.supports_tools ? (
+                                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-sm">✓</span>
+                                  ) : (
+                                    <span className="text-muted-foreground text-sm">-</span>
+                                  )}
+                                </TableCell>
                                 <TableCell>
-                                  <div className="flex gap-1">
-                                    <Button size="icon" variant="ghost" onClick={() => openEditModel(selectedType.id, model)}>
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      onClick={() => deleteModel(selectedType.id, model.id)}
-                                    >
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
+                                  <div className="flex justify-center">
+                                    <DropdownMenu modal={false}>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button size="icon" variant="ghost" className="h-8 w-8">
+                                          <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => openEditModel(selectedType.id, model)}>
+                                          <Pencil className="h-4 w-4 mr-2" />
+                                          {t("providers.edit")}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                          onClick={() => deleteModel(selectedType.id, model.id)}
+                                          className="text-destructive"
+                                        >
+                                          <Trash2 className="h-4 w-4 mr-2" />
+                                          {t("providers.delete")}
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
                                   </div>
                                 </TableCell>
                               </TableRow>
@@ -326,7 +382,7 @@ export function ModelTypesPage() {
                         </Table>
                       </div>
                     )}
-                  </CardContent>
+                  </div>
                 </>
               ) : (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground">
