@@ -4,7 +4,7 @@
 INSERT INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order, docs_url)
 VALUES (
     'aliyun',
-    'Aliyun (DashScope)',
+    'Aliyun DashScope',
     'https://dashscope.aliyuncs.com/compatible-mode/v1',
     'qwen3-max',
     '[

@@ -31,10 +31,10 @@ fn get_default_provider_types() -> Vec<NewProviderType> {
             sort_order: Some(0),
             docs_url: Some("https://open.bigmodel.cn/dev/howuse/model".to_string()),
         },
-        // 阿里云百炼
+        // Aliyun DashScope
         NewProviderType {
             id: "aliyun".to_string(),
-            label: "阿里云百炼".to_string(),
+            label: "Aliyun DashScope".to_string(),
             base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1".to_string(),
             default_model: "qwen-turbo".to_string(),
             models: vec![
@@ -184,4 +184,3 @@ pub async fn initialize_provider_types(db: &DatabasePool) -> Result<()> {
     info!("✅ Initialized {} provider types", count);
     Ok(())
 }
-
