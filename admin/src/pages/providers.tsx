@@ -34,6 +34,26 @@ const getProviderIcon = (providerId: string): string | null => {
   return iconMap[providerId] || null
 }
 
+// Function to get localized provider name
+const getLocalizedProviderName = (id: string, label: string) => {
+  const language = localStorage.getItem('language') || 'en';
+  if (language === 'zh') {
+    switch (id) {
+      case 'volcengine':
+        return '火山引擎 (Volcengine)';
+      case 'aliyun':
+        return '阿里云 (Aliyun)';
+      case 'tencent':
+        return '腾讯云 (Tencent)';
+      case 'zhipu':
+        return '智谱';
+      default:
+        return label;
+    }
+  }
+  return label;
+};
+
 interface ModelInfo {
   id: string
   name: string
@@ -255,7 +275,7 @@ export function ModelTypesPage() {
                           <Box className={`h-5 w-5 shrink-0 mt-0.5 ${selectedType?.id === pt.id ? 'text-primary' : 'text-muted-foreground'}`} />
                         )}
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold truncate">{pt.id === 'volcengine' ? (localStorage.getItem('language') === 'zh' ? 'Volcengine (火山引擎)' : 'Volcengine') : pt.label}</div>
+                          <div className="font-semibold truncate">{getLocalizedProviderName(pt.id, pt.label)}</div>
                           <div className="text-xs text-muted-foreground truncate mt-0.5">{pt.id}</div>
                         </div>
                       </div>
@@ -277,7 +297,7 @@ export function ModelTypesPage() {
                   <div className="p-6 border-b">
                     <div className="flex items-center justify-between mb-6">
                       <div>
-                        <h2 className="text-2xl font-semibold">{selectedType.id === 'volcengine' ? (localStorage.getItem('language') === 'zh' ? 'Volcengine (火山引擎)' : 'Volcengine') : selectedType.label}</h2>
+                        <h2 className="text-2xl font-semibold">{getLocalizedProviderName(selectedType.id, selectedType.label)}</h2>
                         <p className="text-sm text-muted-foreground mt-1">{selectedType.id}</p>
                       </div>
                       <div className="flex gap-1">

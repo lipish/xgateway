@@ -299,10 +299,10 @@ export const zh = {
     failoverDesc: '自动切换到备用 Provider，支持降级链配置',
     metricsCollection: '指标收集',
     metricsCollectionDesc: '延迟统计、成功率、请求量等实时指标',
-    zhipu: '智谱 (Zhipu)',
+    zhipu: '智谱',
     aliyun: '阿里云 (Aliyun)',
     baidu: '百度 (Baidu)',
-    tencent: '腾讯 (Tencent)',
+    tencent: '腾讯云 (Tencent)',
     volcengine: '火山引擎 (Volcengine)',
   },
   common: {
