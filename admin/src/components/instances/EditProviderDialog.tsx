@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select } from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -12,10 +13,23 @@ import {
 import { Loader2 } from "lucide-react"
 import { t } from "@/lib/i18n"
 
+interface ProviderTypeConfig {
+  id: string
+  label: string
+  base_url: string
+  default_model: string
+  models: Array<{
+    id: string
+    name: string
+    description: string
+  }>
+}
+
 interface EditProviderDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   providerType?: string
+  providerTypeConfig?: ProviderTypeConfig
   form: {
     name: string
     apiKey: string
@@ -33,6 +47,7 @@ export function EditProviderDialog({
   open,
   onOpenChange,
   providerType,
+  providerTypeConfig,
   form,
   onFormChange,
   onSubmit,
@@ -69,13 +84,26 @@ export function EditProviderDialog({
           </div>
           <div className="grid gap-2">
             <Label htmlFor="edit-model">{t('providers.model')}</Label>
-            <Input
-              id="edit-model"
-              value={form.model}
-              onChange={(e) =>
-                onFormChange({ ...form, model: e.target.value })
-              }
-            />
+            {providerTypeConfig?.models && providerTypeConfig.models.length > 0 ? (
+              <Select
+                id="edit-model"
+                value={form.model}
+                onChange={(value) => onFormChange({ ...form, model: value })}
+                options={providerTypeConfig.models.map((m) => ({
+                  value: m.id,
+                  label: `${m.name} - ${m.description}`,
+                }))}
+                placeholder={t('providers.selectModel')}
+              />
+            ) : (
+              <Input
+                id="edit-model"
+                value={form.model}
+                onChange={(e) =>
+                  onFormChange({ ...form, model: e.target.value })
+                }
+              />
+            )}
           </div>
           <div className="grid gap-2">
             <Label htmlFor="edit-baseUrl">{t('providers.baseUrl')}</Label>

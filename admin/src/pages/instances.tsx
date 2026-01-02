@@ -387,6 +387,7 @@ export function ProvidersPage() {
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         providerType={editingProvider?.provider_type}
+        providerTypeConfig={editingProvider ? getProviderTypeConfig(editingProvider.provider_type) : undefined}
         form={editForm}
         onFormChange={setEditForm}
         onSubmit={saveEdit}
