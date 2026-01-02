@@ -58,18 +58,42 @@ export function EditProviderDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('providers.editProvider')}</DialogTitle>
-          <DialogDescription>{t('providers.editProviderDesc')}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="edit-name">{t('providers.name')}</Label>
-            <Input
-              id="edit-name"
-              value={form.name}
-              onChange={(e) =>
-                onFormChange({ ...form, name: e.target.value })
-              }
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">{t('providers.name')}</Label>
+              <Input
+                id="edit-name"
+                value={form.name}
+                onChange={(e) =>
+                  onFormChange({ ...form, name: e.target.value })
+                }
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-model">{t('providers.model')}</Label>
+              {providerTypeConfig?.models && providerTypeConfig.models.length > 0 ? (
+                <Select
+                  id="edit-model"
+                  value={form.model}
+                  onChange={(value) => onFormChange({ ...form, model: value })}
+                  options={providerTypeConfig.models.map((m) => ({
+                    value: m.id,
+                    label: m.name,
+                  }))}
+                  placeholder={t('providers.selectModel')}
+                />
+              ) : (
+                <Input
+                  id="edit-model"
+                  value={form.model}
+                  onChange={(e) =>
+                    onFormChange({ ...form, model: e.target.value })
+                  }
+                />
+              )}
+            </div>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="edit-apiKey">API Key</Label>
@@ -83,29 +107,6 @@ export function EditProviderDialog({
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="edit-model">{t('providers.model')}</Label>
-            {providerTypeConfig?.models && providerTypeConfig.models.length > 0 ? (
-              <Select
-                id="edit-model"
-                value={form.model}
-                onChange={(value) => onFormChange({ ...form, model: value })}
-                options={providerTypeConfig.models.map((m) => ({
-                  value: m.id,
-                  label: m.name,
-                }))}
-                placeholder={t('providers.selectModel')}
-              />
-            ) : (
-              <Input
-                id="edit-model"
-                value={form.model}
-                onChange={(e) =>
-                  onFormChange({ ...form, model: e.target.value })
-                }
-              />
-            )}
-          </div>
-          <div className="grid gap-2">
             <Label htmlFor="edit-baseUrl">{t('providers.baseUrl')}</Label>
             <Input
               id="edit-baseUrl"
@@ -115,30 +116,32 @@ export function EditProviderDialog({
               }
             />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="edit-priority">{t('providers.priority')}</Label>
-            <Input
-              id="edit-priority"
-              type="number"
-              value={form.priority}
-              onChange={(e) =>
-                onFormChange({ ...form, priority: e.target.value })
-              }
-            />
-          </div>
-          {providerType === 'volcengine' && (
+          <div className="grid grid-cols-2 gap-4">
+            {providerType === 'volcengine' && (
+              <div className="grid gap-2">
+                <Label htmlFor="edit-endpoint">{t('providers.endpoint')}</Label>
+                <Input
+                  id="edit-endpoint"
+                  placeholder="ep-xxxxx"
+                  value={form.endpoint}
+                  onChange={(e) =>
+                    onFormChange({ ...form, endpoint: e.target.value })
+                  }
+                />
+              </div>
+            )}
             <div className="grid gap-2">
-              <Label htmlFor="edit-endpoint">{t('providers.endpoint')}</Label>
+              <Label htmlFor="edit-priority">{t('providers.priority')}</Label>
               <Input
-                id="edit-endpoint"
-                placeholder="ep-xxxxx (optional, for Volcengine)"
-                value={form.endpoint}
+                id="edit-priority"
+                type="number"
+                value={form.priority}
                 onChange={(e) =>
-                  onFormChange({ ...form, endpoint: e.target.value })
+                  onFormChange({ ...form, priority: e.target.value })
                 }
               />
             </div>
-          )}
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
