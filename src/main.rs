@@ -312,7 +312,13 @@ async fn send_to_provider(
     let config: serde_json::Value = serde_json::from_str(&provider.config).unwrap_or_default();
     let api_key = config.get("api_key").and_then(|v| v.as_str()).unwrap_or("");
     let base_url = config.get("base_url").and_then(|v| v.as_str()).unwrap_or("");
-    let model = config.get("model").and_then(|v| v.as_str()).unwrap_or("");
+    
+    // Use endpoint if provided (for Volcengine ep-*), otherwise fall back to model from config
+    let model = if let Some(endpoint) = &provider.endpoint {
+        endpoint.as_str()
+    } else {
+        config.get("model").and_then(|v| v.as_str()).unwrap_or("")
+    };
 
     // Record request start for metrics
     pool_manager.record_request_start(provider.id).await;
