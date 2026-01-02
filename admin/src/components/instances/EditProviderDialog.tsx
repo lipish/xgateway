@@ -91,7 +91,7 @@ export function EditProviderDialog({
                 onChange={(value) => onFormChange({ ...form, model: value })}
                 options={providerTypeConfig.models.map((m) => ({
                   value: m.id,
-                  label: `${m.name} - ${m.description}`,
+                  label: m.name,
                 }))}
                 placeholder={t('providers.selectModel')}
               />
