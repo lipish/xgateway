@@ -15,6 +15,7 @@ import { t } from "@/lib/i18n"
 interface EditProviderDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  providerType?: string
   form: {
     name: string
     apiKey: string
@@ -31,6 +32,7 @@ interface EditProviderDialogProps {
 export function EditProviderDialog({
   open,
   onOpenChange,
+  providerType,
   form,
   onFormChange,
   onSubmit,
@@ -96,17 +98,19 @@ export function EditProviderDialog({
               }
             />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="edit-endpoint">{t('providers.endpoint')}</Label>
-            <Input
-              id="edit-endpoint"
-              placeholder="ep-xxxxx (optional, for Volcengine)"
-              value={form.endpoint}
-              onChange={(e) =>
-                onFormChange({ ...form, endpoint: e.target.value })
-              }
-            />
-          </div>
+          {providerType === 'volcengine' && (
+            <div className="grid gap-2">
+              <Label htmlFor="edit-endpoint">{t('providers.endpoint')}</Label>
+              <Input
+                id="edit-endpoint"
+                placeholder="ep-xxxxx (optional, for Volcengine)"
+                value={form.endpoint}
+                onChange={(e) =>
+                  onFormChange({ ...form, endpoint: e.target.value })
+                }
+              />
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

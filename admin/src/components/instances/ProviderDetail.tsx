@@ -8,18 +8,20 @@ import {
   Settings,
   Pencil,
   Trash2,
+  ExternalLink,
 } from "lucide-react"
 import { t } from "@/lib/i18n"
-import type { Provider } from "./types"
+import type { Provider, ProviderTypeConfig } from "./types"
 import { parseProviderConfig } from "./utils"
 
 interface ProviderDetailProps {
   provider: Provider | null
+  providerTypeConfig?: ProviderTypeConfig
   onEdit: (provider: Provider) => void
   onDelete: (id: number) => void
 }
 
-export function ProviderDetail({ provider, onEdit, onDelete }: ProviderDetailProps) {
+export function ProviderDetail({ provider, providerTypeConfig, onEdit, onDelete }: ProviderDetailProps) {
   if (!provider) {
     return (
       <div className="w-[35%] bg-white rounded-xl shadow-sm border flex flex-col overflow-hidden">
@@ -70,9 +72,21 @@ export function ProviderDetail({ provider, onEdit, onDelete }: ProviderDetailPro
               <h4 className="font-semibold text-lg">
                 {provider.name}
               </h4>
-              <Badge variant="secondary">
-                {provider.provider_type}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">
+                  {provider.provider_type}
+                </Badge>
+                {providerTypeConfig?.docs_url && (
+                  <a
+                    href={providerTypeConfig.docs_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={t('providers.viewDocs')}
+                  >
+                    <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                  </a>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex gap-2">
@@ -126,6 +140,17 @@ export function ProviderDetail({ provider, onEdit, onDelete }: ProviderDetailPro
                 </p>
               </div>
             </div>
+            {provider.provider_type === 'volcengine' && provider.endpoint && (
+              <div className="flex items-start gap-2">
+                <Settings className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                <div>
+                  <p className="text-muted-foreground">{t('providers.endpoint')}</p>
+                  <p className="font-mono text-xs">
+                    {provider.endpoint}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

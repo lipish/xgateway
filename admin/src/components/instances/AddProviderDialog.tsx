@@ -128,17 +128,19 @@ export function AddProviderDialog({
               }
             />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="add-endpoint">{t('providers.endpoint')}</Label>
-            <Input
-              id="add-endpoint"
-              placeholder="ep-xxxxx (optional, for Volcengine)"
-              value={form.endpoint}
-              onChange={(e) =>
-                onFormChange({ ...form, endpoint: e.target.value })
-              }
-            />
-          </div>
+          {form.providerType === 'volcengine' && (
+            <div className="grid gap-2">
+              <Label htmlFor="add-endpoint">{t('providers.endpoint')}</Label>
+              <Input
+                id="add-endpoint"
+                placeholder="ep-xxxxx (optional, for Volcengine)"
+                value={form.endpoint}
+                onChange={(e) =>
+                  onFormChange({ ...form, endpoint: e.target.value })
+                }
+              />
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

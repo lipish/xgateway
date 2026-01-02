@@ -96,7 +96,9 @@ export const en = {
     pleaseEnterName: 'Please enter service instance name',
     pleaseEnterApiKey: 'Please enter API Key',
     saveFailed: 'Save failed',
-    confirmDelete: 'Are you sure you want to delete this service instance?',
+    confirmDelete: 'Delete Service Instance',
+    confirmDeleteDesc: 'Are you sure you want to delete',
+    viewDocs: 'View documentation',
   },
   chat: {
     title: 'Chat Test',

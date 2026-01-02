@@ -96,7 +96,9 @@ export const zh = {
     pleaseEnterName: '请输入服务实例名称',
     pleaseEnterApiKey: '请输入 API Key',
     saveFailed: '保存失败',
-    confirmDelete: '确定要删除这个服务实例吗？',
+    confirmDelete: '删除服务实例',
+    confirmDeleteDesc: '确定要删除',
+    viewDocs: '查看文档',
   },
   chat: {
     title: '对话测试',

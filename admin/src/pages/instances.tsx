@@ -4,6 +4,16 @@ import { apiGet, apiPost } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import type { Provider, ProviderTypeConfig, ApiResponse, TestResult } from "@/components/instances/types";
 import { ProviderList } from "@/components/instances/ProviderList";
@@ -48,6 +58,9 @@ export function ProvidersPage() {
   const [adding, setAdding] = useState(false);
 
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
+  
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingProvider, setDeletingProvider] = useState<Provider | null>(null);
 
   useEffect(() => {
     fetchProviders();
@@ -59,7 +72,17 @@ export function ProvidersPage() {
       setAddDialogOpen(true);
       setSearchParams({}, { replace: true });
     }
-  }, [searchParams, setSearchParams]);
+    
+    const selectId = searchParams.get("select");
+    if (selectId && providers.length > 0) {
+      const id = parseInt(selectId);
+      const provider = providers.find((p) => p.id === id);
+      if (provider) {
+        setSelectedProvider(provider);
+      }
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, providers]);
 
   const fetchProviderTypes = async () => {
     try {
@@ -119,17 +142,25 @@ export function ProvidersPage() {
   };
 
   const deleteProvider = async (id: number) => {
-    if (!confirm(t('providers.confirmDelete'))) {
-      return;
-    }
+    const provider = providers.find((p) => p.id === id);
+    if (!provider) return;
+    
+    setDeletingProvider(provider);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingProvider) return;
 
     try {
-      const response = await fetch(`/api/instances/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/instances/${deletingProvider.id}`, { method: "DELETE" });
       const result = await response.json();
 
       if (result.success) {
-        setProviders(providers.filter((p) => p.id !== id));
+        setProviders(providers.filter((p) => p.id !== deletingProvider.id));
         setSelectedProvider(null);
+        setDeleteDialogOpen(false);
+        setDeletingProvider(null);
       } else {
         alert(result.message || t('providers.saveFailed'));
       }
@@ -149,6 +180,7 @@ export function ProvidersPage() {
       model: defaults?.default_model || "",
       baseUrl: defaults?.base_url || "",
       priority: "10",
+      endpoint: "",
     });
     setAddDialogOpen(true);
   };
@@ -176,7 +208,7 @@ export function ProvidersPage() {
     }
     setAdding(true);
     try {
-      const result = await apiPost<ApiResponse<Provider>>("/api/instances", {
+      const payload: any = {
         name: addForm.name,
         provider_type: addForm.providerType,
         config: JSON.stringify({
@@ -186,10 +218,16 @@ export function ProvidersPage() {
         }),
         enabled: true,
         priority: parseInt(addForm.priority) || 10,
-        endpoint: addForm.endpoint || undefined,
-      });
+      };
+      
+      if (addForm.providerType === 'volcengine' && addForm.endpoint) {
+        payload.endpoint = addForm.endpoint;
+      }
+      
+      const result = await apiPost<ApiResponse<Provider>>("/api/instances", payload);
       if (result.success && result.data) {
         setProviders([result.data, ...providers]);
+        setSelectedProvider(result.data);
         setAddDialogOpen(false);
       } else {
         alert(result.message || t('providers.saveFailed'));
@@ -247,19 +285,24 @@ export function ProvidersPage() {
     if (!editingProvider) return;
     setSaving(true);
     try {
+      const payload: any = {
+        name: editForm.name,
+        config: JSON.stringify({
+          api_key: editForm.apiKey,
+          model: editForm.model,
+          base_url: editForm.baseUrl,
+        }),
+        priority: parseInt(editForm.priority) || 10,
+      };
+      
+      if (editingProvider.provider_type === 'volcengine' && editForm.endpoint) {
+        payload.endpoint = editForm.endpoint;
+      }
+      
       const response = await fetch(`/api/instances/${editingProvider.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editForm.name,
-          config: JSON.stringify({
-            api_key: editForm.apiKey,
-            model: editForm.model,
-            base_url: editForm.baseUrl,
-          }),
-          priority: parseInt(editForm.priority) || 10,
-          endpoint: editForm.endpoint || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
       const result = await response.json();
       if (result.success) {
@@ -320,6 +363,7 @@ export function ProvidersPage() {
 
             <ProviderDetail
               provider={selectedProvider}
+              providerTypeConfig={selectedProvider ? getProviderTypeConfig(selectedProvider.provider_type) : undefined}
               onEdit={openEditDialog}
               onDelete={deleteProvider}
             />
@@ -342,11 +386,33 @@ export function ProvidersPage() {
       <EditProviderDialog
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
+        providerType={editingProvider?.provider_type}
         form={editForm}
         onFormChange={setEditForm}
         onSubmit={saveEdit}
         saving={saving}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('providers.confirmDelete')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deletingProvider && (
+                <>
+                  {t('providers.confirmDeleteDesc')} <strong>{deletingProvider.name}</strong>?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+              {t('common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -26,6 +26,7 @@ export interface ProviderTypeConfig {
   base_url: string;
   default_model: string;
   models: ModelInfo[];
+  docs_url?: string;
 }
 
 export interface ApiResponse<T> {

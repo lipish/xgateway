@@ -9,8 +9,9 @@ import remarkGfm from "remark-gfm"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"
 
-import { Send, Loader2, Bot, Plus, X, MessageSquarePlus, History, Trash2, PanelLeftClose, PanelLeft } from "lucide-react"
+import { Send, Loader2, Bot, Plus, X, MessageSquarePlus, History, Trash2, PanelLeftClose, PanelLeft, Settings } from "lucide-react"
 import { Select } from "@/components/ui/select"
+import { useNavigate } from "react-router-dom"
 
 interface Provider {
   id: number
@@ -38,6 +39,7 @@ interface ChatPanel {
 }
 
 export function ChatPage() {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [providers, setProviders] = useState<Provider[]>([])
   const [conversations, setConversations] = useState<ConversationItem[]>([])
@@ -347,13 +349,26 @@ export function ChatPage() {
               <div key={panel.id} className={panels.length === 1 ? "max-w-[50%] mx-auto w-full flex min-h-0" : "flex min-h-0"}>
               <Card className="flex flex-col overflow-hidden min-h-0 flex-1">
                 <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
-                  <Select
-                    value={panel.providerId?.toString() || ""}
-                    onChange={v => setProviderForPanel(panel.id, parseInt(v))}
-                    options={providers.map(p => ({ value: p.id.toString(), label: `${p.name} (${p.provider_type})` }))}
-                    placeholder={t('chat.selectProviderPlaceholder')}
-                    className="w-[220px]"
-                  />
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={panel.providerId?.toString() || ""}
+                      onChange={v => setProviderForPanel(panel.id, parseInt(v))}
+                      options={providers.map(p => ({ value: p.id.toString(), label: `${p.name} (${p.provider_type})` }))}
+                      placeholder={t('chat.selectProviderPlaceholder')}
+                      className="w-[220px]"
+                    />
+                    {panel.providerId && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => navigate(`/instances?select=${panel.providerId}`)}
+                        title={t('providers.edit')}
+                      >
+                        <Settings className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="icon" onClick={() => clearPanel(panel.id)} title={t('chat.newChat')}>
                       <MessageSquarePlus className="w-4 h-4" />
