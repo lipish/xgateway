@@ -15,6 +15,7 @@ import {
 import { t } from "@/lib/i18n"
 import type { Provider, ProviderTypeConfig } from "./types"
 import { parseProviderConfig } from "./utils"
+import { getProviderIcon } from "../providers/utils"
 
 interface ProviderDetailProps {
   provider: Provider | null
@@ -41,6 +42,7 @@ export function ProviderDetail({ provider, providerTypeConfig, onEdit, onDelete,
   }
 
   const config = parseProviderConfig(provider)
+  const providerIcon = getProviderIcon(provider.provider_type)
 
   return (
     <div className="w-[35%] bg-white rounded-xl shadow-sm border flex flex-col overflow-hidden">
@@ -51,7 +53,11 @@ export function ProviderDetail({ provider, providerTypeConfig, onEdit, onDelete,
             <div
               className={`h-12 w-12 rounded-xl flex items-center justify-center ${provider.enabled ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}
             >
-              <Server className="h-6 w-6" />
+              {providerIcon ? (
+                <img src={providerIcon} alt={provider.provider_type} className="h-8 w-8 object-contain" />
+              ) : (
+                <Server className="h-6 w-6" />
+              )}
             </div>
             <div>
               <h4 className="font-bold text-xl mb-1">

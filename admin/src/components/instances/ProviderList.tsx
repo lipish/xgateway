@@ -64,8 +64,8 @@ export function ProviderList({
         <Table>
           <TableHeader className="sticky top-0 bg-white">
             <TableRow>
-              <TableHead className="text-center">{t("providers.name")}</TableHead>
-              <TableHead className="text-center">{t("providers.type")}</TableHead>
+              <TableHead className="text-left pl-6">{t("providers.name")}</TableHead>
+              <TableHead className="text-left">{t("providers.type")}</TableHead>
               <TableHead className="text-center w-[100px]">{t("providers.status")}</TableHead>
               <TableHead className="text-center">{t("providers.priority")}</TableHead>
               <TableHead className="text-center w-[80px]">
@@ -80,13 +80,11 @@ export function ProviderList({
                 className={`cursor-pointer hover:bg-muted/50 ${selectedProvider?.id === provider.id ? "bg-muted" : ""}`}
                 onClick={() => onSelectProvider(provider)}
               >
-                <TableCell className="text-center">
+                <TableCell className="text-left pl-6">
                   <span className="font-medium">{provider.name}</span>
                 </TableCell>
-                <TableCell className="text-center">
-                  <Badge variant="secondary">
-                    {provider.provider_type}
-                  </Badge>
+                <TableCell className="text-left">
+                  <span className="text-sm">{provider.provider_type}</span>
                 </TableCell>
                 <TableCell className="text-center">
                   <Badge
