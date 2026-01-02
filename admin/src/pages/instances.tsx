@@ -325,7 +325,7 @@ export function ProvidersPage() {
   );
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col page-transition">
       <div className="flex-1 p-6 max-w-[1600px] mx-auto w-full">
         {loading && (
           <Card>

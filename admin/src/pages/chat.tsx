@@ -282,7 +282,7 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] -m-6">
+    <div className="flex flex-col h-[calc(100vh-5rem)] -m-6 page-transition">
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* 历史对话侧边栏 */}
         {showHistory && (

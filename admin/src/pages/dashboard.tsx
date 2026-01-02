@@ -162,7 +162,7 @@ export function DashboardPage() {
     },
   ]
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col page-transition">
 
       <div className="flex-1 space-y-6 p-6 max-w-[1600px] mx-auto w-full">
         {/* Loading and Error States */}
