@@ -8,9 +8,8 @@ mod api;
 mod cli;
 mod provider;
 
-// New modules for multi-mode support
+// Multi-provider support modules
 mod db;
-mod mode;
 mod admin;
 mod pool;
 
@@ -36,7 +35,6 @@ use std::time::Duration;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use cli::{Args, ConfigLoader, list_applications, show_application_info};
 
-use mode::RunMode;
 use db::DatabasePool;
 use admin::create_admin_app;
 use pool::PoolManager;
@@ -63,46 +61,13 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
-    // Get run mode (default to multi for better UX)
-    let run_mode = args.mode.unwrap_or_default();
-    
-    info!("🚀 Starting LLM Link in {} mode", run_mode);
-    
-    // Route to appropriate mode handler
-    match run_mode {
-        RunMode::Single => run_single_mode(args).await,
-        RunMode::Multi => run_multi_mode(args).await,
-    }
+    // Run in multi-provider mode
+    run_multi_mode(args).await
 }
 
-/// Run in single provider mode (traditional)
-async fn run_single_mode(args: Args) -> Result<()> {
-    info!("📋 Single provider mode: Using YAML configuration");
-
-    // Load configuration (required for single mode)
-    let (config, config_source) = ConfigLoader::load_config(&args)?;
-    let config = ConfigLoader::apply_cli_overrides(config, &args);
-
-    // Log configuration
-    log_configuration(&config, &config_source);
-
-    // Initialize in-memory database
-    let db_pool = db::DatabasePool::new_sqlite_memory().await?;
-
-    // Initialize LLM service
-    let llm_service = initialize_llm_service(&config)?;
-    let app_state = AppState::new(llm_service, config.clone());
-
-    // Build and start server
-    let app = build_single_mode_app(app_state, &config, db_pool);
-    start_server(app, &config).await?;
-
-    Ok(())
-}
-
-/// Run in multi provider mode (new zero-config experience)
+/// Run in multi provider mode
 async fn run_multi_mode(args: Args) -> Result<()> {
-    info!("🌐 Multi provider mode: Using database and web interface");
+    info!("🌐 Multi-provider mode: Using database and web interface");
 
     // First test with in-memory database to isolate SQLite library issues
     match test_in_memory_database().await {
@@ -354,6 +319,7 @@ async fn send_to_provider(
 
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(120))
+        .no_proxy()
         .build()
         .unwrap_or_else(|_| reqwest::Client::new());
     let url = format!("{}/chat/completions", base_url.trim_end_matches('/'));
@@ -928,175 +894,4 @@ fn initialize_logging(args: &Args) {
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
-}
-
-/// Log configuration information
-fn log_configuration(config: &Settings, config_source: &str) {
-    info!("🚀 Starting LLM Link proxy service");
-    info!("🌐 Server will bind to {}:{}", config.server.host, config.server.port);
-    info!("📋 Configuration loaded from: {}", config_source);
-
-    // Log enabled APIs
-    if let Some(ollama_config) = &config.apis.ollama {
-        if ollama_config.enabled {
-            info!("🦙 Ollama API enabled on path: {}", ollama_config.path);
-            if ollama_config.api_key.is_some() {
-                info!("🔐 Ollama API key authentication: ENABLED");
-            } else {
-                info!("🔓 Ollama API key authentication: DISABLED");
-            }
-        }
-    }
-}
-
-/// Initialize LLM service
-fn initialize_llm_service(config: &Settings) -> Result<service::Service> {
-    info!("🔧 Initializing LLM service...");
-    let llm_service = service::Service::new(&config.llm_backend)?;
-    info!("✅ LLM service initialized successfully");
-    Ok(llm_service)
-}
-
-/// Build single mode application and add middleware
-fn build_single_mode_app(app_state: AppState, config: &Settings, db_pool: db::DatabasePool) -> Router {
-    info!("🏗️ Building single-mode application routes...");
-
-    build_single_mode_routes(app_state, config, db_pool)
-        .layer(
-            TraceLayer::new_for_http()
-                .make_span_with(|request: &Request<_>| {
-                    info!("🌐 ======================================");
-                    info!("🌐 Incoming request: {} {}", request.method(), request.uri());
-                    info!("📋 Full URI: {}", request.uri());
-                    info!("📋 Headers: {:?}", request.headers());
-                    info!("📋 User-Agent: {:?}", request.headers().get("user-agent"));
-                    info!("📋 Host: {:?}", request.headers().get("host"));
-                    info!("📋 Accept: {:?}", request.headers().get("accept"));
-                    info!("📋 Content-Type: {:?}", request.headers().get("content-type"));
-                    info!("📋 Content-Length: {:?}", request.headers().get("content-length"));
-                    info!("======================================");
-                    tracing::info_span!(
-                        "http_request",
-                        method = %request.method(),
-                        uri = %request.uri(),
-                        version = ?request.version(),
-                    )
-                })
-                .on_request(|_request: &Request<_>, _span: &Span| {
-                    info!("🚀 Processing request...");
-                })
-                .on_response(|response: &Response<_>, latency: Duration, _span: &Span| {
-                    info!("✅ Response: {} (took {:?})", response.status(), latency);
-                })
-                .on_failure(|error: ServerErrorsFailureClass, latency: Duration, _span: &Span| {
-                    error!("❌ Request failed: {:?} (took {:?})", error, latency);
-                })
-        )
-}
-
-/// Start server
-async fn start_server(app: Router, config: &Settings) -> Result<()> {
-    let bind_addr = format!("{}:{}", config.server.host, config.server.port);
-    info!("🔌 Binding to address: {}", bind_addr);
-    let listener = tokio::net::TcpListener::bind(&bind_addr).await?;
-
-    info!("🎉 LLM Link proxy is listening on {}", bind_addr);
-    info!("📡 Ready to accept connections!");
-    info!("👀 Monitoring for incoming requests...");
-
-    axum::serve(listener, app).await?;
-    Ok(())
-}
-
-fn build_single_mode_routes(state: AppState, config: &Settings, db_pool: db::DatabasePool) -> Router {
-    // Create basic routes (no state required)
-    let basic_routes = Router::new()
-        .route("/", get(|| {
-            info!("🏠 Root endpoint accessed");
-            async { "LLM Link is running in single mode" }
-        }))
-        .route("/health", get(|| {
-            info!("🏥 Health check endpoint accessed");
-            async { health_check().await }
-        }))
-        .route("/debug", get(|| {
-            info!("🐛 Debug endpoint accessed");
-            async { api::debug_test().await }
-        }));
-
-    // Create routes that require state
-    let stateful_routes = Router::new()
-        .route("/api/health", get(get_health))
-        .route("/api/info", get(info))
-        .route("/api/config/current", get(get_current_config))
-        .route("/api/config/update", post(update_config_for_restart))
-        .route("/api/config/validate", post(validate_key))
-        .route("/api/config/validate-key", post(validate_key_for_update))
-        .route("/api/config/update-key", post(update_key))
-        .route("/api/config/switch-provider", post(switch_provider))
-        .route("/api/config/pid", get(get_pid))
-        .route("/api/config/shutdown", post(shutdown))
-        .with_state(state.clone());
-
-    // Merge routes
-    let mut app = basic_routes.merge(stateful_routes);
-
-    // Add Ollama API endpoints
-    if let Some(ollama_config) = &config.apis.ollama {
-        if ollama_config.enabled {
-            info!("Enabling Ollama API on path: {}", ollama_config.path);
-            let ollama_routes = api::ollama::build_ollama_routes(state.clone(), ollama_config, db_pool.clone());
-            app = app.merge(ollama_routes);
-        }
-    }
-
-    // Add OpenAI-compatible API endpoints
-    if let Some(openai_config) = &config.apis.openai {
-        if openai_config.enabled {
-            info!("Enabling OpenAI API on path: {}", openai_config.path);
-            let openai_routes = Router::new()
-                .route(&format!("{}/chat/completions", openai_config.path), post(api::openai::chat))
-                .route(&format!("{}/models", openai_config.path), get(api::openai::models))
-                .route(&format!("{}/models/:model", openai_config.path), get(api::openai::models))
-                .with_state(state.clone());
-            app = app.merge(openai_routes);
-        }
-    }
-
-    // Add Anthropic API endpoints
-    if let Some(anthropic_config) = &config.apis.anthropic {
-        if anthropic_config.enabled {
-            info!("🔮 Enabling Anthropic API on path: {}", anthropic_config.path);
-            let anthropic_routes = Router::new()
-                .route(&format!("{}/v1/messages", anthropic_config.path), post(api::anthropic::messages))
-                .route(&format!("{}/v1/messages/count_tokens", anthropic_config.path), post(api::anthropic::count_tokens))
-                .route(&format!("{}/v1/models", anthropic_config.path), get(api::anthropic::models))
-                .with_state(state.clone());
-            app = app.merge(anthropic_routes);
-        }
-    }
-
-    // Add catch-all route for debugging
-    app = app.fallback(|request: axum::extract::Request| async move {
-        error!("🚫 ======================================");
-        error!("🚫 UNMATCHED ROUTE ACCESSED!");
-        error!("🚫 Method: {}", request.method());
-        error!("🚫 URI: {}", request.uri());
-        error!("🚫 Full URI: {}", request.uri());
-        error!("🚫 Headers: {:?}", request.headers());
-        error!("🚫 User-Agent: {:?}", request.headers().get("user-agent"));
-        error!("🚫 Host: {:?}", request.headers().get("host"));
-        error!("🚫 Accept: {:?}", request.headers().get("accept"));
-        error!("🚫 Content-Type: {:?}", request.headers().get("content-type"));
-        error!("🚫 Content-Length: {:?}", request.headers().get("content-length"));
-        error!("🚫 ======================================");
-        axum::http::StatusCode::NOT_FOUND
-    });
-
-    // Apply middleware at the end
-    app.layer(
-        ServiceBuilder::new()
-            .layer(TraceLayer::new_for_http())
-            .layer(CorsLayer::new().allow_origin(Any).allow_methods(Any).allow_headers(Any)),
-    )
 }

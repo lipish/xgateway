@@ -74,11 +74,18 @@ impl PoolManager {
         let config: serde_json::Value = serde_json::from_str(&provider.config)
             .unwrap_or_default();
 
+        // Use endpoint if provided (for Volcengine ep-*), otherwise fall back to model from config
+        let model = if let Some(endpoint) = &provider.endpoint {
+            endpoint.clone()
+        } else {
+            config.get("model").and_then(|v| v.as_str()).unwrap_or("default").to_string()
+        };
+
         let instance_config = ProviderInstanceConfig {
             provider_type: provider.provider_type.clone(),
             api_key: config.get("api_key").and_then(|v| v.as_str()).map(String::from),
             base_url: config.get("base_url").and_then(|v| v.as_str()).map(String::from),
-            model: config.get("model").and_then(|v| v.as_str()).unwrap_or("default").to_string(),
+            model,
             priority: provider.priority,
             weight: 1,
             enabled: provider.enabled,
@@ -239,6 +246,7 @@ impl PoolManager {
             // by doing a lightweight HEAD request to the base URL
             let client = reqwest::Client::builder()
                 .timeout(Duration::from_secs(5))
+                .no_proxy()
                 .build()?;
 
             let start = std::time::Instant::now();
@@ -264,6 +272,7 @@ impl PoolManager {
             // Standard /models endpoint check for OpenAI-compatible providers
             let client = reqwest::Client::builder()
                 .timeout(Duration::from_secs(10))
+                .no_proxy()
                 .build()?;
 
             let url = format!("{}/models", base_url.trim_end_matches('/'));
@@ -356,4 +365,3 @@ pub struct PoolStatusSummary {
     pub total_failures: u64,
     pub success_rate: f64,
 }
-
