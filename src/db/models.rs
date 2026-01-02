@@ -11,6 +11,8 @@ pub struct Provider {
     pub config: String,  // JSON string
     pub enabled: bool,
     pub priority: i32,
+    #[serde(default)]
+    pub endpoint: Option<String>,  // Endpoint ID for providers like Volcengine
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -22,6 +24,8 @@ pub struct NewProvider {
     pub config: String,
     pub enabled: bool,
     pub priority: i32,
+    #[serde(default)]
+    pub endpoint: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -31,6 +35,7 @@ pub struct UpdateProvider {
     pub config: Option<String>,
     pub enabled: Option<bool>,
     pub priority: Option<i32>,
+    pub endpoint: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,6 +65,7 @@ impl Provider {
             config,
             enabled: true,
             priority: 0,
+            endpoint: None,
             created_at: now,
             updated_at: now,
         }
@@ -75,6 +81,7 @@ impl Provider {
             config: new_provider.config,
             enabled: new_provider.enabled,
             priority: new_provider.priority,
+            endpoint: new_provider.endpoint,
             created_at: now,
             updated_at: now,
         }
@@ -90,6 +97,7 @@ impl NewProvider {
             config,
             enabled: true,
             priority: 0,
+            endpoint: None,
         }
     }
 }

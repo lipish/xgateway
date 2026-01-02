@@ -40,8 +40,8 @@ impl DatabasePool {
     pub async fn create_provider(&self, provider: NewProvider) -> Result<i64> {
         let result = sqlx::query(
             r#"
-            INSERT INTO providers (name, type, config, enabled, priority)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO providers (name, type, config, enabled, priority, endpoint)
+            VALUES (?, ?, ?, ?, ?, ?)
             "#
         )
         .bind(&provider.name)
@@ -49,6 +49,7 @@ impl DatabasePool {
         .bind(&provider.config)
         .bind(provider.enabled)
         .bind(provider.priority)
+        .bind(&provider.endpoint)
         .execute(&self.pool)
         .await?;
 
@@ -155,6 +156,11 @@ impl DatabasePool {
         if let Some(priority) = update.priority {
             query.push(", priority = ");
             query.push_bind(priority);
+            has_updates = true;
+        }
+        if let Some(endpoint) = &update.endpoint {
+            query.push(", endpoint = ");
+            query.push_bind(endpoint);
             has_updates = true;
         }
 

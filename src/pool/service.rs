@@ -89,11 +89,18 @@ impl MultiProviderService {
         let config: serde_json::Value = serde_json::from_str(&provider.config)
             .map_err(|e| anyhow!("Invalid provider config: {}", e))?;
 
+        // Use endpoint if provided, otherwise fall back to model
+        let model = if let Some(endpoint) = &provider.endpoint {
+            endpoint.clone()
+        } else {
+            config.get("model").and_then(|v| v.as_str()).unwrap_or("default").to_string()
+        };
+
         let instance_config = ProviderInstanceConfig {
             provider_type: provider.provider_type.clone(),
             api_key: config.get("api_key").and_then(|v| v.as_str()).map(String::from),
             base_url: config.get("base_url").and_then(|v| v.as_str()).map(String::from),
-            model: config.get("model").and_then(|v| v.as_str()).unwrap_or("default").to_string(),
+            model,
             priority: provider.priority,
             weight: 1,
             enabled: provider.enabled,
