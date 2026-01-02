@@ -1,4 +1,4 @@
-use sqlx::{SqlitePool, PgPool, Row};
+use sqlx::Row;
 use anyhow::Result;
 use crate::db::{DatabasePool, Message, NewMessage};
 

@@ -1,4 +1,4 @@
-use sqlx::{SqlitePool, PgPool, Row};
+use sqlx::Row;
 use anyhow::Result;
 use crate::db::{DatabasePool, RequestLog, NewRequestLog};
 
@@ -86,6 +86,7 @@ impl DatabasePool {
         }
     }
 
+    #[allow(dead_code)]
     pub async fn get_request_log(&self, id: i64) -> Result<Option<RequestLog>> {
         match self {
             Self::Sqlite(pool) => {

@@ -146,6 +146,7 @@ impl DatabasePool {
         }
     }
 
+    #[allow(dead_code)]
     pub async fn update_conversation_timestamp(&self, id: i64) -> Result<()> {
         match self {
             Self::Sqlite(pool) => {

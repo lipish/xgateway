@@ -41,6 +41,7 @@ impl DatabasePool {
         Ok(Self::Sqlite(pool))
     }
 
+    #[allow(dead_code)]
     pub async fn close(&self) {
         match self {
             Self::Sqlite(pool) => pool.close().await,

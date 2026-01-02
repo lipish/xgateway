@@ -150,6 +150,7 @@ impl DatabasePool {
         }
     }
 
+    #[allow(dead_code)]
     pub async fn is_provider_types_empty(&self) -> Result<bool> {
         match self {
             Self::Sqlite(pool) => {
@@ -165,6 +166,7 @@ impl DatabasePool {
         }
     }
 
+    #[allow(dead_code)]
     pub async fn batch_insert_provider_types(&self, types: Vec<NewProviderType>) -> Result<()> {
         for (i, pt) in types.into_iter().enumerate() {
             let models_json = serde_json::to_string(&pt.models)?;

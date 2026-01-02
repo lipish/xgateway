@@ -74,6 +74,7 @@ impl DatabasePool {
         }
     }
 
+    #[allow(dead_code)]
     pub async fn get_enabled_providers(&self) -> Result<Vec<Provider>> {
         let query = r#"
             SELECT id, name, type, config, enabled, priority, endpoint, created_at, updated_at
