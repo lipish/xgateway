@@ -159,11 +159,11 @@ VALUES (
     'aliyun',
     'Aliyun Bailian',
     'https://dashscope.aliyuncs.com/compatible-mode/v1',
-    'qwen3-max',
+    'qwen-plus',
     '[
         {
-            "id": "qwen3-max",
-            "name": "Qwen3 Max",
+            "id": "qwen-max",
+            "name": "Qwen Max",
             "description": "Suitable for complex, multi-step tasks with strongest capabilities",
             "supports_tools": true,
             "context_length": 262144,
@@ -171,8 +171,8 @@ VALUES (
             "output_price": 0.0128
         },
         {
-            "id": "qwen3-plus",
-            "name": "Qwen3 Plus", 
+            "id": "qwen-plus",
+            "name": "Qwen Plus", 
             "description": "Balanced performance, speed and cost, suitable for medium complexity tasks",
             "supports_tools": true,
             "context_length": 1000000,
@@ -180,8 +180,8 @@ VALUES (
             "output_price": 0.002
         },
         {
-            "id": "qwen3-flash",
-            "name": "Qwen3 Flash",
+            "id": "qwen-flash",
+            "name": "Qwen Flash",
             "description": "Suitable for simple tasks with fast speed and low cost",
             "supports_tools": true,
             "context_length": 1000000,
@@ -189,8 +189,8 @@ VALUES (
             "output_price": 0.0015
         },
         {
-            "id": "qwen3-coder",
-            "name": "Qwen3 Coder",
+            "id": "qwen-coder-turbo",
+            "name": "Qwen Coder Turbo",
             "description": "Excellent code model, proficient in tool calling and environment interaction",
             "supports_tools": true,
             "context_length": 1000000,
@@ -198,8 +198,8 @@ VALUES (
             "output_price": 0.004
         },
         {
-            "id": "qwen3-vl-max",
-            "name": "Qwen3 VL Max",
+            "id": "qwen-vl-max",
+            "name": "Qwen VL Max",
             "description": "Multimodal model with powerful vision understanding",
             "supports_tools": true,
             "context_length": 262144,
@@ -207,31 +207,13 @@ VALUES (
             "output_price": 0.02
         },
         {
-            "id": "qwen3-audio-turbo",
-            "name": "Qwen3 Audio Turbo",
+            "id": "qwen-audio-turbo",
+            "name": "Qwen Audio Turbo",
             "description": "Audio understanding model",
             "supports_tools": false,
             "context_length": 131072,
             "input_price": 0.0016,
             "output_price": 0.01
-        },
-        {
-            "id": "qwen3-rerank",
-            "name": "Qwen3 ReRank",
-            "description": "Text ranking model",
-            "supports_tools": false,
-            "context_length": 30000,
-            "input_price": 0.0005,
-            "output_price": 0.0005
-        },
-        {
-            "id": "text-embedding-v4",
-            "name": "Text Embedding V4",
-            "description": "Text embedding model supporting 100+ mainstream languages",
-            "supports_tools": false,
-            "context_length": 8192,
-            "input_price": 0.0005,
-            "output_price": 0.0005
         },
         {
             "id": "qwen-long",
