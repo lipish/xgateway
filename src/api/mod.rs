@@ -6,7 +6,6 @@ pub mod config;
 
 use crate::settings::{Settings, LlmBackendSettings};
 use crate::service::Service as LlmService;
-use crate::db::ModelsConfig;
 use axum::response::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -83,24 +82,6 @@ pub async fn info(
     let config = state.config.read().await;
     let current_provider = get_provider_name(&config.llm_backend);
     let current_model = get_current_model(&config.llm_backend);
-    
-    let models_config = ModelsConfig::load_with_fallback();
-
-    // Build supported_providers from the dynamic HashMap
-    let mut supported_providers: Vec<serde_json::Value> = models_config.providers
-        .iter()
-        .map(|(name, provider_models)| {
-            json!({
-                "name": name,
-                "models": provider_models.models,
-            })
-        })
-        .collect();
-
-    // Sort by provider name for consistent output
-    supported_providers.sort_by(|a, b| {
-        a["name"].as_str().unwrap_or("").cmp(b["name"].as_str().unwrap_or(""))
-    });
 
     let mut api_endpoints = serde_json::Map::with_capacity(3);
 
@@ -138,7 +119,6 @@ pub async fn info(
         "version": "0.3.3",
         "current_provider": current_provider,
         "current_model": current_model,
-        "supported_providers": supported_providers,
         "api_endpoints": api_endpoints,
     });
 

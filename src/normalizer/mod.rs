@@ -6,7 +6,6 @@ mod model_resolver;
 
 pub use types::{Model, Response};
 
-use crate::db::ModelsConfig;
 use crate::settings::LlmBackendSettings;
 use anyhow::Result;
 use llm_connector::LlmClient;
@@ -15,7 +14,6 @@ use llm_connector::LlmClient;
 pub struct Client {
     backend: LlmBackendSettings,
     llm_client: LlmClient,
-    models_config: ModelsConfig,
 }
 
 impl Client {
@@ -67,13 +65,9 @@ impl Client {
             }
         };
 
-        // Load models configuration
-        let models_config = ModelsConfig::load_with_fallback();
-
         Ok(Self {
             backend: config.clone(),
             llm_client,
-            models_config,
         })
     }
 }

@@ -1,6 +1,5 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { X } from "lucide-react"
 
 interface DialogProps {
   open?: boolean
@@ -20,6 +19,20 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
     return () => {
       document.body.style.overflow = ''
       document.body.style.paddingRight = ''
+    }
+  }, [open])
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+
+    if (open) {
+      document.addEventListener('keydown', handleKeyDown, true)
+      return () => document.removeEventListener('keydown', handleKeyDown, true)
     }
   }, [open])
 

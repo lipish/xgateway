@@ -11,9 +11,8 @@
   - 常见场景示例
   - 快速参考
 
-- **[应用集成指南](guides/INTEGRATION.md)** - 与各种 AI 编码工具集成
-  - Zed IDE 集成
-  - Codex CLI 集成
+- **[Application Integration Guide](guides/INTEGRATION.md)** - Integrate with Codex CLI, Aider, OpenHands
+  - **[Zed IDE Setup](guides/ZED_SETUP.md)** - Specialized guide for Zed
   - 提供商对比和选择
 
 - **[配置指南](guides/CONFIGURATION.md)** - 详细的配置说明
@@ -54,25 +53,13 @@
 
 ### 📦 其他资源
 
-- **[模型市场](MODEL_MARKETPLACE.md)** - 模型选择指南
-- **[发布指南](PUBLISHING.md)** - 发布到 crates.io
-- **[Git 提交规范](GIT_COMMIT_GUIDE.md)** - 代码提交规范
-- **[主 README](../README.md)** - 项目主页
+- **[Models & Marketplace](MODELS.md)** - Supported models and providers
+- **[Publishing Guide](PUBLISHING.md)** - Publishing to crates.io
+- **[Main README](../README.md)** - Project root
 
-## 🗂️ 归档文档
+## 🗂️ Archives (Deleted)
 
-### 旧版本发布文档
-- [v0.1.0 发布说明](archive/old-releases/RELEASE_v0.1.0.md)
-- [v0.2.0 发布说明](archive/old-releases/RELEASE_v0.2.0.md)
-- [v0.5.1 升级指南](archive/old-releases/UPGRADE_v0.5.1.md)
-
-### 测试报告
-- [v0.4.20 测试报告](archive/test-reports/TESTING_REPORT_v0.4.20.md)
-- [提供商测试报告](archive/test-reports/PROVIDER_TEST_REPORT.md)
-- [重启验证测试](archive/test-reports/RESTART_VERIFICATION.md)
-
-### 其他归档
-- [无 API Key 启动](archive/START_WITHOUT_API_KEY.md) - 已合并到配置指南
+*(Old releases and test reports have been archived/deleted to keep docs clean)*
 
 ## 🎯 快速导航
 

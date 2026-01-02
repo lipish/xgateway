@@ -369,15 +369,11 @@ pub async fn show_handler(
     State(state): State<AppState>,
     Json(request): Json<Value>,
 ) -> Result<Json<Value>, StatusCode> {
-    use crate::db::ModelsConfig;
-
-    // Extract model name from request
     let model_name = request.get("name")
         .or_else(|| request.get("model"))
         .and_then(|v| v.as_str())
         .unwrap_or("MiniMax-M2");
 
-    // Get model capabilities from configuration
     let config = state.config.read().await;
     let provider_name = match &config.llm_backend {
         crate::settings::LlmBackendSettings::OpenAI { .. } => "openai",
@@ -393,27 +389,11 @@ pub async fn show_handler(
     };
     drop(config);
 
-    // Load models configuration
-    let models_config = ModelsConfig::load_with_fallback();
-    let provider_models = models_config.get_models_for_provider(provider_name);
+    info!("🔍 /api/show: Model '{}' in provider '{}'", model_name, provider_name);
 
-    info!("🔍 /api/show: Looking for model '{}' in provider '{}', found {} models",
-          model_name, provider_name, provider_models.len());
+    let context_length = 4096;
+    let capabilities: Vec<&str> = vec![];
 
-    // Find the model and check if it supports tools
-    let mut capabilities = Vec::new();
-    let context_length = if let Some(model_info) = provider_models.iter().find(|m| m.id == model_name) {
-        info!("✅ Found model '{}', supports_tools={}, context_length={}",
-              model_name, model_info.supports_tools, model_info.context_length);
-        if model_info.supports_tools {
-            capabilities.push("tools");
-            info!("✅ Model {} supports tools (via /api/show)", model_name);
-        }
-        model_info.context_length
-    } else {
-        info!("⚠️ Model '{}' not found in provider '{}', using default context_length", model_name, provider_name);
-        4096
-    };
 
     // Return model details in Ollama format
     let response = json!({

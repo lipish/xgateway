@@ -23,7 +23,6 @@ impl Client {
         // Special handling for Ollama - get actual installed models
         if provider_name == "ollama" {
             if let Some(ollama_client) = self.llm_client.as_ollama() {
-                // Try to get actual installed models from Ollama
                 match ollama_client.models().await {
                     Ok(ollama_models) => {
                         let models: Vec<Model> = ollama_models.into_iter()
@@ -35,39 +34,26 @@ impl Client {
                         }
                     }
                     Err(e) => {
-                        eprintln!("Warning: Failed to get Ollama models: {}, falling back to config", e);
+                        eprintln!("Warning: Failed to get Ollama models: {}, falling back to current model", e);
                     }
                 }
             }
         }
 
-        // For other providers or if Ollama API fails, use configuration file
-        let model_infos = self.models_config.get_models_for_provider(provider_name);
+        // Fall back to current model from backend config
+        let fallback_model = match &self.backend {
+            LlmBackendSettings::OpenAI { model, .. } => model.clone(),
+            LlmBackendSettings::Anthropic { model, .. } => model.clone(),
+            LlmBackendSettings::Zhipu { model, .. } => model.clone(),
+            LlmBackendSettings::Ollama { model, .. } => model.clone(),
+            LlmBackendSettings::Aliyun { model, .. } => model.clone(),
+            LlmBackendSettings::Volcengine { model, .. } => model.clone(),
+            LlmBackendSettings::Tencent { model, .. } => model.clone(),
+            LlmBackendSettings::Longcat { model, .. } => model.clone(),
+            LlmBackendSettings::Moonshot { model, .. } => model.clone(),
+            LlmBackendSettings::Minimax { model, .. } => model.clone(),
+        };
 
-        // Convert ModelInfo to Model
-        let models: Vec<Model> = model_infos.into_iter().map(|info| Model {
-            id: info.id,
-        }).collect();
-
-        // If no models found in config, fall back to current model from backend config
-        if models.is_empty() {
-            let fallback_model = match &self.backend {
-                LlmBackendSettings::OpenAI { model, .. } => model.clone(),
-                LlmBackendSettings::Anthropic { model, .. } => model.clone(),
-                LlmBackendSettings::Zhipu { model, .. } => model.clone(),
-                LlmBackendSettings::Ollama { model, .. } => model.clone(),
-                LlmBackendSettings::Aliyun { model, .. } => model.clone(),
-                LlmBackendSettings::Volcengine { model, .. } => model.clone(),
-                LlmBackendSettings::Tencent { model, .. } => model.clone(),
-                LlmBackendSettings::Longcat { model, .. } => model.clone(),
-                LlmBackendSettings::Moonshot { model, .. } => model.clone(),
-                LlmBackendSettings::Minimax { model, .. } => model.clone(),
-            };
-
-            Ok(vec![Model { id: fallback_model }])
-        } else {
-            Ok(models)
-        }
+        Ok(vec![Model { id: fallback_model }])
     }
 }
-

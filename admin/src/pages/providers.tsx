@@ -1,79 +1,17 @@
 import { useState, useEffect } from "react"
-import { apiGet, apiPut, apiPost } from "@/lib/api"
+import { apiGet, apiPut, apiPost, apiDelete } from "@/lib/api"
 import { t } from "@/lib/i18n"
-
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
-} from "@/components/ui/dialog"
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
-} from "@/components/ui/table"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Plus, Pencil, Trash2, Loader2, Box, Search, MoreVertical } from "lucide-react"
+import { Loader2, Plus, Search } from "lucide-react"
 
-// Provider icon mapping
-const getProviderIcon = (providerId: string): string | null => {
-  const iconMap: Record<string, string> = {
-    'aliyun': '/ali.svg',
-    'volcengine': '/volcengine.svg',
-    'moonshot': '/moonshot.svg',
-    'deepseek': '/deepseek.png',
-    'zhipu': '/zhipu.svg',
-    'tencent': '/tencent.svg',
-    'minimax': '/minimax.svg',
-    'longcat': '/longcat.png',
-  }
-  return iconMap[providerId] || null
-}
-
-// Function to get localized provider name
-const getLocalizedProviderName = (id: string, label: string) => {
-  const language = localStorage.getItem('language') || 'en';
-  if (language === 'zh') {
-    switch (id) {
-      case 'volcengine':
-        return '火山引擎';
-      case 'aliyun':
-        return '阿里云';
-      case 'tencent':
-        return '腾讯云';
-      case 'zhipu':
-        return '智谱';
-      default:
-        return label;
-    }
-  }
-  return label;
-};
-
-interface ModelInfo {
-  id: string
-  name: string
-  description?: string
-  supports_tools?: boolean
-  context_length?: number
-  input_price?: number
-  output_price?: number
-}
-
-interface ProviderType {
-  id: string
-  label: string
-  base_url: string
-  default_model: string
-  models: ModelInfo[]
-  enabled: boolean
-  sort_order: number
-  docs_url?: string
-}
+import type { ProviderType, ModelInfo } from "@/components/providers/types"
+import { generateIdFromLabel } from "@/components/providers/utils"
+import { ProviderList } from "@/components/providers/ProviderList"
+import { ProviderDetail } from "@/components/providers/ProviderDetail"
+import { ModelDialog } from "@/components/providers/ModelDialog"
+import { AddProviderDialog } from "@/components/providers/AddProviderDialog"
+import { EditProviderDialog } from "@/components/providers/EditProviderDialog"
 
 export function ModelTypesPage() {
   const [providerTypes, setProviderTypes] = useState<ProviderType[]>([])
@@ -84,18 +22,10 @@ export function ModelTypesPage() {
   const [modelForm, setModelForm] = useState<ModelInfo>({ id: "", name: "" })
   const [saving, setSaving] = useState(false)
   const [showAddProvider, setShowAddProvider] = useState(false)
+  const [showEditProvider, setShowEditProvider] = useState(false)
+  const [editingProvider, setEditingProvider] = useState<ProviderType | null>(null)
   const [providerForm, setProviderForm] = useState({ id: "", label: "", base_url: "", default_model: "", docs_url: "" })
 
-  // 从服务商名称生成 ID（转小写，空格转下划线，移除特殊字符）
-  const generateIdFromLabel = (label: string): string => {
-    return label
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, '_')
-      .replace(/[^a-z0-9_-]/g, '')
-  }
-
-  // 处理名称变化，自动生成 ID
   const handleLabelChange = (label: string) => {
     const id = generateIdFromLabel(label)
     setProviderForm({ ...providerForm, label, id })
@@ -107,7 +37,6 @@ export function ModelTypesPage() {
       const response = await apiGet<{ success: boolean; data: ProviderType[] }>("/api/provider-types")
       if (response.success && response.data) {
         setProviderTypes(response.data)
-        // 默认选中第一个
         if (response.data.length > 0 && !selectedType) {
           setSelectedType(response.data[0])
         }
@@ -121,7 +50,6 @@ export function ModelTypesPage() {
 
   useEffect(() => {
     fetchProviderTypes()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const openAddModel = (typeId: string) => {
@@ -210,9 +138,62 @@ export function ModelTypesPage() {
     }
   }
 
-  const formatPrice = (price?: number) => {
-    if (price === undefined || price === null) return "-"
-    return `¥${price}`
+  const openEditProvider = (provider: ProviderType) => {
+    setEditingProvider(provider)
+    setProviderForm({
+      id: provider.id,
+      label: provider.label,
+      base_url: provider.base_url,
+      default_model: provider.default_model,
+      docs_url: provider.docs_url || ""
+    })
+    setShowEditProvider(true)
+  }
+
+  const editProvider = async () => {
+    if (!editingProvider || !providerForm.label) {
+      alert(t("modelTypes.pleaseEnterProviderInfo"))
+      return
+    }
+
+    setSaving(true)
+    try {
+      const response = await apiPut<{ success: boolean; message?: string }>(`/api/provider-types/${editingProvider.id}`, {
+        label: providerForm.label,
+        base_url: providerForm.base_url,
+        default_model: providerForm.default_model,
+        docs_url: providerForm.docs_url
+      })
+      if (response.success) {
+        await fetchProviderTypes()
+        setShowEditProvider(false)
+        setEditingProvider(null)
+      } else {
+        alert(response.message || t("common.saveFailed"))
+      }
+    } catch {
+      alert(t("common.networkError"))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const deleteProvider = async (providerId: string) => {
+    if (!confirm(t("modelTypes.confirmDelete"))) return
+
+    try {
+      const response = await apiDelete<{ success: boolean; message?: string }>(`/api/provider-types/${providerId}`)
+      if (response.success) {
+        await fetchProviderTypes()
+        if (selectedType?.id === providerId) {
+          setSelectedType(null)
+        }
+      } else {
+        alert(response.message || t("common.saveFailed"))
+      }
+    } catch {
+      alert(t("common.networkError"))
+    }
   }
 
   const filteredProviderTypes = providerTypes.filter(pt =>
@@ -223,17 +204,14 @@ export function ModelTypesPage() {
   return (
     <div className="flex flex-col">
       <div className="flex-1 p-6 max-w-[1600px] mx-auto w-full">
-        {/* Loading State */}
         {loading && (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         )}
 
-        {/* Master-Detail Layout */}
         {!loading && (
           <div className="flex gap-6 h-[calc(100vh-8rem)]">
-            {/* Left: Provider Type List */}
             <div className="bg-white rounded-xl shadow-sm border p-6 flex flex-col w-[28%]">
               <div className="flex items-center justify-between gap-4 mb-4">
                 <div className="flex items-center gap-3 flex-1">
@@ -258,171 +236,23 @@ export function ModelTypesPage() {
                 </Button>
               </div>
 
-              <div className="flex-1 overflow-auto space-y-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                {filteredProviderTypes.map(pt => (
-                  <div
-                    key={pt.id}
-                    className={`p-4 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors ${
-                      selectedType?.id === pt.id ? 'bg-muted' : 'bg-white'
-                    }`}
-                    onClick={() => setSelectedType(pt)}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
-                        {getProviderIcon(pt.id) ? (
-                          <img src={getProviderIcon(pt.id)!} alt={pt.label} className="h-5 w-5 shrink-0 mt-0.5" />
-                        ) : (
-                          <Box className={`h-5 w-5 shrink-0 mt-0.5 ${selectedType?.id === pt.id ? 'text-primary' : 'text-muted-foreground'}`} />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold truncate">{getLocalizedProviderName(pt.id, pt.label)}</div>
-                          <div className="text-xs text-muted-foreground truncate mt-0.5">{pt.id}</div>
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div className="text-xs text-muted-foreground whitespace-nowrap">{t("modelTypes.availableModels")}</div>
-                        <div className="text-lg font-semibold mt-0.5">{pt.models.length}</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <ProviderList
+                providers={filteredProviderTypes}
+                selectedProvider={selectedType}
+                onSelectProvider={setSelectedType}
+              />
             </div>
 
-            {/* Right: Provider Type Details */}
             <div className="bg-white rounded-xl shadow-sm border flex-1 flex flex-col overflow-hidden">
               {selectedType ? (
-                <>
-                  {/* Header with title and actions */}
-                  <div className="p-6 border-b">
-                    <div className="flex items-center justify-between mb-6">
-                      <div>
-                        <h2 className="text-2xl font-semibold">{getLocalizedProviderName(selectedType.id, selectedType.label)}</h2>
-                        <p className="text-sm text-muted-foreground mt-1">{selectedType.id}</p>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => openAddModel(selectedType.id)} title={t("modelTypes.addModel")}>
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          size="icon" 
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            // TODO: 实现编辑服务商功能
-                          }}
-                          title={t("providers.edit")}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="text-destructive hover:text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            if (confirm(t("modelTypes.confirmDelete"))) {
-                              // TODO: 实现删除服务商功能
-                            }
-                          }}
-                          title={t("providers.delete")}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    {/* Info Cards */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 rounded-lg bg-muted/30">
-                        <div className="text-xs text-muted-foreground mb-1">{t('modelTypes.baseUrl')}</div>
-                        <div className="text-xs font-mono">{selectedType.base_url || '-'}</div>
-                      </div>
-                      <div className="p-4 rounded-lg bg-muted/30">
-                        <div className="text-xs text-muted-foreground mb-1">{t('modelTypes.defaultModel')}</div>
-                        <div className="text-xs">{selectedType.default_model || '-'}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Models List */}
-                  <div className="flex-1 overflow-auto p-6 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                    <h3 className="text-base font-semibold mb-4">{t('modelTypes.availableModels')} ({selectedType.models.length})</h3>
-                    {selectedType.models.length === 0 ? (
-                      <div className="text-center py-12 text-muted-foreground text-sm">
-                        {t("modelTypes.noModels")}
-                      </div>
-                    ) : (
-                      <div className="border rounded-xl overflow-hidden">
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="bg-muted/30">
-                              <TableHead className="font-medium text-xs">{t('modelTypes.modelId')}</TableHead>
-                              <TableHead className="font-medium text-xs">{t('modelTypes.modelName')}</TableHead>
-                              <TableHead className="font-medium text-xs text-center">
-                                <div>{t('modelTypes.contextLength')}</div>
-                              </TableHead>
-                              <TableHead className="font-medium text-xs text-center">
-                                <div>{t('modelTypes.inputPrice')}</div>
-                                <div className="text-xs font-normal text-muted-foreground whitespace-nowrap">({t('modelTypes.priceUnit')})</div>
-                              </TableHead>
-                              <TableHead className="font-medium text-xs text-center">
-                                <div>{t('modelTypes.outputPrice')}</div>
-                                <div className="text-xs font-normal text-muted-foreground whitespace-nowrap">({t('modelTypes.priceUnit')})</div>
-                              </TableHead>
-                              <TableHead className="font-medium text-xs text-center">
-                                <div>{t('modelTypes.supportsTools')}</div>
-                              </TableHead>
-                              <TableHead className="font-medium text-xs text-center w-[60px]"></TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {selectedType.models.map(model => (
-                              <TableRow key={model.id} className="hover:bg-muted/30">
-                                <TableCell className="font-mono text-xs">{model.id}</TableCell>
-                                <TableCell className="font-mono text-xs">{model.name}</TableCell>
-                                <TableCell className="text-xs text-center">{model.context_length ? `${(model.context_length / 1000).toFixed(0)}K` : "-"}</TableCell>
-                                <TableCell className="text-xs text-center">{formatPrice(model.input_price)}</TableCell>
-                                <TableCell className="text-xs text-center">{formatPrice(model.output_price)}</TableCell>
-                                <TableCell className="text-center">
-                                  {model.supports_tools ? (
-                                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs">✓</span>
-                                  ) : (
-                                    <span className="text-muted-foreground text-xs">-</span>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex justify-center">
-                                    <DropdownMenu modal={false}>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button size="icon" variant="ghost" className="h-8 w-8">
-                                          <MoreVertical className="h-4 w-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => openEditModel(selectedType.id, model)}>
-                                          <Pencil className="h-4 w-4 mr-2" />
-                                          {t("providers.edit")}
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem 
-                                          onClick={() => deleteModel(selectedType.id, model.id)}
-                                          className="text-destructive"
-                                        >
-                                          <Trash2 className="h-4 w-4 mr-2" />
-                                          {t("providers.delete")}
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )}
-                  </div>
-                </>
+                <ProviderDetail
+                  provider={selectedType}
+                  onAddModel={openAddModel}
+                  onEditModel={openEditModel}
+                  onDeleteModel={deleteModel}
+                  onEditProvider={openEditProvider}
+                  onDeleteProvider={deleteProvider}
+                />
               ) : (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground">
                   {t("providers.selectProvider")}
@@ -432,136 +262,34 @@ export function ModelTypesPage() {
           </div>
         )}
 
-        {/* Add/Edit Model Dialog */}
-        <Dialog open={!!editingModel} onOpenChange={() => closeDialog()}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>{editingModel?.model ? t("modelTypes.editModel") : t("modelTypes.addModel")}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">{t("modelTypes.modelId")}</label>
-                <Input
-                  value={modelForm.id}
-                  onChange={e => setModelForm({ ...modelForm, id: e.target.value })}
-                  placeholder="gpt-4"
-                  disabled={!!editingModel?.model}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">{t("modelTypes.modelName")}</label>
-                <Input
-                  value={modelForm.name}
-                  onChange={e => setModelForm({ ...modelForm, name: e.target.value })}
-                  placeholder="GPT-4"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">{t("modelTypes.description")}</label>
-                <Input
-                  value={modelForm.description || ""}
-                  onChange={e => setModelForm({ ...modelForm, description: e.target.value })}
-                  placeholder={t("common.optional")}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">{t("modelTypes.contextLength")}</label>
-                  <Input
-                    type="number"
-                    value={modelForm.context_length || ""}
-                    onChange={e => setModelForm({ ...modelForm, context_length: parseInt(e.target.value) || undefined })}
-                    placeholder="128000"
-                  />
-                </div>
-                <div className="flex items-center gap-2 pt-6">
-                  <Switch
-                    checked={modelForm.supports_tools || false}
-                    onCheckedChange={(checked: boolean) => setModelForm({ ...modelForm, supports_tools: checked })}
-                  />
-                  <label className="text-sm">{t("modelTypes.supportsTools")}</label>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">{t("modelTypes.inputPrice")}</label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={modelForm.input_price || ""}
-                    onChange={e => setModelForm({ ...modelForm, input_price: parseFloat(e.target.value) || undefined })}
-                    placeholder="0.01"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">{t("modelTypes.outputPrice")}</label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={modelForm.output_price || ""}
-                    onChange={e => setModelForm({ ...modelForm, output_price: parseFloat(e.target.value) || undefined })}
-                    placeholder="0.03"
-                  />
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={closeDialog}>{t("common.cancel")}</Button>
-              <Button onClick={saveModel} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : t("common.save")}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <ModelDialog
+          open={!!editingModel}
+          onOpenChange={closeDialog}
+          isEdit={!!editingModel?.model}
+          modelForm={modelForm}
+          onFormChange={setModelForm}
+          onSave={saveModel}
+          saving={saving}
+        />
 
-        {/* Add Provider Dialog */}
-        <Dialog open={showAddProvider} onOpenChange={setShowAddProvider}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t("modelTypes.addProvider")}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">{t("modelTypes.providerName")}</label>
-                <Input
-                  value={providerForm.label}
-                  onChange={e => handleLabelChange(e.target.value)}
-                  placeholder="OpenAI"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">{t("modelTypes.baseUrl")}</label>
-                <Input
-                  value={providerForm.base_url}
-                  onChange={e => setProviderForm({ ...providerForm, base_url: e.target.value })}
-                  placeholder="https://api.openai.com/v1"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">{t("modelTypes.defaultModel")}</label>
-                <Input
-                  value={providerForm.default_model}
-                  onChange={e => setProviderForm({ ...providerForm, default_model: e.target.value })}
-                  placeholder="gpt-4"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">{t("modelTypes.docsUrl")}</label>
-                <Input
-                  value={providerForm.docs_url}
-                  onChange={e => setProviderForm({ ...providerForm, docs_url: e.target.value })}
-                  placeholder="https://platform.openai.com/docs"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowAddProvider(false)}>{t("common.cancel")}</Button>
-              <Button onClick={addProvider} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : t("common.save")}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <AddProviderDialog
+          open={showAddProvider}
+          onOpenChange={setShowAddProvider}
+          providerForm={providerForm}
+          onFormChange={setProviderForm}
+          onLabelChange={handleLabelChange}
+          onSave={addProvider}
+          saving={saving}
+        />
+
+        <EditProviderDialog
+          open={showEditProvider}
+          onOpenChange={setShowEditProvider}
+          providerForm={providerForm}
+          onFormChange={setProviderForm}
+          onSubmit={editProvider}
+          saving={saving}
+        />
       </div>
     </div>
   )
