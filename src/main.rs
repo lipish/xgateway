@@ -36,9 +36,8 @@ use std::time::Duration;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use cli::{Args, ConfigLoader, list_applications, show_application_info};
 
-// Import new modules
 use mode::RunMode;
-use db::{DatabasePool, initialize_provider_types};
+use db::DatabasePool;
 use admin::create_admin_app;
 use pool::PoolManager;
 use std::sync::Arc;
@@ -87,9 +86,8 @@ async fn run_single_mode(args: Args) -> Result<()> {
     // Log configuration
     log_configuration(&config, &config_source);
 
-    // Initialize in-memory database for model list
+    // Initialize in-memory database
     let db_pool = db::DatabasePool::new_sqlite_memory().await?;
-    db::init::initialize_provider_types(&db_pool).await?;
 
     // Initialize LLM service
     let llm_service = initialize_llm_service(&config)?;
@@ -138,11 +136,6 @@ async fn run_multi_mode(args: Args) -> Result<()> {
             }
         }
     };
-
-    // Initialize provider types from models.yaml
-    if let Err(e) = initialize_provider_types(&db_pool).await {
-        warn!("⚠️ Failed to initialize provider types: {}", e);
-    }
 
     // Initialize pool manager for load balancing and health checks
     let pool_manager = Arc::new(PoolManager::new(db_pool.clone()));
