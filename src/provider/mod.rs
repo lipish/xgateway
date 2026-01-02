@@ -19,6 +19,8 @@ pub struct ProviderConfig {
     pub api_key: String,
     pub model: String,
     pub base_url: Option<String>,
+    pub secret_id: Option<String>,
+    pub secret_key: Option<String>,
 }
 
 impl ProviderConfig {
@@ -29,51 +31,71 @@ impl ProviderConfig {
                 api_key: api_key.clone(),
                 model: model.clone(),
                 base_url: base_url.clone(),
+                secret_id: None,
+                secret_key: None,
             },
             LlmBackendSettings::Anthropic { api_key, model } => Self {
                 api_key: api_key.clone(),
                 model: model.clone(),
                 base_url: None,
+                secret_id: None,
+                secret_key: None,
             },
             LlmBackendSettings::Zhipu { api_key, base_url, model } => Self {
                 api_key: api_key.clone(),
                 model: model.clone(),
                 base_url: base_url.clone(),
+                secret_id: None,
+                secret_key: None,
             },
             LlmBackendSettings::Ollama { base_url, model } => Self {
                 api_key: String::new(),
                 model: model.clone(),
                 base_url: base_url.clone(),
+                secret_id: None,
+                secret_key: None,
             },
             LlmBackendSettings::Aliyun { api_key, model } => Self {
                 api_key: api_key.clone(),
                 model: model.clone(),
                 base_url: None,
+                secret_id: None,
+                secret_key: None,
             },
             LlmBackendSettings::Volcengine { api_key, model } => Self {
                 api_key: api_key.clone(),
                 model: model.clone(),
                 base_url: None,
+                secret_id: None,
+                secret_key: None,
             },
-            LlmBackendSettings::Tencent { api_key, model } => Self {
+            LlmBackendSettings::Tencent { api_key, model, secret_id, secret_key } => Self {
                 api_key: api_key.clone(),
                 model: model.clone(),
                 base_url: None,
+                secret_id: secret_id.clone(),
+                secret_key: secret_key.clone(),
             },
             LlmBackendSettings::Longcat { api_key, model } => Self {
                 api_key: api_key.clone(),
                 model: model.clone(),
                 base_url: None,
+                secret_id: None,
+                secret_key: None,
             },
             LlmBackendSettings::Moonshot { api_key, model } => Self {
                 api_key: api_key.clone(),
                 model: model.clone(),
                 base_url: None,
+                secret_id: None,
+                secret_key: None,
             },
             LlmBackendSettings::Minimax { api_key, model } => Self {
                 api_key: api_key.clone(),
                 model: model.clone(),
                 base_url: None,
+                secret_id: None,
+                secret_key: None,
             },
         }
     }
@@ -256,4 +278,3 @@ pub mod volcengine;
 pub mod tencent;
 pub mod longcat;
 pub mod moonshot;
-

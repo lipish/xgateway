@@ -109,7 +109,7 @@ impl MultiProviderService {
         self.pool.add_provider(provider.id, provider.name.clone(), instance_config.clone()).await;
 
         // Create service instance
-        if let Some(backend) = self.create_backend_settings(&provider.provider_type, &instance_config) {
+        if let Some(backend) = self.create_backend_settings(&provider, &instance_config) {
             match Service::new(&backend) {
                 Ok(service) => {
                     self.services.write().await.insert(provider.id, Arc::new(service));
@@ -125,19 +125,24 @@ impl MultiProviderService {
     }
 
     /// Create backend settings from provider config
-    fn create_backend_settings(&self, provider_type: &str, config: &ProviderInstanceConfig) -> Option<LlmBackendSettings> {
+    fn create_backend_settings(&self, provider: &Provider, config: &ProviderInstanceConfig) -> Option<LlmBackendSettings> {
         let api_key = config.api_key.clone().unwrap_or_default();
         let model = config.model.clone();
         let base_url = config.base_url.clone();
 
-        match provider_type {
+        match provider.provider_type.as_str() {
             "openai" => Some(LlmBackendSettings::OpenAI { api_key, base_url, model }),
             "anthropic" => Some(LlmBackendSettings::Anthropic { api_key, model }),
             "zhipu" => Some(LlmBackendSettings::Zhipu { api_key, base_url, model }),
             "ollama" => Some(LlmBackendSettings::Ollama { base_url, model }),
             "aliyun" => Some(LlmBackendSettings::Aliyun { api_key, model }),
             "volcengine" => Some(LlmBackendSettings::Volcengine { api_key, model }),
-            "tencent" => Some(LlmBackendSettings::Tencent { api_key, model }),
+            "tencent" => Some(LlmBackendSettings::Tencent {
+                api_key,
+                model,
+                secret_id: provider.secret_id.clone(),
+                secret_key: provider.secret_key.clone(),
+            }),
             "longcat" => Some(LlmBackendSettings::Longcat { api_key, model }),
             "moonshot" => Some(LlmBackendSettings::Moonshot { api_key, model }),
             "minimax" => Some(LlmBackendSettings::Minimax { api_key, model }),

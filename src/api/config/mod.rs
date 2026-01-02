@@ -329,6 +329,8 @@ pub async fn validate_key(
         "tencent" => LlmBackendSettings::Tencent {
             api_key: request.api_key.clone(),
             model,
+            secret_id: None,
+            secret_key: None,
         },
         "longcat" => LlmBackendSettings::Longcat {
             api_key: request.api_key.clone(),
@@ -455,6 +457,8 @@ pub async fn validate_key_for_update(
         "tencent" => LlmBackendSettings::Tencent {
             api_key: request.api_key.clone(),
             model,
+            secret_id: None,
+            secret_key: None,
         },
         "longcat" => LlmBackendSettings::Longcat {
             api_key: request.api_key.clone(),
@@ -620,15 +624,19 @@ pub async fn update_key(
             }
         }
         "tencent" => {
-            if let crate::settings::LlmBackendSettings::Tencent { model, .. } = &current_config.llm_backend {
+            if let crate::settings::LlmBackendSettings::Tencent { model, secret_id, secret_key, .. } = &current_config.llm_backend {
                 crate::settings::LlmBackendSettings::Tencent {
                     api_key: request.api_key.clone(),
                     model: model.clone(),
+                    secret_id: secret_id.clone(),
+                    secret_key: secret_key.clone(),
                 }
             } else {
                 crate::settings::LlmBackendSettings::Tencent {
                     api_key: request.api_key.clone(),
                     model: "hunyuan-lite".to_string(),
+                    secret_id: None,
+                    secret_key: None,
                 }
             }
         }
@@ -778,8 +786,13 @@ pub async fn switch_provider(
                 }
             }
             "tencent" => {
-                if let crate::settings::LlmBackendSettings::Tencent { api_key, .. } = &current_config.llm_backend {
-                    api_key.clone()
+                if let crate::settings::LlmBackendSettings::Tencent { api_key, secret_id, secret_key, .. } = &current_config.llm_backend {
+                    // For Tencent, if secret_id and secret_key are available, we don't need api_key
+                    if secret_id.is_some() && secret_key.is_some() {
+                        String::new()
+                    } else {
+                        api_key.clone()
+                    }
                 } else {
                     error!("❌ No API key provided for Tencent and none found in current config");
                     return Err(StatusCode::BAD_REQUEST);
@@ -864,6 +877,8 @@ pub async fn switch_provider(
         "tencent" => crate::settings::LlmBackendSettings::Tencent {
             api_key,
             model,
+            secret_id: None,
+            secret_key: None,
         },
         "longcat" => crate::settings::LlmBackendSettings::Longcat {
             api_key,

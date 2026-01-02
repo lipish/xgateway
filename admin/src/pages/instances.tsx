@@ -42,6 +42,8 @@ export function ProvidersPage() {
     baseUrl: "",
     priority: "",
     endpoint: "",
+    secretId: "",
+    secretKey: "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -54,6 +56,8 @@ export function ProvidersPage() {
     baseUrl: "",
     priority: "10",
     endpoint: "",
+    secretId: "",
+    secretKey: "",
   });
   const [adding, setAdding] = useState(false);
 
@@ -181,6 +185,8 @@ export function ProvidersPage() {
       baseUrl: defaults?.base_url || "",
       priority: "10",
       endpoint: "",
+      secretId: "",
+      secretKey: "",
     });
     setAddDialogOpen(true);
   };
@@ -202,9 +208,16 @@ export function ProvidersPage() {
       alert(t('providers.pleaseEnterName'));
       return;
     }
-    if (!addForm.apiKey.trim()) {
-      alert(t('providers.pleaseEnterApiKey'));
-      return;
+    if (addForm.providerType === 'tencent') {
+      if (!addForm.secretId.trim() || !addForm.secretKey.trim()) {
+        alert('Please enter both Secret ID and Secret Key for Tencent provider');
+        return;
+      }
+    } else {
+      if (!addForm.apiKey.trim()) {
+        alert(t('providers.pleaseEnterApiKey'));
+        return;
+      }
     }
     setAdding(true);
     try {
@@ -222,6 +235,11 @@ export function ProvidersPage() {
       
       if (addForm.providerType === 'volcengine' && addForm.endpoint) {
         payload.endpoint = addForm.endpoint;
+      }
+      
+      if (addForm.providerType === 'tencent') {
+        payload.secret_id = addForm.secretId;
+        payload.secret_key = addForm.secretKey;
       }
       
       const result = await apiPost<ApiResponse<Provider>>("/api/instances", payload);
@@ -277,6 +295,8 @@ export function ProvidersPage() {
       baseUrl: config.base_url || "",
       priority: provider.priority.toString(),
       endpoint: provider.endpoint || "",
+      secretId: provider.secret_id || "",
+      secretKey: provider.secret_key || "",
     });
     setEditDialogOpen(true);
   };
@@ -297,6 +317,11 @@ export function ProvidersPage() {
       
       if (editingProvider.provider_type === 'volcengine' && editForm.endpoint) {
         payload.endpoint = editForm.endpoint;
+      }
+      
+      if (editingProvider.provider_type === 'tencent') {
+        payload.secret_id = editForm.secretId;
+        payload.secret_key = editForm.secretKey;
       }
       
       const response = await fetch(`/api/instances/${editingProvider.id}`, {

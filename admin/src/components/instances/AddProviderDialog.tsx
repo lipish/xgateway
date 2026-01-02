@@ -26,6 +26,8 @@ interface AddProviderDialogProps {
     baseUrl: string
     priority: string
     endpoint: string
+    secretId: string
+    secretKey: string
   }
   onFormChange: (form: any) => void
   onProviderTypeChange: (type: string) => void
@@ -106,18 +108,46 @@ export function AddProviderDialog({
               />
             </div>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="add-apiKey">API Key *</Label>
-            <Input
-              id="add-apiKey"
-              type="password"
-              placeholder="sk-..."
-              value={form.apiKey}
-              onChange={(e) =>
-                onFormChange({ ...form, apiKey: e.target.value })
-              }
-            />
-          </div>
+          {form.providerType === 'tencent' ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="add-secretId">Secret ID *</Label>
+                <Input
+                  id="add-secretId"
+                  placeholder="AKIDxxxxxxxxxx"
+                  value={form.secretId}
+                  onChange={(e) =>
+                    onFormChange({ ...form, secretId: e.target.value })
+                  }
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="add-secretKey">Secret Key *</Label>
+                <Input
+                  id="add-secretKey"
+                  type="password"
+                  placeholder="Tencent Cloud Secret Key"
+                  value={form.secretKey}
+                  onChange={(e) =>
+                    onFormChange({ ...form, secretKey: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              <Label htmlFor="add-apiKey">API Key *</Label>
+              <Input
+                id="add-apiKey"
+                type="password"
+                placeholder="sk-..."
+                value={form.apiKey}
+                onChange={(e) =>
+                  onFormChange({ ...form, apiKey: e.target.value })
+                }
+              />
+            </div>
+          )}
           <div className="grid gap-2">
             <Label htmlFor="add-baseUrl">{t('providers.baseUrl')}</Label>
             <Input

@@ -249,6 +249,8 @@ impl ConfigLoader {
                 "tencent" => LlmBackendSettings::Tencent {
                     api_key: api_key_value,
                     model: model_name,
+                    secret_id: None,
+                    secret_key: None,
                 },
                 "longcat" => LlmBackendSettings::Longcat {
                     api_key: api_key_value,
@@ -303,4 +305,3 @@ impl ConfigLoader {
         config
     }
 }
-

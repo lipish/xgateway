@@ -177,6 +177,42 @@ export function ProviderDetail({ provider, providerTypeConfig, onEdit, onDelete,
               </div>
             </div>
             
+            {provider.provider_type === 'tencent' && provider.secret_id && (
+              <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+                <div className="flex items-start gap-2">
+                  <Key className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">
+                      Secret ID
+                    </p>
+                    <p className="font-mono text-xs">
+                      {provider.secret_id
+                        ? "••••••••" + provider.secret_id.slice(-4)
+                        : "-"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {provider.provider_type === 'tencent' && provider.secret_key && (
+              <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+                <div className="flex items-start gap-2">
+                  <Key className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">
+                      Secret Key
+                    </p>
+                    <p className="font-mono text-xs">
+                      {provider.secret_key
+                        ? "••••••••" + provider.secret_key.slice(-4)
+                        : "-"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {provider.provider_type === 'volcengine' && provider.endpoint && (
               <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
                 <div className="flex items-start gap-2">

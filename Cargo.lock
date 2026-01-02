@@ -1121,27 +1121,30 @@ checksum = "6373607a59f0be73a39b6fe456b8192fcc3585f602af20751600e974dd455e77"
 
 [[package]]
 name = "llm-connector"
-version = "0.5.7"
+version = "0.5.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5681acb7b2e482ebbcf993524763e0f53fd26f4fa3d3560dd277b5312f113937"
+checksum = "801103fbb236281e29b7992fde62b669c2c467fb503ea81a35d38a3dc1500a1b"
 dependencies = [
  "async-trait",
  "bytes",
  "chrono",
  "futures-util",
+ "hex",
+ "hmac",
  "log",
  "pin-project-lite",
  "rand",
  "reqwest",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror",
  "tokio",
 ]
 
 [[package]]
 name = "llm-link"
-version = "0.7.9"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "axum",

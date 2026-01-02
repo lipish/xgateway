@@ -12,7 +12,12 @@ impl Provider for TencentProvider {
     }
     
     fn create_client(config: &ProviderConfig) -> Result<LlmClient> {
-        Ok(LlmClient::tencent(&config.api_key)?)
+        let secret_id = config.secret_id.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Tencent provider requires secret_id"))?;
+        let secret_key = config.secret_key.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Tencent provider requires secret_key"))?;
+        
+        Ok(LlmClient::tencent(secret_id, secret_key)?)
     }
     
     fn default_model() -> &'static str {
@@ -20,7 +25,7 @@ impl Provider for TencentProvider {
     }
     
     fn env_var_name() -> &'static str {
-        "TENCENT_API_KEY"
+        "TENCENT_SECRET_ID"
     }
     
     fn api_type() -> ApiType {
@@ -31,4 +36,3 @@ impl Provider for TencentProvider {
         true
     }
 }
-

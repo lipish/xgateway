@@ -13,6 +13,10 @@ pub struct Provider {
     pub priority: i32,
     #[serde(default)]
     pub endpoint: Option<String>,  // Endpoint ID for providers like Volcengine
+    #[serde(default)]
+    pub secret_id: Option<String>,  // Secret ID for Tencent Cloud
+    #[serde(default)]
+    pub secret_key: Option<String>,  // Secret Key for Tencent Cloud
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -26,6 +30,10 @@ pub struct NewProvider {
     pub priority: i32,
     #[serde(default)]
     pub endpoint: Option<String>,
+    #[serde(default)]
+    pub secret_id: Option<String>,
+    #[serde(default)]
+    pub secret_key: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -36,6 +44,8 @@ pub struct UpdateProvider {
     pub enabled: Option<bool>,
     pub priority: Option<i32>,
     pub endpoint: Option<String>,
+    pub secret_id: Option<String>,
+    pub secret_key: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -66,6 +76,8 @@ impl Provider {
             enabled: true,
             priority: 0,
             endpoint: None,
+            secret_id: None,
+            secret_key: None,
             created_at: now,
             updated_at: now,
         }
@@ -82,6 +94,8 @@ impl Provider {
             enabled: new_provider.enabled,
             priority: new_provider.priority,
             endpoint: new_provider.endpoint,
+            secret_id: new_provider.secret_id,
+            secret_key: new_provider.secret_key,
             created_at: now,
             updated_at: now,
         }
@@ -98,6 +112,8 @@ impl NewProvider {
             enabled: true,
             priority: 0,
             endpoint: None,
+            secret_id: None,
+            secret_key: None,
         }
     }
 }

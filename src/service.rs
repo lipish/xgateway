@@ -48,11 +48,8 @@ impl Service {
         messages: Vec<llm_connector::types::Message>,
         tools: Option<Vec<Tool>>,
     ) -> Result<Response> {
-        let requested = model.unwrap_or(&self.model);
-        let backend_model = self
-            .client
-            .resolve_model(requested, &self.model);
-        self.client.chat(&backend_model, messages, tools).await
+        let backend_model = model.unwrap_or(&self.model);
+        self.client.chat(backend_model, messages, tools).await
     }
 
     /// Chat with streaming (Ollama format)
@@ -65,12 +62,9 @@ impl Service {
         messages: Vec<llm_connector::types::Message>,
         format: StreamFormat,
     ) -> Result<UnboundedReceiverStream<String>> {
-        let requested = model.unwrap_or(&self.model);
-        let backend_model = self
-            .client
-            .resolve_model(requested, &self.model);
+        let backend_model = model.unwrap_or(&self.model);
         self.client
-            .chat_stream_with_format(&backend_model, messages, format)
+            .chat_stream_with_format(backend_model, messages, format)
             .await
     }
 
@@ -85,12 +79,9 @@ impl Service {
         tools: Option<Vec<llm_connector::types::Tool>>,
         format: StreamFormat,
     ) -> Result<UnboundedReceiverStream<String>> {
-        let requested = model.unwrap_or(&self.model);
-        let backend_model = self
-            .client
-            .resolve_model(requested, &self.model);
+        let backend_model = model.unwrap_or(&self.model);
         self.client
-            .chat_stream_with_format_and_tools(&backend_model, messages, tools, format)
+            .chat_stream_with_format_and_tools(backend_model, messages, tools, format)
             .await
     }
 
@@ -105,12 +96,9 @@ impl Service {
         tools: Option<Vec<Tool>>,
         format: StreamFormat,
     ) -> Result<UnboundedReceiverStream<String>> {
-        let requested = model.unwrap_or(&self.model);
-        let backend_model = self
-            .client
-            .resolve_model(requested, &self.model);
+        let backend_model = model.unwrap_or(&self.model);
         self.client
-            .chat_stream_openai(&backend_model, messages, tools, format)
+            .chat_stream_openai(backend_model, messages, tools, format)
             .await
     }
 

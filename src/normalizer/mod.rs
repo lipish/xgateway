@@ -2,7 +2,6 @@ mod chat;
 mod models;
 mod stream;
 mod types;
-mod model_resolver;
 
 pub use types::{Model, Response};
 
@@ -40,7 +39,11 @@ impl Client {
                 LlmClient::zhipu_openai_compatible(api_key)?
             }
             LlmBackendSettings::Volcengine { api_key, .. } => LlmClient::volcengine(api_key)?,
-            LlmBackendSettings::Tencent { api_key, .. } => LlmClient::tencent(api_key)?,
+            LlmBackendSettings::Tencent { secret_id, secret_key, .. } => {
+                let sid = secret_id.as_ref().ok_or_else(|| anyhow::anyhow!("Tencent requires secret_id"))?;
+                let skey = secret_key.as_ref().ok_or_else(|| anyhow::anyhow!("Tencent requires secret_key"))?;
+                LlmClient::tencent(sid, skey)?
+            },
             LlmBackendSettings::Longcat { api_key, .. } => {
                 // Longcat uses OpenAI compatible API
                 LlmClient::openai_compatible(api_key, "https://api.longcat.chat/v1", "longcat")?

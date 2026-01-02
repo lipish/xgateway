@@ -37,6 +37,8 @@ interface EditProviderDialogProps {
     baseUrl: string
     priority: string
     endpoint: string
+    secretId: string
+    secretKey: string
   }
   onFormChange: (form: any) => void
   onSubmit: () => void
@@ -95,17 +97,43 @@ export function EditProviderDialog({
               )}
             </div>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="edit-apiKey">API Key</Label>
-            <Input
-              id="edit-apiKey"
-              type="password"
-              value={form.apiKey}
-              onChange={(e) =>
-                onFormChange({ ...form, apiKey: e.target.value })
-              }
-            />
-          </div>
+          {providerType === 'tencent' ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-secretId">Secret ID</Label>
+                <Input
+                  id="edit-secretId"
+                  value={form.secretId}
+                  onChange={(e) =>
+                    onFormChange({ ...form, secretId: e.target.value })
+                  }
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-secretKey">Secret Key</Label>
+                <Input
+                  id="edit-secretKey"
+                  type="password"
+                  value={form.secretKey}
+                  onChange={(e) =>
+                    onFormChange({ ...form, secretKey: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              <Label htmlFor="edit-apiKey">API Key</Label>
+              <Input
+                id="edit-apiKey"
+                type="password"
+                value={form.apiKey}
+                onChange={(e) =>
+                  onFormChange({ ...form, apiKey: e.target.value })
+                }
+              />
+            </div>
+          )}
           <div className="grid gap-2">
             <Label htmlFor="edit-baseUrl">{t('providers.baseUrl')}</Label>
             <Input

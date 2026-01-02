@@ -29,6 +29,8 @@ pub struct CreateProviderRequest {
     pub enabled: Option<bool>,
     pub priority: Option<i32>,
     pub endpoint: Option<String>,
+    pub secret_id: Option<String>,
+    pub secret_key: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -39,6 +41,8 @@ pub struct UpdateProviderRequest {
     pub enabled: Option<bool>,
     pub priority: Option<i32>,
     pub endpoint: Option<String>,
+    pub secret_id: Option<String>,
+    pub secret_key: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -125,6 +129,8 @@ pub async fn create_provider_api(
         enabled: request.enabled.unwrap_or(true),
         priority: request.priority.unwrap_or(0),
         endpoint: request.endpoint,
+        secret_id: request.secret_id,
+        secret_key: request.secret_key,
     };
     
     match db_pool.create_provider(new_provider).await {
@@ -174,6 +180,8 @@ pub async fn update_provider_api(
         enabled: request.enabled,
         priority: request.priority,
         endpoint: request.endpoint,
+        secret_id: request.secret_id,
+        secret_key: request.secret_key,
     };
     
     match db_pool.update_provider(id, update).await {

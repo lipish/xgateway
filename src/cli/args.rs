@@ -1,5 +1,4 @@
 use clap::Parser;
-use crate::mode::RunMode;
 
 #[derive(Parser, Debug)]
 #[command(name = "llm-link")]
@@ -21,11 +20,7 @@ pub struct Args {
     #[arg(long)]
     pub app_info: Option<String>,
 
-    /// Run mode: single (YAML config) or multi (database + web interface)
-    #[arg(long, value_enum)]
-    pub mode: Option<RunMode>,
-
-    /// Admin interface port (for multi-mode)
+    /// Admin interface port
     #[arg(long = "admin-port", default_value = "8081")]
     pub admin_port: Option<u16>,
 
@@ -57,4 +52,3 @@ pub struct Args {
     #[arg(long, default_value = "info")]
     pub log_level: Option<String>,
 }
-

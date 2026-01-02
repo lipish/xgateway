@@ -7,7 +7,7 @@ impl DatabasePool {
         match self {
             Self::Sqlite(pool) => {
                 let result = sqlx::query(
-                    "INSERT INTO providers (name, type, config, enabled, priority, endpoint) VALUES (?, ?, ?, ?, ?, ?)"
+                    "INSERT INTO providers (name, type, config, enabled, priority, endpoint, secret_id, secret_key) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
                 )
                 .bind(&provider.name)
                 .bind(&provider.provider_type)
@@ -15,13 +15,15 @@ impl DatabasePool {
                 .bind(provider.enabled)
                 .bind(provider.priority)
                 .bind(&provider.endpoint)
+                .bind(&provider.secret_id)
+                .bind(&provider.secret_key)
                 .execute(pool)
                 .await?;
                 Ok(result.last_insert_rowid())
             }
             Self::Postgres(pool) => {
                 let row = sqlx::query(
-                    "INSERT INTO providers (name, type, config, enabled, priority, endpoint) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
+                    "INSERT INTO providers (name, type, config, enabled, priority, endpoint, secret_id, secret_key) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id"
                 )
                 .bind(&provider.name)
                 .bind(&provider.provider_type)
@@ -29,6 +31,8 @@ impl DatabasePool {
                 .bind(provider.enabled)
                 .bind(provider.priority)
                 .bind(&provider.endpoint)
+                .bind(&provider.secret_id)
+                .bind(&provider.secret_key)
                 .fetch_one(pool)
                 .await?;
                 Ok(row.get("id"))
@@ -38,7 +42,7 @@ impl DatabasePool {
 
     pub async fn list_providers(&self) -> Result<Vec<Provider>> {
         let query = r#"
-            SELECT id, name, type, config, enabled, priority, endpoint, created_at, updated_at
+            SELECT id, name, type, config, enabled, priority, endpoint, secret_id, secret_key, created_at, updated_at
             FROM providers 
             ORDER BY priority DESC, created_at ASC
         "#;
@@ -57,7 +61,7 @@ impl DatabasePool {
         match self {
             Self::Sqlite(pool) => {
                 Ok(sqlx::query_as::<_, Provider>(
-                    "SELECT id, name, type, config, enabled, priority, endpoint, created_at, updated_at FROM providers WHERE id = ?"
+                    "SELECT id, name, type, config, enabled, priority, endpoint, secret_id, secret_key, created_at, updated_at FROM providers WHERE id = ?"
                 )
                 .bind(id)
                 .fetch_optional(pool)
@@ -65,7 +69,7 @@ impl DatabasePool {
             }
             Self::Postgres(pool) => {
                 Ok(sqlx::query_as::<_, Provider>(
-                    "SELECT id, name, type, config, enabled, priority, endpoint, created_at, updated_at FROM providers WHERE id = $1"
+                    "SELECT id, name, type, config, enabled, priority, endpoint, secret_id, secret_key, created_at, updated_at FROM providers WHERE id = $1"
                 )
                 .bind(id)
                 .fetch_optional(pool)
@@ -77,7 +81,7 @@ impl DatabasePool {
     #[allow(dead_code)]
     pub async fn get_enabled_providers(&self) -> Result<Vec<Provider>> {
         let query = r#"
-            SELECT id, name, type, config, enabled, priority, endpoint, created_at, updated_at
+            SELECT id, name, type, config, enabled, priority, endpoint, secret_id, secret_key, created_at, updated_at
             FROM providers 
             WHERE enabled = true
             ORDER BY priority DESC, created_at ASC
@@ -134,6 +138,16 @@ impl DatabasePool {
             query.push_bind(endpoint);
             has_updates = true;
         }
+        if let Some(secret_id) = &update.secret_id {
+            query.push(", secret_id = ");
+            query.push_bind(secret_id);
+            has_updates = true;
+        }
+        if let Some(secret_key) = &update.secret_key {
+            query.push(", secret_key = ");
+            query.push_bind(secret_key);
+            has_updates = true;
+        }
 
         if !has_updates {
             return Ok(false);
@@ -178,6 +192,16 @@ impl DatabasePool {
         if let Some(endpoint) = &update.endpoint {
             query.push(", endpoint = ");
             query.push_bind(endpoint);
+            has_updates = true;
+        }
+        if let Some(secret_id) = &update.secret_id {
+            query.push(", secret_id = ");
+            query.push_bind(secret_id);
+            has_updates = true;
+        }
+        if let Some(secret_key) = &update.secret_key {
+            query.push(", secret_key = ");
+            query.push_bind(secret_key);
             has_updates = true;
         }
 
