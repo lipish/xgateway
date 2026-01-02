@@ -151,13 +151,13 @@ VALUES (
     true,
     11,
     'https://www.volcengine.com/docs/82379/1330310'
-);-- Seed Aliyun provider type with latest models from Bailian (百炼)
+);-- Seed Aliyun provider type with latest models from Bailian
 -- https://bailian.console.aliyun.com
 
 INSERT OR REPLACE INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order, docs_url)
 VALUES (
     'aliyun',
-    'Aliyun Bailian (百炼)',
+    'Aliyun Bailian',
     'https://dashscope.aliyuncs.com/compatible-mode/v1',
     'qwen3-max',
     '[
