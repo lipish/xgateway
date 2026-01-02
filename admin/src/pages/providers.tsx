@@ -231,9 +231,13 @@ export function ModelTypesPage() {
                 <span className="text-sm text-muted-foreground">
                   {t('providers.total')} {filteredProviderTypes.length} {t('providers.unit')}
                 </span>
-                <Button onClick={() => setShowAddProvider(true)} size="sm">
-                  <Plus className="h-4 w-4 mr-1" /> {t("modelTypes.addProvider")}
-                </Button>
+                <div
+                  onClick={() => setShowAddProvider(true)}
+                  className="h-8 w-8 flex items-center justify-center cursor-pointer text-muted-foreground hover:text-foreground rounded-md transition-colors"
+                  title={t("modelTypes.addProvider")}
+                >
+                  <Plus className="h-5 w-5" />
+                </div>
               </div>
 
               <ProviderList

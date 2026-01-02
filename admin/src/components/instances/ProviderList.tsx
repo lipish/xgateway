@@ -1,5 +1,4 @@
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -13,39 +12,28 @@ import {
 import {
   Plus,
   Search,
-  Loader2,
-  Activity,
-  MessageSquare,
 } from "lucide-react"
 import { t } from "@/lib/i18n"
-import type { Provider, TestResult } from "./types"
+import type { Provider } from "./types"
 
 interface ProviderListProps {
   providers: Provider[]
   selectedProvider: Provider | null
   searchQuery: string
-  testingId: number | null
-  testResult: TestResult | null
   onSearchChange: (query: string) => void
   onSelectProvider: (provider: Provider) => void
   onAddProvider: () => void
   onToggleProvider: (id: number) => void
-  onTestProvider: (id: number) => void
-  onNavigateToChat: (id: number) => void
 }
 
 export function ProviderList({
   providers,
   selectedProvider,
   searchQuery,
-  testingId,
-  testResult,
   onSearchChange,
   onSelectProvider,
   onAddProvider,
   onToggleProvider,
-  onTestProvider,
-  onNavigateToChat,
 }: ProviderListProps) {
   return (
     <div className="bg-white rounded-xl shadow-sm border p-6 flex flex-col w-[65%]">
@@ -64,10 +52,13 @@ export function ProviderList({
             {t('providers.total')} {providers.length} {t('providers.unit')}
           </span>
         </div>
-        <Button onClick={onAddProvider} size="sm">
-          <Plus className="mr-1 h-4 w-4" />
-          {t("providers.add")}
-        </Button>
+        <div
+          onClick={onAddProvider}
+          className="h-8 w-8 flex items-center justify-center cursor-pointer text-muted-foreground hover:text-foreground rounded-md transition-colors"
+          title={t("providers.add")}
+        >
+          <Plus className="h-5 w-5" />
+        </div>
       </div>
       <div className="flex-1 overflow-auto border rounded-lg scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         <Table>
@@ -77,7 +68,7 @@ export function ProviderList({
               <TableHead className="text-center">{t("providers.type")}</TableHead>
               <TableHead className="text-center w-[100px]">{t("providers.status")}</TableHead>
               <TableHead className="text-center">{t("providers.priority")}</TableHead>
-              <TableHead className="text-center w-[100px]">
+              <TableHead className="text-center w-[80px]">
                 {t("providers.actions")}
               </TableHead>
             </TableRow>
@@ -109,47 +100,12 @@ export function ProviderList({
                 </TableCell>
                 <TableCell className="text-center">{provider.priority}</TableCell>
                 <TableCell className="text-center">
-                  <div className="flex items-center justify-center gap-2">
+                  <div className="flex items-center justify-center">
                     <Switch
                       checked={provider.enabled}
                       onCheckedChange={() => onToggleProvider(provider.id)}
+                      onClick={(e) => e.stopPropagation()}
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title={t('providers.testConnection')}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onTestProvider(provider.id);
-                      }}
-                      disabled={testingId === provider.id}
-                    >
-                      {testingId === provider.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : testResult?.id === provider.id ? (
-                        <Activity
-                          className={`h-4 w-4 ${testResult.success ? "text-primary" : "text-destructive"}`}
-                        />
-                      ) : (
-                        <Activity className="h-4 w-4" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title={
-                        provider.enabled
-                          ? t('providers.startChat')
-                          : t('providers.providerDisabled')
-                      }
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onNavigateToChat(provider.id);
-                      }}
-                      disabled={!provider.enabled}
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                    </Button>
                   </div>
                 </TableCell>
               </TableRow>

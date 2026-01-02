@@ -70,7 +70,7 @@ export const en = {
     enabled: 'Enabled',
     disabled: 'Disabled',
     total: 'Total',
-    unit: '',
+    unit: 'providers',
     testConnection: 'Test Connection',
     startChat: 'Start Chat',
     providerDisabled: 'Service Instance Disabled',

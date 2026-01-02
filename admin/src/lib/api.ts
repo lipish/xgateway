@@ -78,9 +78,3 @@ export function apiPut<T>(endpoint: string, data?: unknown): Promise<T> {
 export function apiDelete<T>(endpoint: string): Promise<T> {
   return apiCall<T>(endpoint, { method: 'DELETE' })
 }
-
-// Log API configuration for debugging
-if (import.meta.env.DEV) {
-  console.log(`[API Config] Using API URL: ${API_URL}`)
-}
-

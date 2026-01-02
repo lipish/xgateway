@@ -351,14 +351,10 @@ export function ProvidersPage() {
               providers={filteredProviders}
               selectedProvider={selectedProvider}
               searchQuery={searchQuery}
-              testingId={testingId}
-              testResult={testResult}
               onSearchChange={setSearchQuery}
               onSelectProvider={setSelectedProvider}
               onAddProvider={openAddDialog}
               onToggleProvider={toggleProvider}
-              onTestProvider={testProvider}
-              onNavigateToChat={(id) => navigate(`/chat?provider=${id}`)}
             />
 
             <ProviderDetail
@@ -366,6 +362,10 @@ export function ProvidersPage() {
               providerTypeConfig={selectedProvider ? getProviderTypeConfig(selectedProvider.provider_type) : undefined}
               onEdit={openEditDialog}
               onDelete={deleteProvider}
+              onTest={testProvider}
+              onNavigateToChat={(id) => navigate(`/chat?provider=${id}`)}
+              testingId={testingId}
+              testResult={testResult}
             />
           </div>
         )}

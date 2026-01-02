@@ -43,38 +43,35 @@ export function ProviderDetail({ provider, onAddModel, onEditModel, onDeleteMode
             )}
           </div>
           <div className="flex gap-1">
-            <Button 
-              size="sm" 
-              variant="outline"
+            <div
               onClick={() => onAddModel(provider.id)}
-              className="gap-1.5"
+              className="h-8 w-8 flex items-center justify-center cursor-pointer text-muted-foreground hover:text-foreground rounded-md transition-colors"
+              title={t("modelTypes.addModel")}
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">{t("modelTypes.addModel")}</span>
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline"
+            </div>
+            <div
               onClick={(e) => {
                 e.stopPropagation()
                 onEditProvider(provider)
               }}
+              className="h-8 w-8 flex items-center justify-center cursor-pointer text-muted-foreground hover:text-foreground rounded-md transition-colors"
+              title={t("providers.edit")}
             >
               <Pencil className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            </div>
+            <div
               onClick={(e) => {
                 e.stopPropagation()
                 if (confirm(t("modelTypes.confirmDelete"))) {
                   onDeleteProvider(provider.id)
                 }
               }}
+              className="h-8 w-8 flex items-center justify-center cursor-pointer text-muted-foreground hover:text-destructive rounded-md transition-colors"
+              title={t("providers.delete")}
             >
               <Trash2 className="h-4 w-4" />
-            </Button>
+            </div>
           </div>
         </div>
         
@@ -134,7 +131,7 @@ export function ProviderDetail({ provider, onAddModel, onEditModel, onDeleteMode
                     <TableCell className="text-xs text-center tabular-nums">{formatPrice(model.output_price)}</TableCell>
                     <TableCell className="text-center">
                       {model.supports_tools ? (
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold">✓</span>
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs font-bold">✓</span>
                       ) : (
                         <span className="text-muted-foreground text-xs">—</span>
                       )}
