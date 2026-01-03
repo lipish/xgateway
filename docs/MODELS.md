@@ -4,19 +4,19 @@ This document serves as the **Single Source of Truth** for supported LLM provide
 
 ## 🔗 Quick Reference
 
-| Provider | Marketplace / Docs | API Key Env Var | Migration File |
-|----------|-------------------|-----------------|----------------|
-| **OpenAI** | [Models](https://platform.openai.com/docs/models) | `OPENAI_API_KEY` | N/A (Config) |
-| **Anthropic** | [Models](https://docs.anthropic.com/en/docs/about-claude/models) | `ANTHROPIC_API_KEY` | N/A (Config) |
-| **Zhipu AI** | [Pricing & Models](https://docs.z.ai/guides/overview/pricing) | `ZHIPU_API_KEY` | `014_seed_zhipu.sql` |
-| **Aliyun** | [Model Gallery](https://help.aliyun.com/zh/dashscope/developer-reference/model-square) | `ALIYUN_API_KEY` | `002_provider_types.sql` |
-| **Volcengine** | [Model Square](https://www.volcengine.com/docs/82379/1330310) | `VOLCENGINE_API_KEY` | `008_seed_volcengine.sql` |
-| **Tencent** | [Hunyuan Models](https://cloud.tencent.com/document/product/1729/104753) | `TENCENT_API_KEY` | `013_seed_tencent.sql` |
-| **DeepSeek** | [Pricing](https://api-docs.deepseek.com/zh-cn/quick_start/pricing) | `DEEPSEEK_API_KEY` | `007_seed_deepseek.sql` |
-| **Moonshot** | [Docs](https://platform.moonshot.cn/docs) | `MOONSHOT_API_KEY` | `010_seed_moonshot.sql` |
-| **MiniMax** | [Models Intro](https://platform.minimax.io/docs/guides/models-intro) | `MINIMAX_API_KEY` | `012_seed_minimax.sql` |
-| **LongCat** | [Docs](https://longcat.chat/platform/docs/zh/) | `LONGCAT_API_KEY` | `011_seed_longcat.sql` |
-| **Ollama** | [Library](https://ollama.com/library) | N/A | N/A (Local) |
+| Provider | Marketplace / Docs | API Key Env Var |
+|----------|-------------------|-----------------|
+| **OpenAI** | [Models](https://platform.openai.com/docs/models) | `OPENAI_API_KEY` |
+| **Anthropic** | [Models](https://docs.anthropic.com/en/docs/about-claude/models) | `ANTHROPIC_API_KEY` |
+| **Zhipu AI** | [Pricing & Models](https://docs.z.ai/guides/overview/pricing) | `ZHIPU_API_KEY` |
+| **Aliyun** | [Model Gallery](https://help.aliyun.com/zh/dashscope/developer-reference/model-square) | `ALIYUN_API_KEY` |
+| **Volcengine** | [Model Square](https://www.volcengine.com/docs/82379/1330310) | `VOLCENGINE_API_KEY` |
+| **Tencent** | [Hunyuan Models](https://cloud.tencent.com/document/product/1729/104753) | `TENCENT_API_KEY` |
+| **DeepSeek** | [Pricing](https://api-docs.deepseek.com/zh-cn/quick_start/pricing) | `DEEPSEEK_API_KEY` |
+| **Moonshot** | [Pricing & Models](https://platform.moonshot.cn/docs/pricing/chat) | `MOONSHOT_API_KEY` |
+| **MiniMax** | [Models Intro](https://platform.minimax.io/docs/guides/models-intro) | `MINIMAX_API_KEY` |
+| **LongCat** | [Docs](https://longcat.chat/platform/docs/zh/) | `LONGCAT_API_KEY` |
+| **Ollama** | [Library](https://ollama.com/library) | N/A |
 
 ---
 
@@ -77,7 +77,46 @@ This document serves as the **Single Source of Truth** for supported LLM provide
   ./llm-link --app zed --provider tencent --model hunyuan-lite
   ```
 
-### 7. Ollama (Local)
+### 7. DeepSeek
+- **Provider ID**: `deepseek`
+- **Popular Models**: `deepseek-chat`, `deepseek-reasoner`
+- **Example**:
+  ```bash
+  export DEEPSEEK_API_KEY="sk-xxx"
+  ./llm-link --app zed --provider deepseek --model deepseek-chat
+  ```
+
+### 8. Moonshot (月之暗面 Kimi)
+- **Provider ID**: `moonshot`
+- **Popular Models**: 
+  - **K2 Series**: `kimi-k2-turbo-preview` (recommended), `kimi-k2-0905-preview`, `kimi-k2-thinking`
+  - **Latest**: `kimi-latest` (auto-select, vision support)
+  - **V1 Classic**: `moonshot-v1-8k`, `moonshot-v1-32k`, `moonshot-v1-128k`
+- **Example**:
+  ```bash
+  export MOONSHOT_API_KEY="sk-xxx"
+  ./llm-link --app zed --provider moonshot --model kimi-k2-turbo-preview
+  ```
+
+### 9. MiniMax
+- **Provider ID**: `minimax`
+- **Popular Models**: `abab6.5-chat`, `abab6.5s-chat`, `abab5.5s-chat`
+- **Example**:
+  ```bash
+  export MINIMAX_API_KEY="xxx"
+  ./llm-link --app zed --provider minimax --model abab6.5-chat
+  ```
+
+### 10. LongCat
+- **Provider ID**: `longcat`
+- **Popular Models**: `LongCat-Flash-Chat`, `LongCat-Pro-Chat`
+- **Example**:
+  ```bash
+  export LONGCAT_API_KEY="xxx"
+  ./llm-link --app zed --provider longcat --model LongCat-Flash-Chat
+  ```
+
+### 11. Ollama (Local)
 - **Provider ID**: `ollama`
 - **Popular Models**: `llama3`, `mistral`, `codellama`, `qwen`
 - **Note**: Requires Ollama running at `http://localhost:11434`
