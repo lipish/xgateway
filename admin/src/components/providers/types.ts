@@ -13,6 +13,7 @@ export interface ProviderType {
   label: string
   base_url: string
   default_model: string
+  driver_type: string
   models: ModelInfo[]
   enabled: boolean
   sort_order: number

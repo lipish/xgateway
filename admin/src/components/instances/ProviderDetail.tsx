@@ -168,10 +168,10 @@ export function ProviderDetail({ provider, providerTypeConfig, onEdit, onDelete,
                   <p className="text-xs font-medium text-muted-foreground mb-1">
                     API Key
                   </p>
-                  <p className="font-mono text-xs">
-                    {config.api_key
-                      ? "••••••••" + config.api_key.slice(-4)
-                      : "-"}
+                  <p className="font-mono text-xs break-all">
+                    {config.api_key && config.api_key.length > 8
+                      ? config.api_key.slice(0, 4) + "••••" + config.api_key.slice(-4)
+                      : config.api_key || "-"}
                   </p>
                 </div>
               </div>
@@ -185,10 +185,10 @@ export function ProviderDetail({ provider, providerTypeConfig, onEdit, onDelete,
                     <p className="text-xs font-medium text-muted-foreground mb-1">
                       Secret ID
                     </p>
-                    <p className="font-mono text-xs">
-                      {provider.secret_id
-                        ? "••••••••" + provider.secret_id.slice(-4)
-                        : "-"}
+                    <p className="font-mono text-xs break-all">
+                      {provider.secret_id && provider.secret_id.length > 8
+                        ? provider.secret_id.slice(0, 4) + "••••" + provider.secret_id.slice(-4)
+                        : provider.secret_id || "-"}
                     </p>
                   </div>
                 </div>
@@ -203,10 +203,10 @@ export function ProviderDetail({ provider, providerTypeConfig, onEdit, onDelete,
                     <p className="text-xs font-medium text-muted-foreground mb-1">
                       Secret Key
                     </p>
-                    <p className="font-mono text-xs">
-                      {provider.secret_key
-                        ? "••••••••" + provider.secret_key.slice(-4)
-                        : "-"}
+                    <p className="font-mono text-xs break-all">
+                      {provider.secret_key && provider.secret_key.length > 8
+                        ? provider.secret_key.slice(0, 4) + "••••" + provider.secret_key.slice(-4)
+                        : provider.secret_key || "-"}
                     </p>
                   </div>
                 </div>

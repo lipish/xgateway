@@ -269,6 +269,7 @@ export const en = {
     noModels: 'No models yet',
     confirmDeleteModel: 'Are you sure you want to delete this model?',
     docsUrl: 'Provider Docs',
+    driverType: 'Driver Type',
   },
   help: {
     title: 'Help Center',

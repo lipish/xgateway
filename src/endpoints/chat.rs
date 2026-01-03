@@ -1,6 +1,6 @@
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use crate::connector::{send_to_provider, RequestResult};
+use crate::adapter::{send_to_provider, RequestResult};
 use crate::db::{NewRequestLog};
 use crate::pool::RateLimitResult;
 use super::types::ProxyState;

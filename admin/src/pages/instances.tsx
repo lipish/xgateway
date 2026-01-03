@@ -301,18 +301,23 @@ export function ProvidersPage() {
     }
   };
 
+  const maskApiKey = (key: string): string => {
+    if (!key || key.length <= 8) return key;
+    return `${key.slice(0, 4)}${'*'.repeat(key.length - 8)}${key.slice(-4)}`;
+  };
+
   const openEditDialog = (provider: Provider) => {
     setEditingProvider(provider);
     const config = JSON.parse(provider.config || "{}");
     setEditForm({
       name: provider.name,
-      apiKey: config.api_key || "",
+      apiKey: maskApiKey(config.api_key || ""),
       model: config.model || "",
       baseUrl: config.base_url || "",
       priority: provider.priority.toString(),
       endpoint: provider.endpoint || "",
-      secretId: provider.secret_id || "",
-      secretKey: provider.secret_key || "",
+      secretId: maskApiKey(provider.secret_id || ""),
+      secretKey: maskApiKey(provider.secret_key || ""),
     });
     setEditDialogOpen(true);
   };
@@ -322,10 +327,14 @@ export function ProvidersPage() {
     setSaving(true);
     setEditError(null);
     try {
+      const originalConfig = JSON.parse(editingProvider.config || "{}");
+      
+      const isMasked = (value: string) => value.includes('*');
+      
       const payload: any = {
         name: editForm.name,
         config: JSON.stringify({
-          api_key: editForm.apiKey,
+          api_key: isMasked(editForm.apiKey) ? originalConfig.api_key : editForm.apiKey,
           model: editForm.model,
           base_url: editForm.baseUrl,
         }),
@@ -337,8 +346,8 @@ export function ProvidersPage() {
       }
       
       if (editingProvider.provider_type === 'tencent') {
-        payload.secret_id = editForm.secretId;
-        payload.secret_key = editForm.secretKey;
+        payload.secret_id = isMasked(editForm.secretId) ? editingProvider.secret_id : editForm.secretId;
+        payload.secret_key = isMasked(editForm.secretKey) ? editingProvider.secret_key : editForm.secretKey;
       }
       
       const response = await fetch(`/api/instances/${editingProvider.id}`, {

@@ -181,7 +181,7 @@ impl PoolManager {
         let interval = self.health_check_interval;
 
         tokio::spawn(async move {
-            tracing::info!("🏥 Starting background health check task (interval: {:?})", interval);
+            tracing::info!("Starting background health check task (interval: {:?})", interval);
 
             loop {
                 // Check shutdown flag
@@ -215,11 +215,11 @@ impl PoolManager {
             match result {
                 Ok(latency_ms) => {
                     self.pool.record_success(provider.id, latency_ms).await;
-                    tracing::debug!("✅ Provider {} healthy ({}ms)", provider.name, latency_ms);
+                    tracing::debug!("Provider {} healthy ({}ms)", provider.name, latency_ms);
                 }
                 Err(e) => {
                     self.pool.record_failure(provider.id, Some(&e.to_string())).await;
-                    tracing::warn!("❌ Provider {} unhealthy: {}", provider.name, e);
+                    tracing::warn!("Provider {} unhealthy: {}", provider.name, e);
                 }
             }
         }
@@ -239,14 +239,14 @@ impl PoolManager {
         // Some providers (like MiniMax) don't support /models endpoint
         // For these, we just assume they're healthy if API key is configured
         let provider_type = provider.provider_type.as_str();
-        let providers_without_models = ["minimax"];
+        let providers_without_models = ["minimax", "longcat", "volcengine"];
 
         if providers_without_models.contains(&provider_type) {
             // For providers without /models endpoint, just verify the base_url is reachable
             // by doing a lightweight HEAD request to the base URL
             let client = reqwest::Client::builder()
-                .timeout(Duration::from_secs(5))
-                .no_proxy()
+                .timeout(Duration::from_secs(30))
+                .http1_only()
                 .build()?;
 
             let start = std::time::Instant::now();
@@ -271,8 +271,7 @@ impl PoolManager {
         } else {
             // Standard /models endpoint check for OpenAI-compatible providers
             let client = reqwest::Client::builder()
-                .timeout(Duration::from_secs(10))
-                .no_proxy()
+                .timeout(Duration::from_secs(30))
                 .build()?;
 
             let url = format!("{}/models", base_url.trim_end_matches('/'));

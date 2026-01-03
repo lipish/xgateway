@@ -27,9 +27,9 @@ pub async fn try_file_database() -> Result<DatabasePool> {
     info!("Testing with temp path: {:?}", tmp_path);
     
     match test_sqlite_connection(&tmp_path).await {
-        Ok(_) => info!("✅ Temp directory SQLite test passed"),
+        Ok(_) => info!("Temp directory SQLite test passed"),
         Err(e) => {
-            warn!("⚠️ Temp directory SQLite test failed: {}", e);
+            warn!("Temp directory SQLite test failed: {}", e);
             return Err(anyhow::anyhow!("File-based SQLite not working: {}", e));
         }
     }
@@ -41,11 +41,11 @@ pub async fn try_file_database() -> Result<DatabasePool> {
     
     match std::fs::metadata(data_dir) {
         Ok(metadata) => {
-            info!("✅ Data directory exists, is_dir: {}, readonly: {}", 
+            info!("Data directory exists, is_dir: {}, readonly: {}", 
                   metadata.is_dir(), metadata.permissions().readonly());
         }
         Err(e) => {
-            warn!("⚠️ Cannot access data directory: {}", e);
+            warn!("Cannot access data directory: {}", e);
             return Err(anyhow::anyhow!("Directory access failed: {}", e));
         }
     }
@@ -53,11 +53,11 @@ pub async fn try_file_database() -> Result<DatabasePool> {
     let test_file = data_dir.join(".test_write");
     match std::fs::write(&test_file, "test") {
         Ok(_) => {
-            info!("✅ Data directory is writable");
+            info!("Data directory is writable");
             let _ = std::fs::remove_file(&test_file);
         }
         Err(e) => {
-            warn!("⚠️ Data directory is not writable: {}", e);
+            warn!("Data directory is not writable: {}", e);
             return Err(anyhow::anyhow!("Directory not writable: {}", e));
         }
     }
@@ -75,7 +75,7 @@ pub async fn test_in_memory_database() -> Result<()> {
         .await?;
     
     if result == 1 {
-        info!("✅ In-memory database test successful");
+        info!("In-memory database test successful");
         pool.close().await;
         Ok(())
     } else {
@@ -94,7 +94,7 @@ pub async fn test_sqlite_connection(db_path: &std::path::Path) -> Result<()> {
         .await?;
     
     if result == 1 {
-        info!("✅ Basic SQLite query successful");
+        info!("Basic SQLite query successful");
         pool.close().await;
         Ok(())
     } else {

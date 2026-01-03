@@ -1,4 +1,4 @@
-use crate::normalizer::{Client, Model, Response};
+use crate::engine::{Client, Model, Response};
 use crate::settings::LlmBackendSettings;
 use anyhow::Result;
 use llm_connector::types::Tool;
@@ -110,7 +110,7 @@ impl Service {
     /// Validate if a model is available
     #[allow(dead_code)]
     pub async fn validate_model(&self, model: &str) -> Result<bool> {
-        let available_models = self.client.list_models().await?;
+        let available_models: Vec<Model> = self.client.list_models().await?;
         Ok(available_models.iter().any(|m| m.id == model))
     }
 }

@@ -6,6 +6,8 @@ export interface Provider {
   enabled: boolean;
   priority: number;
   endpoint?: string;
+  secret_id?: string;
+  secret_key?: string;
   created_at: string;
   updated_at: string;
 }

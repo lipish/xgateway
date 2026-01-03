@@ -269,6 +269,7 @@ export const zh = {
     noModels: '暂无模型',
     confirmDeleteModel: '确定要删除这个模型吗？',
     docsUrl: '文档链接',
+    driverType: '驱动类型',
   },
   help: {
     title: '帮助中心',

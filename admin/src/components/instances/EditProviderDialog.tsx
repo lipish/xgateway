@@ -5,7 +5,6 @@ import { Select } from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -21,7 +20,7 @@ interface ProviderTypeConfig {
   models: Array<{
     id: string
     name: string
-    description: string
+    description?: string
   }>
 }
 
@@ -110,7 +109,9 @@ export function EditProviderDialog({
                 <Label htmlFor="edit-secretId">Secret ID</Label>
                 <Input
                   id="edit-secretId"
+                  type="text"
                   value={form.secretId}
+                  placeholder="Enter new Secret ID or leave masked"
                   onChange={(e) =>
                     onFormChange({ ...form, secretId: e.target.value })
                   }
@@ -120,8 +121,9 @@ export function EditProviderDialog({
                 <Label htmlFor="edit-secretKey">Secret Key</Label>
                 <Input
                   id="edit-secretKey"
-                  type="password"
+                  type="text"
                   value={form.secretKey}
+                  placeholder="Enter new Secret Key or leave masked"
                   onChange={(e) =>
                     onFormChange({ ...form, secretKey: e.target.value })
                   }
@@ -133,8 +135,9 @@ export function EditProviderDialog({
               <Label htmlFor="edit-apiKey">API Key</Label>
               <Input
                 id="edit-apiKey"
-                type="password"
+                type="text"
                 value={form.apiKey}
+                placeholder="Enter new API key or leave masked to keep current"
                 onChange={(e) =>
                   onFormChange({ ...form, apiKey: e.target.value })
                 }

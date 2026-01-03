@@ -30,4 +30,8 @@ impl Provider for VolcengineProvider {
     fn requires_api_key() -> bool {
         true
     }
+
+    fn default_base_url() -> Option<&'static str> {
+        Some("https://ark.cn-beijing.volces.com/api/v3")
+    }
 }

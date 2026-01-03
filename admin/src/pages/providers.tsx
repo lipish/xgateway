@@ -24,7 +24,7 @@ export function ModelTypesPage() {
   const [showAddProvider, setShowAddProvider] = useState(false)
   const [showEditProvider, setShowEditProvider] = useState(false)
   const [editingProvider, setEditingProvider] = useState<ProviderType | null>(null)
-  const [providerForm, setProviderForm] = useState({ id: "", label: "", base_url: "", default_model: "", docs_url: "" })
+  const [providerForm, setProviderForm] = useState({ id: "", label: "", base_url: "", default_model: "", driver_type: "openai_compatible", docs_url: "" })
 
   const handleLabelChange = (label: string) => {
     const id = generateIdFromLabel(label)
@@ -127,7 +127,7 @@ export function ModelTypesPage() {
       if (response.success) {
         await fetchProviderTypes()
         setShowAddProvider(false)
-        setProviderForm({ id: "", label: "", base_url: "", default_model: "", docs_url: "" })
+        setProviderForm({ id: "", label: "", base_url: "", default_model: "", driver_type: "openai_compatible", docs_url: "" })
       } else {
         alert(response.message || t("common.saveFailed"))
       }
@@ -145,6 +145,7 @@ export function ModelTypesPage() {
       label: provider.label,
       base_url: provider.base_url,
       default_model: provider.default_model,
+      driver_type: provider.driver_type,
       docs_url: provider.docs_url || ""
     })
     setShowEditProvider(true)
@@ -162,6 +163,7 @@ export function ModelTypesPage() {
         label: providerForm.label,
         base_url: providerForm.base_url,
         default_model: providerForm.default_model,
+        driver_type: providerForm.driver_type,
         docs_url: providerForm.docs_url
       })
       if (response.success) {
@@ -226,7 +228,7 @@ export function ModelTypesPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex justify-between items-center mb-3">
                 <span className="text-sm text-muted-foreground">
                   {t('providers.total')} {filteredProviderTypes.length} {t('providers.unit')}

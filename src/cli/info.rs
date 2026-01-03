@@ -14,7 +14,7 @@ pub fn list_applications() {
         println!();
     }
 
-    println!("💡 Usage:");
+    println!(" Usage:");
     println!("  ./llm-link --app <app-name> --provider <provider>");
     println!();
     println!("📚 For detailed setup:");
@@ -34,9 +34,9 @@ pub fn show_application_info(app_name: &str) {
         println!("   Auth Required: {}", if info.auth_required { "Yes" } else { "No" });
         println!();
 
-        println!("🔧 Required Parameters:");
+        println!(" Required Parameters:");
         println!();
-        println!("⚠️  You MUST specify --provider and pass the provider API key explicitly:");
+        println!("  You MUST specify --provider and pass the provider API key explicitly:");
         println!();
         println!("   --provider openai      (pass OpenAI key via --api-key)");
         println!("   --provider anthropic   (pass Anthropic key via --api-key)");
@@ -52,7 +52,7 @@ pub fn show_application_info(app_name: &str) {
             println!();
         }
 
-        println!("💡 Example:");
+        println!(" Example:");
         println!();
         println!("   ./llm-link --app {} --provider openai --api-key sk-openai-xxx", app_name);
         println!();
@@ -60,7 +60,7 @@ pub fn show_application_info(app_name: &str) {
         println!("   ./llm-link --app {} --provider anthropic --api-key sk-ant-xxx", app_name);
         println!();
     } else {
-        error!("❌ Unknown application: {}", app_name);
+        error!("Unknown application: {}", app_name);
         println!();
         println!("Available applications:");
         for app in SupportedApp::all() {

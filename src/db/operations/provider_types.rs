@@ -7,7 +7,7 @@ impl DatabasePool {
     
     pub async fn list_provider_types(&self) -> Result<Vec<ProviderType>> {
         let query = r#"
-            SELECT id, label, base_url, default_model, models, enabled, sort_order, docs_url, created_at, updated_at
+            SELECT id, label, base_url, default_model, models, driver_type, enabled, sort_order, docs_url, created_at, updated_at
             FROM provider_types
             WHERE enabled = true
             ORDER BY sort_order ASC, id ASC
@@ -23,13 +23,13 @@ impl DatabasePool {
         match self {
             Self::Sqlite(pool) => {
                 Ok(sqlx::query_as::<_, ProviderType>(
-                    "SELECT id, label, base_url, default_model, models, enabled, sort_order, docs_url, created_at, updated_at FROM provider_types WHERE id = ?"
+                    "SELECT id, label, base_url, default_model, models, driver_type, enabled, sort_order, docs_url, created_at, updated_at FROM provider_types WHERE id = ?"
                 )
                 .bind(id).fetch_optional(pool).await?)
             }
             Self::Postgres(pool) => {
                 Ok(sqlx::query_as::<_, ProviderType>(
-                    "SELECT id, label, base_url, default_model, models, enabled, sort_order, docs_url, created_at, updated_at FROM provider_types WHERE id = $1"
+                    "SELECT id, label, base_url, default_model, models, driver_type, enabled, sort_order, docs_url, created_at, updated_at FROM provider_types WHERE id = $1"
                 )
                 .bind(id).fetch_optional(pool).await?)
             }
@@ -42,18 +42,18 @@ impl DatabasePool {
         match self {
             Self::Sqlite(pool) => {
                 sqlx::query(
-                    "INSERT INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order, docs_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                    "INSERT INTO provider_types (id, label, base_url, default_model, models, driver_type, enabled, sort_order, docs_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 )
                 .bind(&pt.id).bind(&pt.label).bind(&pt.base_url).bind(&pt.default_model)
-                .bind(&models_json).bind(pt.enabled.unwrap_or(true)).bind(pt.sort_order.unwrap_or(0)).bind(pt.docs_url.unwrap_or_default())
+                .bind(&models_json).bind(&pt.driver_type).bind(pt.enabled.unwrap_or(true)).bind(pt.sort_order.unwrap_or(0)).bind(pt.docs_url.unwrap_or_default())
                 .execute(pool).await?;
             }
             Self::Postgres(pool) => {
                 sqlx::query(
-                    "INSERT INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order, docs_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
+                    "INSERT INTO provider_types (id, label, base_url, default_model, models, driver_type, enabled, sort_order, docs_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"
                 )
                 .bind(&pt.id).bind(&pt.label).bind(&pt.base_url).bind(&pt.default_model)
-                .bind(&models_json).bind(pt.enabled.unwrap_or(true)).bind(pt.sort_order.unwrap_or(0)).bind(pt.docs_url.unwrap_or_default())
+                .bind(&models_json).bind(&pt.driver_type).bind(pt.enabled.unwrap_or(true)).bind(pt.sort_order.unwrap_or(0)).bind(pt.docs_url.unwrap_or_default())
                 .execute(pool).await?;
             }
         }
@@ -79,6 +79,9 @@ impl DatabasePool {
         }
         if let Some(default_model) = &update.default_model {
             query.push(", default_model = "); query.push_bind(default_model); has_updates = true;
+        }
+        if let Some(driver_type) = &update.driver_type {
+            query.push(", driver_type = "); query.push_bind(driver_type); has_updates = true;
         }
         if let Some(models) = &update.models {
             let models_json = serde_json::to_string(models)?;
@@ -113,6 +116,9 @@ impl DatabasePool {
         }
         if let Some(default_model) = &update.default_model {
             query.push(", default_model = "); query.push_bind(default_model); has_updates = true;
+        }
+        if let Some(driver_type) = &update.driver_type {
+            query.push(", driver_type = "); query.push_bind(driver_type); has_updates = true;
         }
         if let Some(models) = &update.models {
             let models_json = serde_json::to_string(models)?;
@@ -174,18 +180,18 @@ impl DatabasePool {
             match self {
                 Self::Sqlite(pool) => {
                     sqlx::query(
-                        "INSERT OR IGNORE INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order, docs_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                        "INSERT OR IGNORE INTO provider_types (id, label, base_url, default_model, models, driver_type, enabled, sort_order, docs_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
                     )
                     .bind(&pt.id).bind(&pt.label).bind(&pt.base_url).bind(&pt.default_model)
-                    .bind(&models_json).bind(pt.enabled.unwrap_or(true)).bind(pt.sort_order.unwrap_or(i as i32)).bind(pt.docs_url.unwrap_or_default())
+                    .bind(&models_json).bind(&pt.driver_type).bind(pt.enabled.unwrap_or(true)).bind(pt.sort_order.unwrap_or(i as i32)).bind(pt.docs_url.unwrap_or_default())
                     .execute(pool).await?;
                 }
                 Self::Postgres(pool) => {
                     sqlx::query(
-                        "INSERT INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order, docs_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (id) DO NOTHING"
+                        "INSERT INTO provider_types (id, label, base_url, default_model, models, driver_type, enabled, sort_order, docs_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT (id) DO NOTHING"
                     )
                     .bind(&pt.id).bind(&pt.label).bind(&pt.base_url).bind(&pt.default_model)
-                    .bind(&models_json).bind(pt.enabled.unwrap_or(true)).bind(pt.sort_order.unwrap_or(i as i32)).bind(pt.docs_url.unwrap_or_default())
+                    .bind(&models_json).bind(&pt.driver_type).bind(pt.enabled.unwrap_or(true)).bind(pt.sort_order.unwrap_or(i as i32)).bind(pt.docs_url.unwrap_or_default())
                     .execute(pool).await?;
                 }
             }

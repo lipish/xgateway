@@ -1,25 +1,24 @@
-mod adapters;
+mod tuner;
 mod apps;
 mod settings;
 mod service;
-mod normalizer;
-mod api;
+mod engine;
 mod cli;
 mod provider;
 mod db;
 mod admin;
 mod pool;
-mod connector;
+mod adapter;
 mod endpoints;
 mod router;
 
-use anyhow::Result;
 use clap::Parser;
+use anyhow::Result;
 use tracing::{info, error, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use cli::{Args, list_applications, show_application_info};
-use api::config::init_instance_id;
-use db::{DatabasePool, try_database, test_in_memory_database};
+use engine::instance::init_instance_id;
+use db::{try_database, test_in_memory_database};
 use pool::PoolManager;
 use router::build_multi_mode_app;
 use std::sync::Arc;
@@ -45,12 +44,12 @@ async fn main() -> Result<()> {
 }
 
 async fn run_multi_mode(args: Args) -> Result<()> {
-    info!("🌐 Multi-provider mode: Using database and web interface");
+    info!("Multi-provider mode: Using database and web interface");
 
     match test_in_memory_database().await {
-        Ok(_) => info!("✅ In-memory database test passed - SQLite library works"),
+        Ok(_) => info!("In-memory database test passed - SQLite library works"),
         Err(e) => {
-            error!("❌ In-memory database test failed: {}", e);
+            error!("In-memory database test failed: {}", e);
             error!("This indicates a SQLite library installation issue");
             std::process::exit(1);
         }
@@ -58,46 +57,61 @@ async fn run_multi_mode(args: Args) -> Result<()> {
 
     let db_pool = match try_database().await {
         Ok(pool) => {
-            info!("✅ Database initialized successfully");
+            info!("Database initialized successfully");
             pool
         }
         Err(e) => {
-            warn!("⚠️ File-based database failed: {}", e);
-            info!("🔄 Falling back to in-memory database for Phase 1");
-
-            match DatabasePool::new_sqlite_memory().await {
-                Ok(pool) => {
-                    info!("✅ In-memory database initialized successfully");
-                    pool
-                }
-                Err(e) => {
-                    error!("❌ In-memory database also failed: {}", e);
-                    std::process::exit(1);
-                }
-            }
+            error!("Database initialization failed: {}", e);
+            error!("Please ensure:");
+            error!(" 1. Database file permissions are correct");
+            error!(" 2. Database directory exists and is writable");
+            error!(" 3. No migration file conflicts");
+            error!(" 4. Or delete data/llm_link.db to start fresh");
+            std::process::exit(1);
         }
     };
 
     let pool_manager = Arc::new(PoolManager::new(db_pool.clone()));
     if let Err(e) = pool_manager.init().await {
-        warn!("⚠️ Failed to initialize pool manager: {}", e);
+        warn!("Failed to initialize pool manager: {}", e);
     }
 
     let _health_check_handle = Arc::clone(&pool_manager).start_health_check();
-    info!("🏥 Background health check started");
+    info!("Background health check started");
 
-    let app = build_multi_mode_app(db_pool.clone(), Arc::clone(&pool_manager));
+    let settings = if let Some(app_name) = &args.app {
+        if let Some(app) = crate::apps::SupportedApp::from_str(app_name) {
+            crate::apps::AppConfigGenerator::generate_config(&app, args.llm_api_key.as_deref())
+        } else {
+            crate::settings::Settings::default()
+        }
+    } else if let Some(protocols) = &args.protocols {
+        let proto_list: Vec<String> = protocols.split(',').map(|s| s.to_string()).collect();
+        crate::apps::AppConfigGenerator::generate_protocol_config(&proto_list, args.llm_api_key.as_deref())
+    } else {
+        crate::settings::Settings::default()
+    };
+
+    let llm_service = Arc::new(tokio::sync::RwLock::new(crate::service::Service::new(&settings.llm_backend)?));
+    let config = Arc::new(tokio::sync::RwLock::new(settings));
+    
+    let app = build_multi_mode_app(
+        db_pool.clone(), 
+        Arc::clone(&pool_manager),
+        llm_service,
+        config,
+    );
 
     let port = args.port.unwrap_or(3000);
     let bind_addr = format!("0.0.0.0:{}", port);
 
-    info!("🚀 LLM Link unified service starting on http://localhost:{}", port);
-    info!("📡 LLM API Proxy: http://localhost:{}/v1/chat/completions", port);
-    info!("🔧 Admin API: http://localhost:{}/api/*", port);
-    info!("🏥 Health check: http://localhost:{}/health", port);
+    info!("LLM Link unified service starting on http://localhost:{}", port);
+    info!("LLM API Proxy: http://localhost:{}/v1/chat/completions", port);
+    info!("Admin API: http://localhost:{}/api/*", port);
+    info!("Health check: http://localhost:{}/health", port);
 
     let listener = tokio::net::TcpListener::bind(&bind_addr).await?;
-    info!("🎉 LLM Link is ready to accept connections!");
+    info!("LLM Link is ready to accept connections!");
 
     axum::serve(listener, app).await?;
 

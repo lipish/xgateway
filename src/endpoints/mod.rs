@@ -1,6 +1,8 @@
 pub mod types;
 pub mod chat;
 pub mod models;
+pub mod emulators;
+pub mod basic;
 
 pub use types::ProxyState;
 pub use chat::handle_chat_completions;

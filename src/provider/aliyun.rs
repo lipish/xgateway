@@ -30,5 +30,9 @@ impl Provider for AliyunProvider {
     fn requires_api_key() -> bool {
         true
     }
+
+    fn default_base_url() -> Option<&'static str> {
+        Some("https://dashscope.aliyuncs.com/compatible-mode/v1")
+    }
 }
 

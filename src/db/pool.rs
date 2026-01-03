@@ -33,6 +33,7 @@ impl DatabasePool {
         Ok(Self::Postgres(pool))
     }
 
+    #[allow(dead_code)]
     pub async fn new_sqlite_memory() -> Result<Self> {
         info!("Creating in-memory SQLite database");
         let pool = SqlitePool::connect("sqlite::memory:?mode=memory&cache=shared").await?;

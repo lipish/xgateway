@@ -223,8 +223,8 @@ export function ChatPage() {
           const lines = chunk.split("\n")
 
           for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const data = line.slice(6)
+            if (line.startsWith("data:")) {
+              const data = line.startsWith("data: ") ? line.slice(6) : line.slice(5)
               if (data === "[DONE]") continue
               try {
                 const parsed = JSON.parse(data)

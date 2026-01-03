@@ -126,6 +126,7 @@ pub struct ProviderType {
     pub base_url: String,        // Default API base URL
     pub default_model: String,   // Default model ID
     pub models: String,          // JSON array of model objects
+    pub driver_type: String,     // e.g., "openai_compatible", "aliyun"
     pub enabled: bool,
     pub sort_order: i32,
     #[serde(default)]
@@ -158,6 +159,7 @@ pub struct NewProviderType {
     pub label: String,
     pub base_url: String,
     pub default_model: String,
+    pub driver_type: String,
     pub models: Vec<ModelInfo>,
     #[serde(default)]
     pub enabled: Option<bool>,
@@ -173,6 +175,7 @@ pub struct UpdateProviderType {
     pub label: Option<String>,
     pub base_url: Option<String>,
     pub default_model: Option<String>,
+    pub driver_type: Option<String>,
     pub models: Option<Vec<ModelInfo>>,
     pub enabled: Option<bool>,
     pub sort_order: Option<i32>,

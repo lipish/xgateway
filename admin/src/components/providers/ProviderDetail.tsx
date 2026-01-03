@@ -74,7 +74,7 @@ export function ProviderDetail({ provider, onAddModel, onEditModel, onDeleteMode
             </div>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3 rounded-lg bg-background border border-border/50">
             <div className="text-xs font-medium text-muted-foreground mb-1.5">{t('modelTypes.baseUrl')}</div>
@@ -84,13 +84,17 @@ export function ProviderDetail({ provider, onAddModel, onEditModel, onDeleteMode
             <div className="text-xs font-medium text-muted-foreground mb-1.5">{t('modelTypes.defaultModel')}</div>
             <div className="text-xs font-mono text-foreground/90">{provider.default_model || '-'}</div>
           </div>
+          <div className="p-3 rounded-lg bg-background border border-border/50">
+            <div className="text-xs font-medium text-muted-foreground mb-1.5">{t('modelTypes.driverType')}</div>
+            <div className="text-xs font-mono text-foreground/90 uppercase">{provider.driver_type || '-'}</div>
+          </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-auto p-6 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-semibold">
-            {t('modelTypes.availableModels')} 
+            {t('modelTypes.availableModels')}
             <span className="ml-2 text-sm font-normal text-muted-foreground">({provider.models.length})</span>
           </h3>
         </div>
@@ -149,7 +153,7 @@ export function ProviderDetail({ provider, onAddModel, onEditModel, onDeleteMode
                               <Pencil className="h-4 w-4 mr-2" />
                               {t("providers.edit")}
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => onDeleteModel(provider.id, model.id)}
                               className="text-destructive focus:text-destructive"
                             >

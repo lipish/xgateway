@@ -6,6 +6,7 @@ pub use handlers::*;
 use axum::{Router, routing::{get, post, put, delete}, Json};
 use serde::{Serialize, Deserialize};
 use crate::db::{DatabasePool, NewProviderType, UpdateProviderType, ModelInfo, NewConversation, UpdateConversation, NewMessage, Conversation, Message, ConversationListItem, ConversationWithMessages, RequestLog};
+use crate::adapter::types::DriverType;
 
 /// Create admin API router (pure REST API, no HTML pages)
 pub fn create_admin_app(db_pool: DatabasePool) -> Router {
@@ -216,6 +217,7 @@ async fn get_provider_types_api(
                     "label": t.label,
                     "base_url": t.base_url,
                     "default_model": t.default_model,
+                    "driver_type": t.driver_type,
                     "models": models,
                     "enabled": t.enabled,
                     "sort_order": t.sort_order,
@@ -249,6 +251,8 @@ struct CreateProviderTypeRequest {
     #[serde(default)]
     default_model: String,
     #[serde(default)]
+    driver_type: String,
+    #[serde(default)]
     models: Vec<CreateModelInfo>,
     #[serde(default)]
     enabled: Option<bool>,
@@ -279,11 +283,21 @@ async fn create_provider_type_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
     Json(req): Json<CreateProviderTypeRequest>,
 ) -> Json<ApiResponse<()>> {
+    // Validate driver_type
+    if let Err(_) = serde_json::from_str::<DriverType>(&format!("\"{}\"", req.driver_type)) {
+        return Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Invalid driver_type: {}. Valid types are: openai, openai_compatible, anthropic, aliyun, volcengine, tencent, ollama", req.driver_type),
+        });
+    }
+
     let new_type = NewProviderType {
         id: req.id,
         label: req.label,
         base_url: req.base_url,
         default_model: req.default_model,
+        driver_type: req.driver_type,
         models: req.models.into_iter().map(|m| ModelInfo {
             id: m.id,
             name: m.name,
@@ -318,6 +332,7 @@ struct UpdateProviderTypeRequest {
     label: Option<String>,
     base_url: Option<String>,
     default_model: Option<String>,
+    driver_type: Option<String>,
     models: Option<Vec<CreateModelInfo>>,
     enabled: Option<bool>,
     sort_order: Option<i32>,
@@ -330,10 +345,22 @@ async fn update_provider_type_api(
     axum::extract::Path(id): axum::extract::Path<String>,
     Json(req): Json<UpdateProviderTypeRequest>,
 ) -> Json<ApiResponse<()>> {
+    // Validate driver_type if provided
+    if let Some(ref dt) = req.driver_type {
+        if let Err(_) = serde_json::from_str::<DriverType>(&format!("\"{}\"", dt)) {
+            return Json(ApiResponse {
+                success: false,
+                data: None,
+                message: format!("Invalid driver_type: {}. Valid types are: openai, openai_compatible, anthropic, aliyun, volcengine, tencent, ollama", dt),
+            });
+        }
+    }
+
     let update = UpdateProviderType {
         label: req.label,
         base_url: req.base_url,
         default_model: req.default_model,
+        driver_type: req.driver_type,
         models: req.models.map(|models| {
             models.into_iter().map(|m| ModelInfo {
                 id: m.id,

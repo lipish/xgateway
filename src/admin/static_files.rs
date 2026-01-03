@@ -81,7 +81,7 @@ pub fn admin_dashboard_html() -> String {
 </head>
 <body>
     <div class="header">
-        <h1>🚀 LLM Link 管理界面</h1>
+        <h1> LLM Link 管理界面</h1>
         <p>多 Provider AI 网关管理</p>
     </div>
     
@@ -93,7 +93,7 @@ pub fn admin_dashboard_html() -> String {
         </div>
         
         <div class="card">
-            <h2>🔧 Provider 管理</h2>
+            <h2> Provider 管理</h2>
             <button class="btn" onclick="addProvider()">添加 Provider</button>
             <div id="provider-list" class="provider-list">
                 <p>加载中...</p>

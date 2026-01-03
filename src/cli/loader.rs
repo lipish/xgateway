@@ -33,11 +33,11 @@ impl ConfigLoader {
                 app_name
             ))?;
 
-        info!("🚀 Starting in {} mode", app.name());
+        info!("Starting in {} mode", app.name());
 
         // If --protocols is specified, use protocol config instead
         if let Some(protocols_str) = &args.protocols {
-            info!("🔄 Using protocols: {}", protocols_str);
+            info!("Using protocols: {}", protocols_str);
             let protocols: Vec<String> = protocols_str
                 .split(',')
                 .map(|s| s.trim().to_string())
@@ -92,7 +92,7 @@ impl ConfigLoader {
             return Err(anyhow::anyhow!("No protocols specified. Use --protocols openai,ollama,anthropic"));
         }
 
-        info!("🚀 Starting with protocols: {}", protocols.join(", "));
+        info!("Starting with protocols: {}", protocols.join(", "));
 
         // Check required CLI flags for protocol combination
         Self::check_protocol_flags(&protocols, args)?;
@@ -120,21 +120,21 @@ impl ConfigLoader {
     fn require_provider<'a>(app_name: &str, args: &'a Args) -> Result<&'a str> {
         args.provider.as_deref()
             .ok_or_else(|| {
-                error!("❌ Missing required parameter: --provider");
+                error!("Missing required parameter: --provider");
                 error!("");
-                error!("🔧 You must specify which LLM provider to use:");
-                error!("   --provider openai      (requires --api-key)");
-                error!("   --provider anthropic   (requires --api-key)");
-                error!("   --provider zhipu       (requires --api-key)");
-                error!("   --provider aliyun      (requires --api-key)");
-                error!("   --provider minimax     (requires --api-key)");
-                error!("   --provider ollama      (no API key needed)");
+                error!("You must specify which LLM provider to use:");
+                error!("  --provider openai      (requires --api-key)");
+                error!("  --provider anthropic   (requires --api-key)");
+                error!("  --provider zhipu       (requires --api-key)");
+                error!("  --provider aliyun      (requires --api-key)");
+                error!("  --provider minimax     (requires --api-key)");
+                error!("  --provider ollama      (no API key needed)");
                 error!("");
-                error!("💡 Example:");
-                error!("   ./llm-link --app {} --provider minimax", app_name);
+                error!("Example:");
+                error!("  ./llm-link --app {} --provider minimax", app_name);
                 error!("");
                 error!("📚 For more information:");
-                error!("   ./llm-link --app-info {}", app_name);
+                error!("  ./llm-link --app-info {}", app_name);
                 anyhow::anyhow!("Missing required parameter: --provider")
             })
     }
@@ -164,9 +164,9 @@ impl ConfigLoader {
         }
 
         if !missing_flags.is_empty() {
-            error!("❌ Missing required CLI flags for protocols:");
+            error!("Missing required CLI flags for protocols:");
             for flag in &missing_flags {
-                error!("   - {}", flag);
+                error!("  - {}", flag);
             }
             error!("");
             return Err(anyhow::anyhow!(
@@ -188,7 +188,7 @@ impl ConfigLoader {
         use crate::settings::LlmBackendSettings;
 
         if let Some(provider_name) = provider {
-            info!("🔄 Overriding LLM provider to: {}", provider_name);
+            info!("Overriding LLM provider to: {}", provider_name);
 
             // Determine provider API key strictly from CLI
             let provided_key = api_key
@@ -220,7 +220,7 @@ impl ConfigLoader {
                 }
             };
 
-            info!("🔄 Using model: {}", model_name);
+            info!("Using model: {}", model_name);
 
             // Create new backend settings based on provider
             // Ollama 不需要实际使用 API key，但仍要求通过 CLI 传入以保持接口一致
@@ -280,7 +280,7 @@ impl ConfigLoader {
             };
         } else if let Some(model_name) = model {
             // Only model override, keep existing provider
-            info!("🔄 Overriding model to: {}", model_name);
+            info!("Overriding model to: {}", model_name);
             match &mut config.llm_backend {
                 LlmBackendSettings::OpenAI { model, .. } => *model = model_name.to_string(),
                 LlmBackendSettings::Anthropic { model, .. } => *model = model_name.to_string(),

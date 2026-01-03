@@ -14,11 +14,33 @@ use llm::build_llm_proxy_routes;
 use pool::build_pool_status_routes;
 use basic::build_basic_routes;
 
-pub fn build_multi_mode_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -> Router {
+use crate::service::Service as LlmService;
+use crate::settings::Settings;
+use tokio::sync::RwLock;
+
+pub fn build_multi_mode_app(
+    db_pool: DatabasePool, 
+    pool_manager: Arc<PoolManager>,
+    llm_service: Arc<RwLock<LlmService>>,
+    config: Arc<RwLock<Settings>>,
+) -> Router {
     let admin_routes = create_admin_app(db_pool.clone());
-    let llm_proxy_routes = build_llm_proxy_routes(db_pool.clone(), pool_manager.clone());
+    let llm_proxy_routes = build_llm_proxy_routes(
+        db_pool.clone(), 
+        pool_manager.clone(),
+        llm_service.clone(),
+        config.clone(),
+    );
     let pool_status_routes = build_pool_status_routes(db_pool.clone(), pool_manager.clone());
-    let basic_routes = build_basic_routes();
+    
+    // Create state for direct use in basic routes
+    let state = crate::endpoints::ProxyState {
+        db_pool,
+        pool_manager,
+        llm_service: llm_service.clone(),
+        config: config.clone(),
+    };
+    let basic_routes = build_basic_routes(state);
 
     let static_dir = std::env::current_dir()
         .unwrap_or_default()

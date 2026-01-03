@@ -1,6 +1,7 @@
 use crate::settings::LlmBackendSettings;
 use anyhow::Result;
 use llm_connector::LlmClient;
+use crate::adapter::types::DriverType;
 
 /// API Type
 #[allow(dead_code)]
@@ -149,90 +150,172 @@ pub trait Provider: Send + Sync {
 pub struct ProviderRegistry;
 
 impl ProviderRegistry {
-    /// Get provider information by name
-    #[allow(dead_code)]
-    pub fn get_provider_info(name: &str) -> Option<ProviderInfo> {
+    /// Get static provider information by name (builtin providers)
+    pub fn get_static_provider_info(name: &str) -> Option<ProviderInfo> {
         match name {
             "openai" => Some(ProviderInfo {
-                name: "openai",
-                default_model: "gpt-4",
-                env_var: "OPENAI_API_KEY",
+                name: "openai".to_string(),
+                display_name: "OpenAI".to_string(),
+                default_model: "gpt-4".to_string(),
+                env_var: "OPENAI_API_KEY".to_string(),
                 api_type: ApiType::Native,
+                driver: DriverType::OpenAI,
                 requires_api_key: true,
                 requires_base_url: false,
+                default_base_url: None,
+                docs_url: "https://platform.openai.com/docs/models".to_string(),
             }),
             "anthropic" => Some(ProviderInfo {
-                name: "anthropic",
-                default_model: "claude-3-5-sonnet-20241022",
-                env_var: "ANTHROPIC_API_KEY",
+                name: "anthropic".to_string(),
+                display_name: "Anthropic".to_string(),
+                default_model: "claude-3-5-sonnet-20241022".to_string(),
+                env_var: "ANTHROPIC_API_KEY".to_string(),
                 api_type: ApiType::Native,
+                driver: DriverType::Anthropic,
                 requires_api_key: true,
                 requires_base_url: false,
+                default_base_url: None,
+                docs_url: "https://docs.anthropic.com/en/docs/about-claude/models".to_string(),
             }),
             "zhipu" => Some(ProviderInfo {
-                name: "zhipu",
-                default_model: "glm-4-flash",
-                env_var: "ZHIPU_API_KEY",
+                name: "zhipu".to_string(),
+                display_name: "智谱 AI (Zhipu)".to_string(),
+                default_model: "glm-4-flash".to_string(),
+                env_var: "ZHIPU_API_KEY".to_string(),
                 api_type: ApiType::OpenAICompatible,
+                driver: DriverType::OpenAICompatible,
                 requires_api_key: true,
                 requires_base_url: true,
+                default_base_url: Some("https://open.bigmodel.cn/api/paas/v4".to_string()),
+                docs_url: "https://open.bigmodel.cn/dev/howuse/model".to_string(),
             }),
             "ollama" => Some(ProviderInfo {
-                name: "ollama",
-                default_model: "llama2",
-                env_var: "",
+                name: "ollama".to_string(),
+                display_name: "Ollama".to_string(),
+                default_model: "llama2".to_string(),
+                env_var: "".to_string(),
                 api_type: ApiType::Native,
+                driver: DriverType::Ollama,
                 requires_api_key: false,
                 requires_base_url: false,
+                default_base_url: None,
+                docs_url: "https://ollama.com/library".to_string(),
             }),
             "aliyun" => Some(ProviderInfo {
-                name: "aliyun",
-                default_model: "qwen-max",
-                env_var: "ALIYUN_API_KEY",
+                name: "aliyun".to_string(),
+                display_name: "阿里云 (Aliyun DashScope)".to_string(),
+                default_model: "qwen-max".to_string(),
+                env_var: "ALIYUN_API_KEY".to_string(),
                 api_type: ApiType::Native,
+                driver: DriverType::Aliyun,
                 requires_api_key: true,
                 requires_base_url: false,
+                default_base_url: Some("https://dashscope.aliyuncs.com/compatible-mode/v1".to_string()),
+                docs_url: "https://help.aliyun.com/zh/dashscope/developer-reference/model-introduction".to_string(),
             }),
             "volcengine" => Some(ProviderInfo {
-                name: "volcengine",
-                default_model: "doubao-pro-32k",
-                env_var: "VOLCENGINE_API_KEY",
+                name: "volcengine".to_string(),
+                display_name: "火山引擎 (Volcengine Ark)".to_string(),
+                default_model: "doubao-pro-32k".to_string(),
+                env_var: "VOLCENGINE_API_KEY".to_string(),
                 api_type: ApiType::Native,
+                driver: DriverType::Volcengine,
                 requires_api_key: true,
                 requires_base_url: false,
+                default_base_url: Some("https://ark.cn-beijing.volces.com/api/v3".to_string()),
+                docs_url: "https://www.volcengine.com/docs/82379/1099475".to_string(),
             }),
             "tencent" => Some(ProviderInfo {
-                name: "tencent",
-                default_model: "hunyuan-lite",
-                env_var: "TENCENT_API_KEY",
+                name: "tencent".to_string(),
+                display_name: "腾讯混元 (Tencent Hunyuan)".to_string(),
+                default_model: "hunyuan-lite".to_string(),
+                env_var: "TENCENT_API_KEY".to_string(),
                 api_type: ApiType::Native,
+                driver: DriverType::Tencent,
                 requires_api_key: true,
                 requires_base_url: false,
+                default_base_url: None,
+                docs_url: "https://cloud.tencent.com/document/product/1729/104753".to_string(),
             }),
             "longcat" => Some(ProviderInfo {
-                name: "longcat",
-                default_model: "LongCat-Flash-Chat",
-                env_var: "LONGCAT_API_KEY",
+                name: "longcat".to_string(),
+                display_name: "龙猫 (Longcat)".to_string(),
+                default_model: "LongCat-Flash-Chat".to_string(),
+                env_var: "LONGCAT_API_KEY".to_string(),
                 api_type: ApiType::OpenAICompatible,
+                driver: DriverType::OpenAICompatible,
                 requires_api_key: true,
                 requires_base_url: false,
+                default_base_url: Some("https://api.longcat.chat/v1".to_string()),
+                docs_url: "https://api.longcat.chat/docs".to_string(),
             }),
             "moonshot" => Some(ProviderInfo {
-                name: "moonshot",
-                default_model: "kimi-k2-turbo-preview",
-                env_var: "MOONSHOT_API_KEY",
+                name: "moonshot".to_string(),
+                display_name: "月之暗面 (Moonshot AI)".to_string(),
+                default_model: "kimi-k2-turbo-preview".to_string(),
+                env_var: "MOONSHOT_API_KEY".to_string(),
                 api_type: ApiType::OpenAICompatible,
+                driver: DriverType::OpenAICompatible,
                 requires_api_key: true,
                 requires_base_url: false,
+                default_base_url: Some("https://api.moonshot.cn/v1".to_string()),
+                docs_url: "https://platform.moonshot.cn/docs/guide/model-list".to_string(),
             }),
             "minimax" => Some(ProviderInfo {
-                name: "minimax",
-                default_model: "MiniMax-M2",
-                env_var: "MINIMAX_API_KEY",
+                name: "minimax".to_string(),
+                display_name: "MiniMax".to_string(),
+                default_model: "MiniMax-M2".to_string(),
+                env_var: "MINIMAX_API_KEY".to_string(),
                 api_type: ApiType::OpenAICompatible,
+                driver: DriverType::OpenAICompatible,
                 requires_api_key: true,
                 requires_base_url: false,
+                default_base_url: Some("https://api.minimax.io/v1".to_string()),
+                docs_url: "https://platform.minimaxi.com/document/models".to_string(),
             }),
+            "deepseek" => Some(ProviderInfo {
+                name: "deepseek".to_string(),
+                display_name: "DeepSeek".to_string(),
+                default_model: "deepseek-chat".to_string(),
+                env_var: "DEEPSEEK_API_KEY".to_string(),
+                api_type: ApiType::OpenAICompatible,
+                driver: DriverType::OpenAICompatible,
+                requires_api_key: true,
+                requires_base_url: false,
+                default_base_url: Some("https://api.deepseek.com/v1".to_string()),
+                docs_url: "https://api-docs.deepseek.com/zh-cn/information/model_list".to_string(),
+            }),
+            _ => None,
+        }
+    }
+
+    /// Get provider information by name, checking both static list and database
+    pub async fn get_provider_info(db_pool: &crate::db::DatabasePool, name: &str) -> Option<ProviderInfo> {
+        // Try static providers first
+        if let Some(info) = Self::get_static_provider_info(name) {
+            return Some(info);
+        }
+
+        // Try database provider types
+        match db_pool.get_provider_type(name).await {
+            Ok(Some(pt)) => {
+                // Parse driver type string to enum
+                let driver = serde_json::from_str::<DriverType>(&format!("\"{}\"", pt.driver_type))
+                    .unwrap_or(DriverType::OpenAICompatible);
+
+                Some(ProviderInfo {
+                    name: pt.id,
+                    display_name: pt.label,
+                    default_model: pt.default_model,
+                    env_var: String::new(),
+                    api_type: ApiType::OpenAICompatible,
+                    driver,
+                    requires_api_key: true,
+                    requires_base_url: !pt.base_url.is_empty(),
+                    default_base_url: if pt.base_url.is_empty() { None } else { Some(pt.base_url) },
+                    docs_url: pt.docs_url,
+                })
+            }
             _ => None,
         }
     }
@@ -251,6 +334,7 @@ impl ProviderRegistry {
             "longcat",
             "moonshot",
             "minimax",
+            "deepseek",
         ]
     }
 }
@@ -259,12 +343,16 @@ impl ProviderRegistry {
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ProviderInfo {
-    pub name: &'static str,
-    pub default_model: &'static str,
-    pub env_var: &'static str,
+    pub name: String,
+    pub display_name: String,
+    pub default_model: String,
+    pub env_var: String,
     pub api_type: ApiType,
+    pub driver: DriverType,
     pub requires_api_key: bool,
     pub requires_base_url: bool,
+    pub default_base_url: Option<String>,
+    pub docs_url: String,
 }
 
 // Create implementation modules for each provider
