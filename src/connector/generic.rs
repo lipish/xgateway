@@ -81,19 +81,28 @@ pub async fn send_to_provider(
                     if let Ok(ref chunk) = chunk_result {
                         if let Ok(text) = std::str::from_utf8(chunk) {
                             for line in text.lines() {
-                                if line.starts_with("data: ") {
-                                    let data = &line[6..];
+                                if line.starts_with("data:") {
+                                    let data = if line.starts_with("data: ") { &line[6..] } else { &line[5..] };
                                     if data != "[DONE]" {
                                         if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
-                                            if let Some(content) = json.get("choices")
+                                            let content = json.get("choices")
                                                 .and_then(|c| c.as_array())
                                                 .and_then(|arr| arr.first())
                                                 .and_then(|c| c.get("delta"))
                                                 .and_then(|d| d.get("content"))
                                                 .and_then(|c| c.as_str())
-                                            {
+                                                .or_else(|| {
+                                                    json.get("choices")
+                                                        .and_then(|c| c.as_array())
+                                                        .and_then(|arr| arr.first())
+                                                        .and_then(|c| c.get("message"))
+                                                        .and_then(|m| m.get("content"))
+                                                        .and_then(|c| c.as_str())
+                                                });
+                                            
+                                            if let Some(content_str) = content {
                                                 if let Ok(mut collected) = content_clone.lock() {
-                                                    collected.push_str(content);
+                                                    collected.push_str(content_str);
                                                 }
                                             }
                                         }
