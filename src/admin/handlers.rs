@@ -151,7 +151,11 @@ pub async fn create_provider_api(
         }
         Err(e) => {
             tracing::error!("Failed to create provider: {}", e);
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
+            Ok(Json(SingleProviderResponse {
+                success: false,
+                data: None,
+                message: format!("Database error: {}", e),
+            }))
         }
     }
 }

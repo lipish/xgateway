@@ -60,6 +60,10 @@ export function ProvidersPage() {
     secretKey: "",
   });
   const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [globalError, setGlobalError] = useState<string | null>(null);
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
 
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
   
@@ -137,10 +141,12 @@ export function ProvidersPage() {
           setSelectedProvider(result.data);
         }
       } else {
-        alert(result.message || "Failed to toggle provider");
+        setGlobalError(result.message || "Failed to toggle provider");
+        setErrorDialogOpen(true);
       }
     } catch (err) {
-      alert("Network error: Failed to toggle provider");
+      setGlobalError("Network error: Failed to toggle provider");
+      setErrorDialogOpen(true);
       console.error("Error toggling provider:", err);
     }
   };
@@ -166,10 +172,14 @@ export function ProvidersPage() {
         setDeleteDialogOpen(false);
         setDeletingProvider(null);
       } else {
-        alert(result.message || t('providers.saveFailed'));
+        setDeleteDialogOpen(false);
+        setGlobalError(result.message || t('providers.saveFailed'));
+        setErrorDialogOpen(true);
       }
     } catch (err) {
-      alert(t('providers.networkError'));
+      setDeleteDialogOpen(false);
+      setGlobalError(t('providers.networkError'));
+      setErrorDialogOpen(true);
       console.error("Error deleting provider:", err);
     }
   };
@@ -205,21 +215,26 @@ export function ProvidersPage() {
 
   const submitAddProvider = async () => {
     if (!addForm.name.trim()) {
-      alert(t('providers.pleaseEnterName'));
+      setAddError(t('providers.pleaseEnterName'));
       return;
     }
     if (addForm.providerType === 'tencent') {
       if (!addForm.secretId.trim() || !addForm.secretKey.trim()) {
-        alert('Please enter both Secret ID and Secret Key for Tencent provider');
+        setAddError('Please enter both Secret ID and Secret Key for Tencent provider');
         return;
       }
     } else {
       if (!addForm.apiKey.trim()) {
-        alert(t('providers.pleaseEnterApiKey'));
+        setAddError(t('providers.pleaseEnterApiKey'));
         return;
       }
     }
+    if (addForm.providerType === 'volcengine' && !addForm.endpoint.trim()) {
+      setAddError('Please enter Endpoint ID for Volcengine provider');
+      return;
+    }
     setAdding(true);
+    setAddError(null);
     try {
       const payload: any = {
         name: addForm.name,
@@ -247,11 +262,12 @@ export function ProvidersPage() {
         setProviders([result.data, ...providers]);
         setSelectedProvider(result.data);
         setAddDialogOpen(false);
+        setAddError(null);
       } else {
-        alert(result.message || t('providers.saveFailed'));
+        setAddError(result.message || t('providers.saveFailed'));
       }
     } catch (err) {
-      alert(t('providers.networkError'));
+      setAddError(t('providers.networkError'));
       console.error("Error adding provider:", err);
     } finally {
       setAdding(false);
@@ -304,6 +320,7 @@ export function ProvidersPage() {
   const saveEdit = async () => {
     if (!editingProvider) return;
     setSaving(true);
+    setEditError(null);
     try {
       const payload: any = {
         name: editForm.name,
@@ -332,12 +349,14 @@ export function ProvidersPage() {
       const result = await response.json();
       if (result.success) {
         setProviders(providers.map((p) => (p.id === editingProvider.id ? result.data : p)));
+        setSelectedProvider(result.data);
         setEditDialogOpen(false);
+        setEditError(null);
       } else {
-        alert(result.message || t('providers.saveFailed'));
+        setEditError(result.message || t('providers.saveFailed'));
       }
     } catch {
-      alert(t('providers.networkError'));
+      setEditError(t('providers.networkError'));
     } finally {
       setSaving(false);
     }
@@ -405,6 +424,7 @@ export function ProvidersPage() {
         onProviderTypeChange={handleProviderTypeChange}
         onSubmit={submitAddProvider}
         adding={adding}
+        error={addError}
         getProviderTypeConfig={getProviderTypeConfig}
       />
 
@@ -417,7 +437,24 @@ export function ProvidersPage() {
         onFormChange={setEditForm}
         onSubmit={saveEdit}
         saving={saving}
+        error={editError}
       />
+
+      <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Error</AlertDialogTitle>
+            <AlertDialogDescription>
+              {globalError}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setErrorDialogOpen(false)}>
+              {t('common.ok') || 'OK'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

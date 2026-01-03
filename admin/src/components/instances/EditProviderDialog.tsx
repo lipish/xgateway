@@ -43,6 +43,7 @@ interface EditProviderDialogProps {
   onFormChange: (form: any) => void
   onSubmit: () => void
   saving: boolean
+  error?: string | null
 }
 
 export function EditProviderDialog({
@@ -54,6 +55,7 @@ export function EditProviderDialog({
   onFormChange,
   onSubmit,
   saving,
+  error,
 }: EditProviderDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -61,6 +63,11 @@ export function EditProviderDialog({
         <DialogHeader>
           <DialogTitle>{t('providers.editProvider')}</DialogTitle>
         </DialogHeader>
+        {error && (
+          <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
@@ -134,31 +141,31 @@ export function EditProviderDialog({
               />
             </div>
           )}
-          <div className="grid gap-2">
-            <Label htmlFor="edit-baseUrl">{t('providers.baseUrl')}</Label>
-            <Input
-              id="edit-baseUrl"
-              value={form.baseUrl}
-              onChange={(e) =>
-                onFormChange({ ...form, baseUrl: e.target.value })
-              }
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {providerType === 'volcengine' && (
-              <div className="grid gap-2">
-                <Label htmlFor="edit-endpoint">{t('providers.endpoint')}</Label>
-                <Input
-                  id="edit-endpoint"
-                  placeholder="ep-xxxxx"
-                  value={form.endpoint}
-                  onChange={(e) =>
-                    onFormChange({ ...form, endpoint: e.target.value })
-                  }
-                />
-              </div>
-            )}
+          {providerType === 'volcengine' && (
             <div className="grid gap-2">
+              <Label htmlFor="edit-endpoint">{t('providers.endpoint')} *</Label>
+              <Input
+                id="edit-endpoint"
+                placeholder="ep-xxxxx (Required for Volcengine)"
+                value={form.endpoint}
+                onChange={(e) =>
+                  onFormChange({ ...form, endpoint: e.target.value })
+                }
+              />
+            </div>
+          )}
+          <div className="grid gap-4" style={{ gridTemplateColumns: '1fr auto' }}>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-baseUrl">{t('providers.baseUrl')}</Label>
+              <Input
+                id="edit-baseUrl"
+                value={form.baseUrl}
+                onChange={(e) =>
+                  onFormChange({ ...form, baseUrl: e.target.value })
+                }
+              />
+            </div>
+            <div className="grid gap-2" style={{ width: '120px' }}>
               <Label htmlFor="edit-priority">{t('providers.priority')}</Label>
               <Input
                 id="edit-priority"

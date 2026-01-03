@@ -33,6 +33,7 @@ interface AddProviderDialogProps {
   onProviderTypeChange: (type: string) => void
   onSubmit: () => void
   adding: boolean
+  error?: string | null
   getProviderTypeConfig: (typeId: string) => ProviderTypeConfig | undefined
 }
 
@@ -45,6 +46,7 @@ export function AddProviderDialog({
   onProviderTypeChange,
   onSubmit,
   adding,
+  error,
   getProviderTypeConfig,
 }: AddProviderDialogProps) {
   return (
@@ -54,6 +56,11 @@ export function AddProviderDialog({
           <DialogTitle>{t('providers.addProvider')}</DialogTitle>
           <DialogDescription>{t('providers.addProviderDesc')}</DialogDescription>
         </DialogHeader>
+        {error && (
+          <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
@@ -148,6 +155,19 @@ export function AddProviderDialog({
               />
             </div>
           )}
+          {form.providerType === 'volcengine' && (
+            <div className="grid gap-2">
+              <Label htmlFor="add-endpoint">{t('providers.endpoint')} *</Label>
+              <Input
+                id="add-endpoint"
+                placeholder="ep-xxxxx (Required for Volcengine)"
+                value={form.endpoint}
+                onChange={(e) =>
+                  onFormChange({ ...form, endpoint: e.target.value })
+                }
+              />
+            </div>
+          )}
           <div className="grid gap-2">
             <Label htmlFor="add-baseUrl">{t('providers.baseUrl')}</Label>
             <Input
@@ -158,19 +178,6 @@ export function AddProviderDialog({
               }
             />
           </div>
-          {form.providerType === 'volcengine' && (
-            <div className="grid gap-2">
-              <Label htmlFor="add-endpoint">{t('providers.endpoint')}</Label>
-              <Input
-                id="add-endpoint"
-                placeholder="ep-xxxxx (optional, for Volcengine)"
-                value={form.endpoint}
-                onChange={(e) =>
-                  onFormChange({ ...form, endpoint: e.target.value })
-                }
-              />
-            </div>
-          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
