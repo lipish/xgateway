@@ -66,6 +66,7 @@ pub enum LlmBackendSettings {
 
 impl LlmBackendSettings {
     /// Get the currently configured model name
+    #[allow(dead_code)]
     pub fn get_model(&self) -> String {
         match self {
             LlmBackendSettings::OpenAI { model, .. } => model.clone(),

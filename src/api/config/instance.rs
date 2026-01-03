@@ -11,6 +11,7 @@ pub fn init_instance_id() {
     INSTANCE_ID.store(timestamp, Ordering::SeqCst);
 }
 
+#[allow(dead_code)]
 pub fn get_instance_id() -> u64 {
     INSTANCE_ID.load(Ordering::SeqCst)
 }

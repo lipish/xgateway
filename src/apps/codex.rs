@@ -5,10 +5,12 @@ use crate::settings::{
 };
 
 /// Codex CLI application configuration
+#[allow(dead_code)]
 pub struct CodexApp;
 
 impl CodexApp {
     /// Generate Codex CLI configuration
+    #[allow(dead_code)]
     pub fn generate_config(cli_api_key: Option<&str>) -> Settings {
         Settings {
             server: ServerSettings {
@@ -54,4 +56,3 @@ impl CodexApp {
         }
     }
 }
-

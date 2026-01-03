@@ -88,9 +88,11 @@ export function ChatPage() {
 
   useEffect(() => {
     panels.forEach(panel => {
-      messagesEndRefs.current[panel.id]?.scrollIntoView({ behavior: "smooth" })
+      if (panel.loading || panel.messages.length > 0) {
+        messagesEndRefs.current[panel.id]?.scrollIntoView({ behavior: "smooth" })
+      }
     })
-  }, [panels])
+  }, [panels.map(p => p.messages.length).join(','), panels.map(p => p.loading).join(',')])
 
   const addPanel = () => {
     if (panels.length >= 4) return

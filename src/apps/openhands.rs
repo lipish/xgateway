@@ -5,10 +5,12 @@ use crate::settings::{
 };
 
 /// OpenHands application configuration
+#[allow(dead_code)]
 pub struct OpenHandsApp;
 
 impl OpenHandsApp {
     /// Generate OpenHands configuration
+    #[allow(dead_code)]
     pub fn generate_config(cli_api_key: Option<&str>) -> Settings {
         Settings {
             server: ServerSettings {

@@ -4,10 +4,12 @@ use crate::settings::{
     ClientAdapterSettings, ZedAdapterSettings,
 };
 /// Zed.dev application configuration
+#[allow(dead_code)]
 pub struct ZedApp;
 
 impl ZedApp {
     /// Generate Zed.dev configuration
+    #[allow(dead_code)]
     pub fn generate_config() -> Settings {
         Settings {
             server: ServerSettings {
@@ -50,4 +52,3 @@ impl ZedApp {
         }
     }
 }
-

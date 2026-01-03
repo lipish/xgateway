@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub fn mask_api_key(api_key: &str) -> String {
     if api_key.len() <= 8 {
         "*".repeat(api_key.len())
@@ -6,6 +7,7 @@ pub fn mask_api_key(api_key: &str) -> String {
     }
 }
 
+#[allow(dead_code)]
 pub fn validate_api_key(provider: &str, api_key: &str) -> Result<(), String> {
     if api_key.trim().is_empty() {
         return Err("API key cannot be empty".to_string());
@@ -39,6 +41,7 @@ pub fn validate_api_key(provider: &str, api_key: &str) -> Result<(), String> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn validate_provider(provider: &str) -> Result<(), String> {
     match provider {
         "openai" | "anthropic" | "zhipu" | "ollama" | "aliyun" | "volcengine" | "tencent" | "longcat" | "moonshot" | "minimax" => Ok(()),

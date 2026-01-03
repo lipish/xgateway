@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use futures::StreamExt;
 use crate::db::{self, DatabasePool, NewRequestLog};

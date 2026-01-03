@@ -1,4 +1,3 @@
-use axum::response::IntoResponse;
 use super::types::ProxyState;
 
 pub async fn handle_list_models(

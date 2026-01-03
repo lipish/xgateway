@@ -4,10 +4,12 @@ use crate::settings::Settings;
 use crate::apps::{SupportedApp, AppConfigGenerator};
 use crate::cli::Args;
 
+#[allow(dead_code)]
 pub struct ConfigLoader;
 
 impl ConfigLoader {
     /// 加载配置（应用模式或协议模式）
+    #[allow(dead_code)]
     pub fn load_config(args: &Args) -> Result<(Settings, String)> {
         if let Some(app_name) = &args.app {
             Self::load_app_config(app_name, args)
@@ -23,6 +25,7 @@ impl ConfigLoader {
     }
 
     /// 加载应用模式配置
+    #[allow(dead_code)]
     fn load_app_config(app_name: &str, args: &Args) -> Result<(Settings, String)> {
         let app = SupportedApp::from_str(app_name)
             .ok_or_else(|| anyhow::anyhow!(
@@ -78,6 +81,7 @@ impl ConfigLoader {
     }
 
     /// 加载协议模式配置
+    #[allow(dead_code)]
     fn load_protocol_config(protocols_str: &str, args: &Args) -> Result<(Settings, String)> {
         let protocols: Vec<String> = protocols_str
             .split(',')
@@ -112,6 +116,7 @@ impl ConfigLoader {
     }
 
     /// 要求提供 --provider 参数
+    #[allow(dead_code)]
     fn require_provider<'a>(app_name: &str, args: &'a Args) -> Result<&'a str> {
         args.provider.as_deref()
             .ok_or_else(|| {
@@ -135,6 +140,7 @@ impl ConfigLoader {
     }
 
     /// 检查协议模式所需的 CLI 参数
+    #[allow(dead_code)]
     fn check_protocol_flags(protocols: &[String], args: &Args) -> Result<()> {
         let mut missing_flags = Vec::new();
 
@@ -172,6 +178,7 @@ impl ConfigLoader {
     }
 
     /// 应用 provider 覆盖
+    #[allow(dead_code)]
     fn apply_provider_overrides(
         mut config: Settings,
         provider: Option<&str>,
@@ -292,6 +299,7 @@ impl ConfigLoader {
     }
 
     /// 应用命令行参数覆盖
+    #[allow(dead_code)]
     pub fn apply_cli_overrides(mut config: Settings, args: &Args) -> Settings {
         if let Some(host) = &args.host {
             config.server.host = host.clone();

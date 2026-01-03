@@ -22,6 +22,7 @@ pub struct AppState {
 }
 
 impl AppState {
+    #[allow(dead_code)]
     pub fn new(llm_service: LlmService, config: Settings) -> Self {
         Self {
             llm_service: Arc::new(RwLock::new(llm_service)),
@@ -32,6 +33,7 @@ impl AppState {
     /// Dynamically update LLM service configuration
     ///
     /// This method allows updating LLM backend configuration at runtime without restarting the service
+    #[allow(dead_code)]
     pub async fn update_llm_service(&self, new_backend: &LlmBackendSettings) -> Result<()> {
         // Create new LLM service
         let new_service = LlmService::new(new_backend)?;
@@ -52,6 +54,7 @@ impl AppState {
     }
 
     /// Get a copy of the current configuration
+    #[allow(dead_code)]
     pub async fn get_current_config(&self) -> Result<Settings> {
         let config = self.config.read().await;
         Ok(config.clone())
@@ -59,6 +62,7 @@ impl AppState {
 }
 
 /// Health check endpoint
+#[allow(dead_code)]
 pub async fn health_check() -> Json<serde_json::Value> {
     Json(json!({
         "status": "ok",
@@ -68,6 +72,7 @@ pub async fn health_check() -> Json<serde_json::Value> {
 }
 
 /// Debug test endpoint
+#[allow(dead_code)]
 pub async fn debug_test() -> Json<serde_json::Value> {
     Json(json!({
         "debug": "test",
@@ -76,6 +81,7 @@ pub async fn debug_test() -> Json<serde_json::Value> {
 }
 
 /// Get complete provider and model information
+#[allow(dead_code)]
 pub async fn info(
     State(state): State<AppState>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -125,6 +131,7 @@ pub async fn info(
     Ok(Json(response))
 }
 
+#[allow(dead_code)]
 fn get_provider_name(backend: &LlmBackendSettings) -> &str {
     match backend {
         LlmBackendSettings::OpenAI { .. } => "openai",
@@ -140,6 +147,7 @@ fn get_provider_name(backend: &LlmBackendSettings) -> &str {
     }
 }
 
+#[allow(dead_code)]
 fn get_current_model(backend: &LlmBackendSettings) -> String {
     match backend {
         LlmBackendSettings::OpenAI { model, .. } => model.clone(),

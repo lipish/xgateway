@@ -105,8 +105,8 @@ pub async fn handle_chat_completions(
                             StatusCode::BAD_GATEWAY,
                             axum::Json(serde_json::json!({
                                 "error": {
-                                    "message": format!("Provider request failed: {}", error),
-                                    "type": "proxy_error",
+                                    "message": error,
+                                    "type": "provider_error",
                                     "provider": provider.name
                                 }
                             })),

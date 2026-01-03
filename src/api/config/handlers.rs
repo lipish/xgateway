@@ -8,6 +8,7 @@ use super::types::*;
 use super::instance::get_instance_id;
 
 /// 获取当前配置信息（不包含敏感的 API Key）
+#[allow(dead_code)]
 pub async fn get_current_config(
     State(state): State<AppState>,
 ) -> Result<Json<CurrentConfigResponse>, StatusCode> {
@@ -59,6 +60,7 @@ pub async fn get_current_config(
 /// 获取健康状态和实例信息
 ///
 /// 用于验证服务是否重启成功
+#[allow(dead_code)]
 pub async fn get_health(
     State(state): State<AppState>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -97,6 +99,7 @@ pub async fn get_health(
 /// z-agent 需要:
 /// 1. 调用此端点获取环境变量
 /// 2. 使用新的环境变量重启 llm-link 进程
+#[allow(dead_code)]
 pub async fn update_config_for_restart(
     State(_state): State<AppState>,
     Json(request): Json<UpdateConfigRequest>,
@@ -176,6 +179,7 @@ pub async fn update_config_for_restart(
 /// 验证 API Key 是否有效
 /// 
 /// 通过尝试创建一个临时的 Service 并列出模型来验证
+#[allow(dead_code)]
 pub async fn validate_key(
     State(_state): State<AppState>,
     Json(request): Json<UpdateConfigRequest>,
@@ -282,6 +286,7 @@ pub async fn validate_key(
 /// 获取当前进程 PID
 /// 
 /// z-agent 可以使用这个 PID 来管理进程（如重启）
+#[allow(dead_code)]
 pub async fn get_pid() -> Json<serde_json::Value> {
     let pid = std::process::id();
     
@@ -294,6 +299,7 @@ pub async fn get_pid() -> Json<serde_json::Value> {
 /// 验证 API Key（用于热更新）
 ///
 /// 专门用于热更新场景的 API Key 验证
+#[allow(dead_code)]
 pub async fn validate_key_for_update(
     State(_state): State<AppState>,
     Json(request): Json<UpdateKeyRequest>,
@@ -418,6 +424,7 @@ pub async fn validate_key_for_update(
 /// 运行时更新 API Key
 ///
 /// 这个端点允许在不重启服务的情况下更新指定 provider 的 API Key
+#[allow(dead_code)]
 pub async fn update_key(
     State(state): State<AppState>,
     Json(request): Json<UpdateKeyRequest>,
@@ -615,6 +622,7 @@ pub async fn update_key(
 /// 切换 Provider
 ///
 /// 这个端点允许动态切换当前使用的 LLM 服务商
+#[allow(dead_code)]
 pub async fn switch_provider(
     State(state): State<AppState>,
     Json(request): Json<SwitchProviderRequest>,
@@ -817,6 +825,7 @@ pub async fn switch_provider(
 ///
 /// 注意：这需要配合信号处理才能实现优雅关闭
 /// z-agent 应该先调用此端点，等待响应后再启动新进程
+#[allow(dead_code)]
 pub async fn shutdown() -> Json<serde_json::Value> {
     info!("🛑 Shutdown requested via API");
 

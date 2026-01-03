@@ -4,5 +4,3 @@ pub mod types;
 pub mod handlers;
 
 pub use instance::init_instance_id;
-pub use types::*;
-pub use handlers::*;

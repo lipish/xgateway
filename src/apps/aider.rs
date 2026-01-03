@@ -5,10 +5,12 @@ use crate::settings::{
 };
 
 /// Aider application configuration
+#[allow(dead_code)]
 pub struct AiderApp;
 
 impl AiderApp {
     /// Generate Aider configuration
+    #[allow(dead_code)]
     pub fn generate_config(cli_api_key: Option<&str>) -> Settings {
         Settings {
             server: ServerSettings {

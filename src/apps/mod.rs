@@ -63,10 +63,12 @@ impl SupportedApp {
 }
 
 /// Application configuration generator
+#[allow(dead_code)]
 pub struct AppConfigGenerator;
 
 impl AppConfigGenerator {
     /// Generate configuration for specified application
+    #[allow(dead_code)]
     pub fn generate_config(app: &SupportedApp, cli_api_key: Option<&str>) -> Settings {
         match app {
             SupportedApp::CodexCLI => CodexApp::generate_config(cli_api_key),
@@ -77,6 +79,7 @@ impl AppConfigGenerator {
     }
 
     /// Generate protocol combination configuration
+    #[allow(dead_code)]
     pub fn generate_protocol_config(protocols: &[String], cli_api_key: Option<&str>) -> Settings {
         protocol::generate_protocol_config(protocols, cli_api_key)
     }

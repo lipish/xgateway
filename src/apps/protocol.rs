@@ -5,6 +5,7 @@ use crate::settings::{
 };
 
 /// Generate protocol combination configuration
+#[allow(dead_code)]
 pub fn generate_protocol_config(protocols: &[String], cli_api_key: Option<&str>) -> Settings {
     let mut openai_config = None;
     let mut ollama_config = None;
@@ -71,4 +72,3 @@ pub fn generate_protocol_config(protocols: &[String], cli_api_key: Option<&str>)
         }),
     }
 }
-
