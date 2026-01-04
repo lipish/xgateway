@@ -43,33 +43,39 @@ export function ProviderDetail({ provider, onAddModel, onEditModel, onDeleteMode
             )}
           </div>
           <div className="flex gap-1">
-            <div
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
               onClick={() => onAddModel(provider.id)}
-              className="h-8 w-8 flex items-center justify-center cursor-pointer text-muted-foreground hover:text-foreground rounded-md transition-colors"
               title={t("modelTypes.addModel")}
             >
               <Plus className="h-4 w-4" />
-            </div>
-            <div
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
               onClick={(e) => {
                 e.stopPropagation()
                 onEditProvider(provider)
               }}
-              className="h-8 w-8 flex items-center justify-center cursor-pointer text-muted-foreground hover:text-foreground rounded-md transition-colors"
               title={t("providers.edit")}
             >
               <Pencil className="h-4 w-4" />
-            </div>
-            <div
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:text-destructive"
               onClick={(e) => {
                 e.stopPropagation()
                 onDeleteProvider(provider.id)
               }}
-              className="h-8 w-8 flex items-center justify-center cursor-pointer text-muted-foreground hover:text-destructive rounded-md transition-colors"
               title={t("providers.delete")}
             >
               <Trash2 className="h-4 w-4" />
-            </div>
+            </Button>
           </div>
         </div>
 

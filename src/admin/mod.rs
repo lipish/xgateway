@@ -67,6 +67,9 @@ pub fn create_admin_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -
         .route("/api/users", get(list_users_api).post(create_user_api))
         .route("/api/users/:id", delete(delete_user_api))
         .route("/api/users/:id/toggle", post(toggle_user_api))
+        // User-Instance grants
+        .route("/api/users/:user_id/instances", get(list_user_instances_api).post(grant_user_instance_api))
+        .route("/api/users/:user_id/instances/:provider_id", delete(revoke_user_instance_api))
         .with_state(state)
 }
 
@@ -902,6 +905,83 @@ async fn toggle_user_api(
             success: false,
             data: None,
             message: format!("Failed to list users: {}", e),
+        }),
+    }
+}
+
+// ============= User-Instance Grant API =============
+
+#[derive(Debug, Deserialize)]
+struct GrantInstanceRequest {
+    provider_id: i64,
+    granted_by: Option<i32>,
+}
+
+/// List all instances granted to a user
+async fn list_user_instances_api(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::extract::Path(user_id): axum::extract::Path<i32>,
+) -> Json<ApiResponse<Vec<crate::db::UserInstance>>> {
+    match db_pool.get_user_granted_instances(user_id).await {
+        Ok(instances) => Json(ApiResponse {
+            success: true,
+            data: Some(instances),
+            message: "User instances retrieved".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to list user instances: {}", e),
+        }),
+    }
+}
+
+/// Grant user access to a provider instance
+async fn grant_user_instance_api(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::extract::Path(user_id): axum::extract::Path<i32>,
+    Json(req): Json<GrantInstanceRequest>,
+) -> Json<ApiResponse<i32>> {
+    let grant = crate::db::NewUserInstance {
+        user_id,
+        provider_id: req.provider_id,
+        granted_by: req.granted_by,
+    };
+
+    match db_pool.grant_user_instance(grant).await {
+        Ok(id) => Json(ApiResponse {
+            success: true,
+            data: Some(id),
+            message: "Instance access granted".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to grant instance access: {}", e),
+        }),
+    }
+}
+
+/// Revoke user access to a provider instance
+async fn revoke_user_instance_api(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::extract::Path((user_id, provider_id)): axum::extract::Path<(i32, i64)>,
+) -> Json<ApiResponse<()>> {
+    match db_pool.revoke_user_instance(user_id, provider_id).await {
+        Ok(true) => Json(ApiResponse {
+            success: true,
+            data: Some(()),
+            message: "Instance access revoked".to_string(),
+        }),
+        Ok(false) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: "Grant not found".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to revoke instance access: {}", e),
         }),
     }
 }

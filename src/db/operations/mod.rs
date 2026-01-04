@@ -19,3 +19,5 @@ pub mod users;
 // API Key operations module
 pub mod api_keys;
 
+// User-Instance operations module
+pub mod user_instances;

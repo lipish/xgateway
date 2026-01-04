@@ -6,6 +6,8 @@ export const en = {
     modelTypes: 'Provider Catalog',
     chat: 'Chat Test',
     logs: 'Logs',
+    trace: 'Trace',
+    metrics: 'Metrics',
     settings: 'Settings',
     apiKeys: 'API Keys',
     monitoring: 'Monitoring',

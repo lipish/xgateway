@@ -89,22 +89,23 @@ export function MonitoringPage() {
         actions={
           <div className="flex gap-2">
             <Button
-              variant="outline"
-              size="sm"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
               onClick={fetchMonitoringData}
               disabled={loading}
+              title={t('common.refresh')}
             >
-              <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
-              {t('common.refresh')}
+              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
             </Button>
             <Button
-              variant={autoRefresh ? "secondary" : "outline"}
-              size="sm"
+              variant={autoRefresh ? "secondary" : "ghost"}
+              size="icon"
+              className={cn("h-9 w-9", autoRefresh && "bg-primary/10 text-primary hover:bg-primary/20")}
               onClick={() => setAutoRefresh(!autoRefresh)}
-              className={cn(autoRefresh && "bg-primary/10 text-primary hover:bg-primary/20")}
+              title={autoRefresh ? t('monitoring.stopAutoRefresh') : t('monitoring.autoRefresh')}
             >
-              <Activity className={cn("h-4 w-4 mr-2", autoRefresh && "animate-pulse")} />
-              {autoRefresh ? t('monitoring.stopAutoRefresh') : t('monitoring.autoRefresh')}
+              <Activity className={cn("h-4 w-4", autoRefresh && "animate-pulse")} />
             </Button>
           </div>
         }

@@ -100,12 +100,11 @@ export function SettingsPage() {
         subtitle={t('settings.description')}
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={resetToDefaults} disabled={saving}>
-              {t('settings.reset')}
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={resetToDefaults} disabled={saving} title={t('settings.reset')}>
+              <RotateCcw className="h-4 w-4" />
             </Button>
-            <Button size="sm" onClick={saveSettings} disabled={saving}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-              {t('settings.save')}
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={saveSettings} disabled={saving} title={t('settings.save')}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             </Button>
           </div>
         }

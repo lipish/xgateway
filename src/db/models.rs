@@ -338,6 +338,24 @@ pub struct NewUser {
     pub role_id: Option<String>,
 }
 
+/// User-Instance relationship (for granting access)
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct UserInstance {
+    pub id: i32,
+    pub user_id: i32,
+    pub provider_id: i64,
+    pub granted_at: DateTime<Utc>,
+    pub granted_by: Option<i32>,
+}
+
+/// New user-instance grant
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NewUserInstance {
+    pub user_id: i32,
+    pub provider_id: i64,
+    pub granted_by: Option<i32>,
+}
+
 /// API Key - Access keys for the data plane
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct ApiKey {

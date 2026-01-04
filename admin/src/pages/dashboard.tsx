@@ -30,6 +30,7 @@ import {
   Database,
   Heart,
   RefreshCw,
+  ArrowRight,
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { apiGet, apiPost } from "@/lib/api"
@@ -234,8 +235,8 @@ export function DashboardPage() {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle>{t('dashboard.recentProviders')}</CardTitle>
-                  <Button variant="outline" size="sm" onClick={() => navigate('/instances')}>
-                    {t('dashboard.viewAll')}
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/instances')} title={t('dashboard.viewAll')}>
+                    <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>
               </CardHeader>
@@ -318,8 +319,11 @@ export function DashboardPage() {
 
             {/* Comprehensive Monitoring */}
             <Card className="w-96 shrink-0 flex flex-col">
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
                 <CardTitle>{t('dashboard.comprehensiveMonitoring')}</CardTitle>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/monitoring')} title={t('dashboard.viewDetailedMonitoring')}>
+                  <BarChart3 className="h-4 w-4" />
+                </Button>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <div className="space-y-2 flex-1">
@@ -374,16 +378,7 @@ export function DashboardPage() {
                     <span className="text-sm font-semibold">{t('dashboard.stable')}</span>
                   </div>
                 </div>
-                <div className="pt-3 mt-auto">
-                  <Button
-                    className="w-full"
-                    variant="outline"
-                    onClick={() => navigate('/monitoring')}
-                  >
-                    <BarChart3 className="mr-2 h-4 w-4" />
-                    {t('dashboard.viewDetailedMonitoring')}
-                  </Button>
-                </div>
+
               </CardContent>
             </Card>
           </div>

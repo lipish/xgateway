@@ -38,7 +38,6 @@ function getNavigation() {
         { name: t('nav.modelTypes'), href: "/providers", icon: Library },
         { name: t('nav.providers'), href: "/instances", icon: Server },
         { name: t('nav.chat'), href: "/chat", icon: MessageSquare },
-        { name: t('nav.logs'), href: "/logs", icon: FileText },
       ],
     },
     {
@@ -52,8 +51,8 @@ function getNavigation() {
     {
       title: t('nav.monitoring'),
       items: [
-        { name: t('nav.monitoring'), href: "/monitoring", icon: Activity },
-        { name: t('nav.help'), href: "/help", icon: HelpCircle },
+        { name: t('nav.metrics'), href: "/monitoring", icon: Activity },
+        { name: t('nav.trace'), href: "/logs", icon: FileText },
       ],
     },
   ]

@@ -6,6 +6,8 @@ export const zh = {
     modelTypes: '服务商目录',
     chat: '对话测试',
     logs: '日志',
+    trace: '追踪',
+    metrics: '指标',
     settings: '设置',
     apiKeys: 'API 密钥',
     monitoring: '监控',

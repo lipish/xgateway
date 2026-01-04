@@ -341,12 +341,12 @@ export function ChatPage() {
         <div className="flex-1 flex flex-col overflow-hidden min-h-0">
           <div className="flex gap-2 mb-4 shrink-0">
             {!showHistory && (
-              <Button variant="outline" size="sm" onClick={() => setShowHistory(true)}>
-                <PanelLeft className="w-4 h-4 mr-1" /> {t('chat.history')}
+              <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setShowHistory(true)} title={t('chat.history')}>
+                <PanelLeft className="w-4 h-4" />
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={addPanel} disabled={panels.length >= 4}>
-              <Plus className="w-4 h-4 mr-1" /> {t('chat.addChatWindow')}
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={addPanel} disabled={panels.length >= 4} title={t('chat.addChatWindow')}>
+              <Plus className="w-4 h-4" />
             </Button>
             <span className="text-sm text-muted-foreground self-center">{t('chat.maxWindows')}</span>
           </div>

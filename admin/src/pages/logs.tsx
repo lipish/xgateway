@@ -93,11 +93,11 @@ export function LogsPage() {
         subtitle={t('logs.description')}
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={fetchLogs}>
-              <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} /> {t('common.refresh')}
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={fetchLogs} title={t('common.refresh')}>
+              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
             </Button>
-            <Button variant="outline" size="sm" onClick={exportLogs}>
-              <Download className="mr-2 h-4 w-4" /> {t('logs.export')}
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={exportLogs} title={t('logs.export')}>
+              <Download className="h-4 w-4" />
             </Button>
           </div>
         }

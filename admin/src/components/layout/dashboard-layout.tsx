@@ -3,7 +3,7 @@ import { AppSidebar } from "./sidebar"
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar-ui"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
-import { Bell, User, Settings, LogOut, KeyRound } from "lucide-react"
+import { Bell, User, Settings, LogOut, KeyRound, HelpCircle } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,17 +33,6 @@ export function DashboardLayout() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Settings Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 text-muted-foreground hover:text-foreground"
-              onClick={() => navigate('/settings')}
-              title={t('nav.settings')}
-            >
-              <Settings className="h-5 w-5" />
-            </Button>
-
             {/* Notification Icon */}
             <Button variant="ghost" size="icon" className="relative h-9 w-9 text-muted-foreground hover:text-foreground">
               <Bell className="h-5 w-5" />
@@ -65,9 +54,13 @@ export function DashboardLayout() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
                   <Settings className="mr-2 h-4 w-4" />
                   <span>{t('nav.settings')}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/help')}>
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  <span>{t('nav.help')}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <KeyRound className="mr-2 h-4 w-4" />

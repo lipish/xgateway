@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   Server,
   Key,
@@ -69,13 +70,12 @@ export function ProviderDetail({ provider, providerTypeConfig, onEdit, onDelete,
             </div>
           </div>
           <div className="flex gap-1">
-            <div
-              className={`h-8 w-8 flex items-center justify-center rounded-md transition-colors ${
-                testingId === provider.id
-                  ? "cursor-not-allowed opacity-50"
-                  : "cursor-pointer text-muted-foreground hover:text-foreground"
-              }`}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
               onClick={() => !testingId && onTest(provider.id)}
+              disabled={!!testingId}
               title={testingId === provider.id ? t('providers.testConnection') : testResult?.id === provider.id ? (testResult.success ? t('providers.connectionSuccess') : t('providers.connectionFailed')) : t('providers.testConnection')}
             >
               {testingId === provider.id ? (
@@ -85,32 +85,35 @@ export function ProviderDetail({ provider, providerTypeConfig, onEdit, onDelete,
               ) : (
                 <Activity className="h-4 w-4" />
               )}
-            </div>
-            <div
-              className={`h-8 w-8 flex items-center justify-center rounded-md transition-colors ${
-                !provider.enabled
-                  ? "cursor-not-allowed opacity-50"
-                  : "cursor-pointer text-muted-foreground hover:text-foreground"
-              }`}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
               onClick={() => provider.enabled && onNavigateToChat(provider.id)}
+              disabled={!provider.enabled}
               title={!provider.enabled ? t('providers.providerDisabled') : t('providers.startChat')}
             >
               <MessageSquare className="h-4 w-4" />
-            </div>
-            <div
-              className="h-8 w-8 flex items-center justify-center cursor-pointer text-muted-foreground hover:text-foreground rounded-md transition-colors"
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
               onClick={() => onEdit(provider)}
               title={t('providers.edit')}
             >
               <Pencil className="h-4 w-4" />
-            </div>
-            <div
-              className="h-8 w-8 flex items-center justify-center cursor-pointer text-muted-foreground hover:text-destructive rounded-md transition-colors"
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:text-destructive"
               onClick={() => onDelete(provider.id)}
               title={t('providers.delete')}
             >
               <Trash2 className="h-4 w-4" />
-            </div>
+            </Button>
           </div>
         </div>
         {providerTypeConfig?.docs_url && (
@@ -148,7 +151,7 @@ export function ProviderDetail({ provider, providerTypeConfig, onEdit, onDelete,
                 </div>
               </div>
             </div>
-            
+
             <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
               <div className="flex items-start gap-2">
                 <Settings className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
@@ -160,7 +163,7 @@ export function ProviderDetail({ provider, providerTypeConfig, onEdit, onDelete,
                 </div>
               </div>
             </div>
-            
+
             <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
               <div className="flex items-start gap-2">
                 <Key className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
@@ -176,7 +179,7 @@ export function ProviderDetail({ provider, providerTypeConfig, onEdit, onDelete,
                 </div>
               </div>
             </div>
-            
+
             {provider.provider_type === 'tencent' && provider.secret_id && (
               <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
                 <div className="flex items-start gap-2">
@@ -194,7 +197,7 @@ export function ProviderDetail({ provider, providerTypeConfig, onEdit, onDelete,
                 </div>
               </div>
             )}
-            
+
             {provider.provider_type === 'tencent' && provider.secret_key && (
               <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
                 <div className="flex items-start gap-2">
@@ -212,7 +215,7 @@ export function ProviderDetail({ provider, providerTypeConfig, onEdit, onDelete,
                 </div>
               </div>
             )}
-            
+
             {provider.provider_type === 'volcengine' && provider.endpoint && (
               <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
                 <div className="flex items-start gap-2">

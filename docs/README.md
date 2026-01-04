@@ -6,6 +6,7 @@
 - **[Models & Providers](MODELS.md)** - Supported LLM providers and models
 - **[Quick Start](guides/QUICK_START.md)** - Get started with LLM Link
 - **[Configuration](guides/CONFIGURATION.md)** - Configuration options
+- **[User Permission System](guides/USER_PERMISSION_SYSTEM.md)** - User, role, and API key management
 - **[Zed IDE Setup](guides/ZED_SETUP.md)** - Zed IDE integration
 
 ### Development

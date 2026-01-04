@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import {
   Table,
@@ -52,13 +53,15 @@ export function ProviderList({
             {t('providers.total')} {providers.length} {t('providers.unit')}
           </span>
         </div>
-        <div
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onAddProvider}
-          className="h-8 w-8 flex items-center justify-center cursor-pointer text-muted-foreground hover:text-foreground rounded-md transition-colors"
+          className="h-8 w-8"
           title={t("providers.add")}
         >
           <Plus className="h-5 w-5" />
-        </div>
+        </Button>
       </div>
       <div className="flex-1 overflow-auto border rounded-lg scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         <Table>
