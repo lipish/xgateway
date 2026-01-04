@@ -305,3 +305,65 @@ pub struct NewRequestLog {
     pub request_content: Option<String>,
     pub response_content: Option<String>,
 }
+
+// ============ Enterprise Management Models ============
+
+/// Role - RBAC roles and permissions
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct Role {
+    pub id: String,
+    pub name: String,
+    pub permissions: String, // JSON array of strings
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// User - Administrative user accounts
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct User {
+    pub id: i32,
+    pub username: String,
+    pub password_hash: String,
+    pub role_id: Option<String>,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// New user for creation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NewUser {
+    pub username: String,
+    pub password_hash: String,
+    pub role_id: Option<String>,
+}
+
+/// API Key - Access keys for the data plane
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct ApiKey {
+    pub id: i32,
+    pub owner_id: Option<i32>,
+    pub key_hash: String,
+    pub name: String,
+    pub scope: String,
+    pub provider_id: Option<i64>,
+    pub qps_limit: f64,
+    pub concurrency_limit: i32,
+    pub status: String,
+    pub expires_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// New API Key for creation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NewApiKey {
+    pub owner_id: Option<i32>,
+    pub key_hash: String,
+    pub name: String,
+    pub scope: String, // "global" or "instance"
+    pub provider_id: Option<i64>,
+    pub qps_limit: f64,
+    pub concurrency_limit: i32,
+    pub expires_at: Option<DateTime<Utc>>,
+}

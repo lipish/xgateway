@@ -17,7 +17,7 @@ use super::health::HealthStatus;
 use super::load_balancer::LoadBalanceStrategy;
 use super::metrics::ProviderMetricsSummary;
 use super::rate_limiter::{RateLimiter, RateLimitConfig, RateLimitResult};
-use crate::db::{DatabasePool, Provider};
+use crate::db::{DatabasePool, Provider, ApiKey};
 
 /// Global provider pool manager
 pub struct PoolManager {
@@ -35,6 +35,7 @@ impl PoolManager {
             requests_per_second: 100.0,
             burst_size: 200,
             enabled: false, // Disabled by default
+            max_concurrency: None,
         };
         Self {
             pool: Arc::new(ProviderPool::new()),
@@ -153,6 +154,17 @@ impl PoolManager {
     /// Check rate limit (global + optional provider)
     pub async fn check_rate_limit(&self, provider_id: Option<i64>) -> RateLimitResult {
         self.rate_limiter.check(provider_id).await
+    }
+
+    /// Check API key rate limit and concurrency
+    pub async fn check_api_key_limit(&self, key_info: &ApiKey) -> RateLimitResult {
+        let config = RateLimitConfig {
+            requests_per_second: key_info.qps_limit,
+            burst_size: (key_info.qps_limit * 2.0) as u64,
+            enabled: key_info.status == "active",
+            max_concurrency: Some(key_info.concurrency_limit as u32),
+        };
+        self.rate_limiter.check_api_key(&key_info.key_hash, Some(config)).await
     }
 
     /// Set global rate limit config

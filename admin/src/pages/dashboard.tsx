@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Header } from "@/components/layout/header"
 import {
   Table,
   TableBody,
@@ -28,9 +29,11 @@ import {
   BarChart3,
   Database,
   Heart,
+  RefreshCw,
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { apiGet, apiPost } from "@/lib/api"
+import { cn } from "@/lib/utils"
 
 interface ProviderStats {
   total: number
@@ -70,7 +73,7 @@ export function DashboardPage() {
       const [statsResult, providersResult] = await Promise.all([
         apiGet('/api/instances/stats'),
         apiGet('/api/instances')
-      ])
+      ]) as [any, any]
 
       if (statsResult.success) {
         setStats(statsResult.data)
@@ -99,7 +102,7 @@ export function DashboardPage() {
     const startTime = Date.now()
     const minLoadingTime = 800
     try {
-      const result = await apiPost(`/api/instances/${id}/test`)
+      const result = await apiPost(`/api/instances/${id}/test`) as any
       const elapsed = Date.now() - startTime
       if (elapsed < minLoadingTime) {
         await new Promise(resolve => setTimeout(resolve, minLoadingTime - elapsed))
@@ -118,19 +121,22 @@ export function DashboardPage() {
 
   const toggleProvider = async (id: number) => {
     try {
-      const result = await apiPost(`/api/instances/${id}/toggle`)
+      setError(null)
+      const result = await apiPost(`/api/instances/${id}/toggle`) as any
       if (result.success) {
         setRecentProviders(recentProviders.map(p => p.id === id ? result.data : p))
         // 静默更新统计数据，不触发 loading 状态
-        const statsResult = await apiGet('/api/instances/stats')
+        const statsResult = await apiGet('/api/instances/stats') as any
         if (statsResult.success) {
           setStats(statsResult.data)
         }
       } else {
-        alert(result.message || 'Failed to toggle provider')
+        setError(result.message || 'Failed to toggle provider')
+        setTimeout(() => setError(null), 3000)
       }
     } catch {
-      alert('Network error: Failed to toggle provider')
+      setError('Network error: Failed to toggle provider')
+      setTimeout(() => setError(null), 3000)
     }
   }
 
@@ -164,7 +170,13 @@ export function DashboardPage() {
   return (
     <div className="flex flex-col page-transition">
 
-      <div className="flex-1 space-y-6 p-6 max-w-[1600px] mx-auto w-full">
+      <div className="flex-1 space-y-6 max-w-[1600px] mx-auto w-full">
+        <Header
+          title={t('dashboard.title')}
+          subtitle={t('dashboard.description')}
+          onRefresh={fetchDashboardData}
+          loading={loading}
+        />
         {/* Loading and Error States */}
         {loading && (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -182,7 +194,7 @@ export function DashboardPage() {
             ))}
           </div>
         )}
-        
+
         {error && (
           <Card>
             <CardContent className="p-6">

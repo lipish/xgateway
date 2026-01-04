@@ -2,24 +2,44 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Header } from "@/components/layout/header"
 import { useI18n, t } from "@/lib/i18n"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Trash2, Copy, RefreshCw } from "lucide-react"
+import { Plus, Trash2, Copy, RefreshCw, Key, Shield, Globe, Zap } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Header } from "@/components/layout/header"
+import { cn } from "@/lib/utils"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 
 interface ApiKey {
   id: number
   name: string
-  key_prefix: string
+  key_hash: string
+  scope: string
+  provider_id: number | null
+  qps_limit: number
+  concurrency_limit: number
+  status: string
+  expires_at: string | null
   created_at: string
-  last_used: string | null
-  enabled: boolean
-  rate_limit: number
 }
 
 export function ApiKeysPage() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
   const [loading, setLoading] = useState(true)
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [newKeyData, setNewKeyData] = useState({
+    name: "",
+    scope: "global",
+    provider_id: null as number | null,
+    qps_limit: 10,
+    concurrency_limit: 5
+  })
+  const [createdKey, setCreatedKey] = useState<string | null>(null)
+  const [apiKeyToDelete, setApiKeyToDelete] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [copySuccess, setCopySuccess] = useState(false)
 
   useEffect(() => {
     fetchApiKeys()
@@ -37,105 +57,183 @@ export function ApiKeysPage() {
       }
     } catch (err) {
       console.error('Failed to fetch API keys:', err)
-      // 模拟数据
-      setApiKeys([
-        { id: 1, name: "Production Key", key_prefix: "llm_prod_****", created_at: new Date().toISOString(), last_used: new Date().toISOString(), enabled: true, rate_limit: 1000 },
-        { id: 2, name: "Development Key", key_prefix: "llm_dev_****", created_at: new Date(Date.now() - 86400000).toISOString(), last_used: null, enabled: true, rate_limit: 100 },
-      ])
     } finally {
       setLoading(false)
     }
   }
 
-  const createApiKey = async () => {
-    const name = prompt(t('apiKeys.enterName'))
-    if (!name) return
-    const rateLimit = prompt(t('apiKeys.enterRateLimit'), '100')
-    
+  const handleCreate = async () => {
     try {
+      setError(null)
       const response = await fetch('/api/api-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, rate_limit: parseInt(rateLimit || '100') })
+        body: JSON.stringify(newKeyData)
       })
       const data = await response.json()
       if (data.success) {
-        alert(`${t('apiKeys.createSuccess')}\n\n${t('apiKeys.saveKeyHint')}\n${data.data.full_key}`)
+        setCreatedKey(data.data.full_key)
         fetchApiKeys()
       } else {
-        alert(data.message || t('apiKeys.createFailed'))
+        setError(data.message || t('apiKeys.createFailed'))
       }
     } catch (err) {
-      alert(t('common.networkError'))
-    }
-  }
-
-  const deleteApiKey = async (id: number) => {
-    if (!confirm(t('apiKeys.confirmDelete'))) return
-    try {
-      const response = await fetch(`/api/api-keys/${id}`, { method: 'DELETE' })
-      const data = await response.json()
-      if (data.success) {
-        setApiKeys(apiKeys.filter(k => k.id !== id))
-      } else {
-        alert(data.message || t('apiKeys.deleteFailed'))
-      }
-    } catch (err) {
-      alert(t('common.networkError'))
-    }
-  }
-
-  const toggleApiKey = async (id: number) => {
-    try {
-      const response = await fetch(`/api/api-keys/${id}/toggle`, { method: 'POST' })
-      const data = await response.json()
-      if (data.success) {
-        setApiKeys(apiKeys.map(k => k.id === id ? { ...k, enabled: !k.enabled } : k))
-      }
-    } catch (err) {
-      alert(t('common.networkError'))
+      setError(t('common.networkError'))
     }
   }
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
-    alert(t('apiKeys.copiedToClipboard'))
+    setCopySuccess(true)
+    setTimeout(() => setCopySuccess(false), 2000)
+  }
+
+  const toggleApiKeyStatus = async (id: number) => {
+    try {
+      const response = await fetch(`/api/api-keys/${id}/toggle`, {
+        method: 'POST'
+      })
+      const data = await response.json()
+      if (data.success) {
+        fetchApiKeys()
+      }
+    } catch (err) {
+      console.error('Failed to toggle API key status:', err)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!apiKeyToDelete) return
+    try {
+      const response = await fetch(`/api/api-keys/${apiKeyToDelete}`, {
+        method: 'DELETE'
+      })
+      const data = await response.json()
+      if (data.success) {
+        fetchApiKeys()
+      }
+    } catch (err) {
+      console.error('Failed to delete API key:', err)
+    } finally {
+      setApiKeyToDelete(null)
+    }
   }
 
   return (
-    <div className="flex flex-col">
-      <Header title={t('apiKeys.title')} description={t('apiKeys.description')} />
-      <div className="flex-1 space-y-6 p-6 max-w-[1600px] mx-auto w-full">
-        <div className="flex items-center justify-between">
-          <Button onClick={createApiKey}>
-            <Plus className="mr-2 h-4 w-4" /> {t('apiKeys.create')}
+    <div className="flex flex-col page-transition">
+      <Header
+        title={t('nav.apiKeys')}
+        subtitle={t('apiKeys.description')}
+        onRefresh={fetchApiKeys}
+        loading={loading}
+        actions={
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => setShowCreateDialog(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            {t('apiKeys.create')}
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchApiKeys}>
-            <RefreshCw className="mr-2 h-4 w-4" /> {t('apiKeys.refresh')}
-          </Button>
-        </div>
+        }
+      />
+      <div className="flex-1 space-y-4 max-w-[1600px] mx-auto w-full">
+
+        <Dialog open={showCreateDialog} onOpenChange={(open) => {
+          setShowCreateDialog(open)
+          if (!open) setCreatedKey(null)
+        }}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>{t('apiKeys.create')}</DialogTitle>
+              <DialogDescription>
+                {createdKey ? t('apiKeys.saveKeyHint') : t('apiKeys.listDesc')}
+              </DialogDescription>
+            </DialogHeader>
+
+            {createdKey ? (
+              <div className="space-y-4 py-4">
+                <div className="rounded-md bg-muted p-3 flex items-center justify-between group">
+                  <code className="text-sm font-mono break-all">{createdKey}</code>
+                  <Button variant="ghost" size="icon" onClick={() => copyToClipboard(createdKey)}>
+                    {copySuccess ? <span className="text-[10px] text-primary">Copied!</span> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <div className="p-3 bg-destructive/5 border border-destructive/20 rounded-md">
+                  <p className="text-xs text-destructive font-medium flex items-center gap-2">
+                    <Shield className="h-3 w-3" /> {t('apiKeys.saveKeyHint')}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">{t('apiKeys.name')}</Label>
+                  <Input id="name" value={newKeyData.name} onChange={e => setNewKeyData({ ...newKeyData, name: e.target.value })} placeholder="e.g. My App" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>{t('apiKeys.qps')}</Label>
+                    <Input type="number" value={newKeyData.qps_limit} onChange={e => setNewKeyData({ ...newKeyData, qps_limit: parseFloat(e.target.value) })} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>{t('apiKeys.concurrency')}</Label>
+                    <Input type="number" value={newKeyData.concurrency_limit} onChange={e => setNewKeyData({ ...newKeyData, concurrency_limit: parseInt(e.target.value) })} />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label>{t('apiKeys.scope')}</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={newKeyData.scope}
+                    onChange={e => setNewKeyData({ ...newKeyData, scope: e.target.value })}
+                  >
+                    <option value="global">{t('apiKeys.global')}</option>
+                    <option value="instance">{t('apiKeys.instance')}</option>
+                  </select>
+                </div>
+                {error && (
+                  <p className="text-sm text-destructive mt-2">{error}</p>
+                )}
+              </div>
+            )}
+
+            <DialogFooter>
+              {createdKey ? (
+                <Button onClick={() => setShowCreateDialog(false)}>{t('common.confirm')}</Button>
+              ) : (
+                <Button onClick={handleCreate}>{t('common.save')}</Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
 
         <Card>
-          <CardHeader>
-            <CardTitle>{t('apiKeys.list')}</CardTitle>
-            <CardDescription>{t('apiKeys.listDesc')}</CardDescription>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {loading ? (
-              <div className="text-center py-4">{t('common.loading')}</div>
+              <div className="flex flex-col gap-4">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-10 w-full bg-muted animate-pulse rounded" />
+                ))}
+              </div>
             ) : apiKeys.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">{t('apiKeys.noKeys')}</div>
+              <div className="text-center py-12 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
+                <Key className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                <p>{t('apiKeys.noKeys')}</p>
+              </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t('apiKeys.name')}</TableHead>
                     <TableHead>{t('apiKeys.key')}</TableHead>
+                    <TableHead>{t('apiKeys.scope')}</TableHead>
+                    <TableHead>{t('apiKeys.qps')}</TableHead>
+                    <TableHead>{t('apiKeys.concurrency')}</TableHead>
                     <TableHead>{t('apiKeys.status')}</TableHead>
-                    <TableHead>{t('apiKeys.rateLimit')}</TableHead>
                     <TableHead>{t('apiKeys.createdAt')}</TableHead>
-                    <TableHead>{t('apiKeys.lastUsed')}</TableHead>
-                    <TableHead>{t('apiKeys.actions')}</TableHead>
+                    <TableHead className="text-right">{t('apiKeys.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -143,29 +241,52 @@ export function ApiKeysPage() {
                     <TableRow key={key.id}>
                       <TableCell className="font-medium">{key.name}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <code className="bg-muted px-2 py-1 rounded text-sm">{key.key_prefix}</code>
-                          <Button variant="ghost" size="icon" onClick={() => copyToClipboard(key.key_prefix)}>
-                            <Copy className="h-4 w-4" />
-                          </Button>
+                        <code className="bg-muted px-2 py-1 rounded text-xs font-mono">
+                          {key.key_hash.substring(0, 8)}...
+                        </code>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="gap-1 font-normal">
+                          {key.scope === 'global' ? <Globe className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
+                          {key.scope === 'global' ? t('apiKeys.global') : t('apiKeys.instance')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <Zap className="h-3.5 w-3.5 text-amber-500" />
+                          <span className="text-sm font-medium">{key.qps_limit}</span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge 
-                          className={key.enabled ? "bg-primary/10 text-primary border-0 cursor-pointer" : "cursor-pointer"}
-                          variant={key.enabled ? "outline" : "destructive"} 
-                          onClick={() => toggleApiKey(key.id)}
+                        <span className="text-sm font-medium">{key.concurrency_limit}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={cn(
+                            "cursor-pointer",
+                            key.status === 'active' ? "bg-primary/10 text-primary border-0" : "bg-muted text-muted-foreground border-0"
+                          )}
+                          onClick={() => toggleApiKeyStatus(key.id)}
+                          title={t('common.toggleStatus')}
                         >
-                          {key.enabled ? t('apiKeys.enabled') : t('apiKeys.disabled')}
+                          {key.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>{key.rate_limit}/min</TableCell>
-                      <TableCell>{new Date(key.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell>{key.last_used ? new Date(key.last_used).toLocaleString() : '-'}</TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteApiKey(key.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {new Date(key.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setApiKeyToDelete(key.id)}
+                            title={t('common.delete')}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -174,6 +295,23 @@ export function ApiKeysPage() {
             )}
           </CardContent>
         </Card>
+
+        <AlertDialog open={!!apiKeyToDelete} onOpenChange={(open) => !open && setApiKeyToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('apiKeys.confirmDelete')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('apiKeys.deleteWarning') || 'This action cannot be undone. This will permanently revoke the API key.'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {t('common.delete')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   )

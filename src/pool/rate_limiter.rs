@@ -1,14 +1,7 @@
-//! Rate Limiter Module
-//!
-//! Implements token bucket rate limiting for:
-//! - Global request rate limiting
-//! - Per-provider rate limiting
-//! - Per-API-key rate limiting
-
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, Semaphore, OwnedSemaphorePermit};
 use serde::{Deserialize, Serialize};
 
 /// Rate limiter configuration
@@ -20,6 +13,8 @@ pub struct RateLimitConfig {
     pub burst_size: u64,
     /// Whether rate limiting is enabled
     pub enabled: bool,
+    /// Maximum concurrent requests
+    pub max_concurrency: Option<u32>,
 }
 
 impl Default for RateLimitConfig {
@@ -28,6 +23,7 @@ impl Default for RateLimitConfig {
             requests_per_second: 100.0,
             burst_size: 200,
             enabled: true,
+            max_concurrency: None,
         }
     }
 }
@@ -93,12 +89,17 @@ impl TokenBucket {
 }
 
 /// Rate limiter result
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum RateLimitResult {
     /// Request allowed
-    Allowed { remaining: u64 },
+    Allowed { 
+        remaining: u64,
+        concurrency_permit: Option<OwnedSemaphorePermit>,
+    },
     /// Request denied due to rate limit
     Denied { retry_after: Duration },
+    /// Request denied due to concurrency limit
+    ConcurrencyExceeded,
 }
 
 /// Rate limiter for managing request rates
@@ -109,6 +110,8 @@ pub struct RateLimiter {
     providers: Arc<RwLock<HashMap<i64, TokenBucket>>>,
     /// Per-API-key rate limit buckets
     api_keys: Arc<RwLock<HashMap<String, TokenBucket>>>,
+    /// Per-API-key concurrency semaphores
+    api_key_semaphores: Arc<RwLock<HashMap<String, Arc<Semaphore>>>>,
     /// Default config for new buckets
     default_config: RateLimitConfig,
     /// Provider-specific configs
@@ -122,6 +125,7 @@ impl RateLimiter {
             global: Arc::new(RwLock::new(TokenBucket::new(global_config.clone()))),
             providers: Arc::new(RwLock::new(HashMap::new())),
             api_keys: Arc::new(RwLock::new(HashMap::new())),
+            api_key_semaphores: Arc::new(RwLock::new(HashMap::new())),
             default_config: global_config,
             provider_configs: Arc::new(RwLock::new(HashMap::new())),
         }
@@ -131,36 +135,52 @@ impl RateLimiter {
     pub async fn check_global(&self) -> RateLimitResult {
         let mut bucket = self.global.write().await;
         if bucket.try_acquire() {
-            RateLimitResult::Allowed { remaining: bucket.remaining() }
+            RateLimitResult::Allowed { 
+                remaining: bucket.remaining(),
+                concurrency_permit: None,
+            }
         } else {
             RateLimitResult::Denied { retry_after: bucket.time_until_available() }
         }
     }
 
-    /// Check provider-specific rate limit
-    pub async fn check_provider(&self, provider_id: i64) -> RateLimitResult {
-        let mut providers = self.providers.write().await;
-        let config = {
-            let configs = self.provider_configs.read().await;
-            configs.get(&provider_id).cloned().unwrap_or_else(|| self.default_config.clone())
+    /// Check API key rate limit and concurrency
+    pub async fn check_api_key(&self, api_key: &str, config: Option<RateLimitConfig>) -> RateLimitResult {
+        let actual_config = config.unwrap_or_else(|| self.default_config.clone());
+        
+        // 1. Check RPS
+        {
+            let mut api_keys = self.api_keys.write().await;
+            let bucket = api_keys.entry(api_key.to_string())
+                .or_insert_with(|| TokenBucket::new(actual_config.clone()));
+            
+            // Update config if it changed
+            if bucket.config.requests_per_second != actual_config.requests_per_second {
+                bucket.config = actual_config.clone();
+            }
+
+            if !bucket.try_acquire() {
+                return RateLimitResult::Denied { retry_after: bucket.time_until_available() };
+            }
+        }
+
+        // 2. Check Concurrency
+        let permit = if let Some(max) = actual_config.max_concurrency {
+            let mut semaphores = self.api_key_semaphores.write().await;
+            let sem = semaphores.entry(api_key.to_string())
+                .or_insert_with(|| Arc::new(Semaphore::new(max as usize)));
+            
+            match sem.clone().try_acquire_owned() {
+                Ok(permit) => Some(permit),
+                Err(_) => return RateLimitResult::ConcurrencyExceeded,
+            }
+        } else {
+            None
         };
-        let bucket = providers.entry(provider_id).or_insert_with(|| TokenBucket::new(config));
-        if bucket.try_acquire() {
-            RateLimitResult::Allowed { remaining: bucket.remaining() }
-        } else {
-            RateLimitResult::Denied { retry_after: bucket.time_until_available() }
-        }
-    }
 
-    /// Check API key rate limit
-    pub async fn check_api_key(&self, api_key: &str) -> RateLimitResult {
-        let mut api_keys = self.api_keys.write().await;
-        let bucket = api_keys.entry(api_key.to_string())
-            .or_insert_with(|| TokenBucket::new(self.default_config.clone()));
-        if bucket.try_acquire() {
-            RateLimitResult::Allowed { remaining: bucket.remaining() }
-        } else {
-            RateLimitResult::Denied { retry_after: bucket.time_until_available() }
+        RateLimitResult::Allowed { 
+            remaining: 0, 
+            concurrency_permit: permit,
         }
     }
 
@@ -172,50 +192,48 @@ impl RateLimiter {
                 return RateLimitResult::Denied { retry_after };
             }
             RateLimitResult::Allowed { .. } => {}
+            RateLimitResult::ConcurrencyExceeded => unreachable!(),
         }
 
         // Check provider if specified
         if let Some(id) = provider_id {
-            return self.check_provider(id).await;
+            // ... provider check (simplified for now)
+            let mut providers = self.providers.write().await;
+            let config = {
+                let configs = self.provider_configs.read().await;
+                configs.get(&id).cloned().unwrap_or_else(|| self.default_config.clone())
+            };
+            let bucket = providers.entry(id).or_insert_with(|| TokenBucket::new(config));
+            if bucket.try_acquire() {
+                return RateLimitResult::Allowed { 
+                    remaining: bucket.remaining(),
+                    concurrency_permit: None,
+                };
+            } else {
+                return RateLimitResult::Denied { retry_after: bucket.time_until_available() };
+            }
         }
 
-        RateLimitResult::Allowed { remaining: 0 }
+        RateLimitResult::Allowed { remaining: 0, concurrency_permit: None }
+    }
+
+    /// Set global rate limit config
+    pub async fn set_global_config(&self, config: RateLimitConfig) {
+        let mut global = self.global.write().await;
+        *global = TokenBucket::new(config.clone());
     }
 
     /// Set provider-specific rate limit config
     pub async fn set_provider_config(&self, provider_id: i64, config: RateLimitConfig) {
         let mut configs = self.provider_configs.write().await;
-        configs.insert(provider_id, config.clone());
-        // Update existing bucket if present
-        let mut providers = self.providers.write().await;
-        if let Some(bucket) = providers.get_mut(&provider_id) {
-            bucket.config = config;
-        }
-    }
-
-    /// Get rate limit status for a provider
-    pub async fn get_provider_status(&self, provider_id: i64) -> Option<(u64, RateLimitConfig)> {
-        let mut providers = self.providers.write().await;
-        providers.get_mut(&provider_id).map(|b| {
-            (b.remaining(), b.config.clone())
-        })
+        configs.insert(provider_id, config);
     }
 
     /// Get global rate limit status
     pub async fn get_global_status(&self) -> (u64, RateLimitConfig) {
-        let mut bucket = self.global.write().await;
-        (bucket.remaining(), bucket.config.clone())
-    }
-
-    /// Update global config
-    pub async fn set_global_config(&self, config: RateLimitConfig) {
-        let mut bucket = self.global.write().await;
-        bucket.config = config;
-    }
-
-    /// Check if rate limiting is enabled
-    pub fn is_enabled(&self) -> bool {
-        self.default_config.enabled
+        let mut global = self.global.write().await;
+        (global.remaining(), global.config.clone())
     }
 }
+
 

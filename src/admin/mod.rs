@@ -63,8 +63,13 @@ pub fn create_admin_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -
         .route("/api/conversations", get(list_conversations_api).post(create_conversation_api))
         .route("/api/conversations/:id", get(get_conversation_api).put(update_conversation_api).delete(delete_conversation_api))
         .route("/api/conversations/:id/messages", get(list_messages_api).post(create_message_api))
+        // User management
+        .route("/api/users", get(list_users_api).post(create_user_api))
+        .route("/api/users/:id", delete(delete_user_api))
+        .route("/api/users/:id/toggle", post(toggle_user_api))
         .with_state(state)
 }
+
 
 #[derive(Serialize)]
 struct ApiResponse<T: Serialize> {
@@ -252,62 +257,133 @@ async fn get_logs_api(
 }
 
 /// List API keys
-async fn list_api_keys_api() -> Json<ApiResponse<Vec<serde_json::Value>>> {
-    Json(ApiResponse {
-        success: true,
-        data: Some(vec![
-            serde_json::json!({
-                "id": 1,
-                "name": "Default Key",
-                "key_prefix": "llm_****",
-                "created_at": "2024-01-01T00:00:00Z",
-                "last_used": null,
-                "enabled": true,
-                "rate_limit": 100
-            })
-        ]),
-        message: "API keys retrieved".to_string(),
-    })
+async fn list_api_keys_api(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+) -> Json<ApiResponse<Vec<crate::db::ApiKey>>> {
+    match db_pool.list_api_keys().await {
+        Ok(keys) => Json(ApiResponse {
+            success: true,
+            data: Some(keys),
+            message: "API keys retrieved".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to list API keys: {}", e),
+        }),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct CreateApiKeyRequest {
+    name: String,
+    scope: String,
+    provider_id: Option<i64>,
+    qps_limit: f64,
+    concurrency_limit: i32,
+    expires_in_days: Option<i64>,
 }
 
 /// Create API key
 async fn create_api_key_api(
-    Json(_req): Json<serde_json::Value>,
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    Json(req): Json<CreateApiKeyRequest>,
 ) -> Json<ApiResponse<serde_json::Value>> {
-    let key = format!("llm_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
-    Json(ApiResponse {
-        success: true,
-        data: Some(serde_json::json!({
-            "id": 2,
-            "full_key": key,
-            "name": "New Key",
-            "created_at": chrono::Utc::now().to_rfc3339()
-        })),
-        message: "API key created".to_string(),
-    })
+    let key = format!("sk-link-{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
+    // In a real system, we'd hash the key before storing
+    let key_hash = key.clone(); 
+    
+    let expires_at = req.expires_in_days.map(|days| {
+        chrono::Utc::now() + chrono::Duration::days(days)
+    });
+
+    let new_key = crate::db::NewApiKey {
+        owner_id: None, // TODO: Get from auth context
+        key_hash,
+        name: req.name,
+        scope: req.scope,
+        provider_id: req.provider_id,
+        qps_limit: req.qps_limit,
+        concurrency_limit: req.concurrency_limit,
+        expires_at,
+    };
+
+    match db_pool.create_api_key(new_key).await {
+        Ok(_) => Json(ApiResponse {
+            success: true,
+            data: Some(serde_json::json!({
+                "full_key": key,
+                "message": "Please copy this key now, as it will not be shown again."
+            })),
+            message: "API key created successfully".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to create API key: {}", e),
+        }),
+    }
 }
 
 /// Delete API key
 async fn delete_api_key_api(
-    axum::extract::Path(_id): axum::extract::Path<i64>,
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::extract::Path(id): axum::extract::Path<i32>,
 ) -> Json<ApiResponse<()>> {
-    Json(ApiResponse {
-        success: true,
-        data: None,
-        message: "API key deleted".to_string(),
-    })
+    match db_pool.delete_api_key(id).await {
+        Ok(true) => Json(ApiResponse {
+            success: true,
+            data: Some(()),
+            message: "API key deleted".to_string(),
+        }),
+        Ok(false) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: "API key not found".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to delete API key: {}", e),
+        }),
+    }
 }
 
 /// Toggle API key
 async fn toggle_api_key_api(
-    axum::extract::Path(_id): axum::extract::Path<i64>,
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::extract::Path(id): axum::extract::Path<i32>,
 ) -> Json<ApiResponse<()>> {
-    Json(ApiResponse {
-        success: true,
-        data: None,
-        message: "API key toggled".to_string(),
-    })
+    // Get current status first
+    match db_pool.get_api_key_by_id(id).await {
+        Ok(Some(key)) => {
+            let new_status = if key.status == "active" { "disabled" } else { "active" };
+            match db_pool.update_api_key_status(id, new_status).await {
+                Ok(_) => Json(ApiResponse {
+                    success: true,
+                    data: Some(()),
+                    message: format!("API key status updated to {}", new_status),
+                }),
+                Err(e) => Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: format!("Failed to toggle API key: {}", e),
+                }),
+            }
+        }
+        Ok(None) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: "API key not found".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to get API key: {}", e),
+        }),
+    }
 }
+
 
 /// Get supported provider types (from database)
 async fn get_provider_types_api(
@@ -709,6 +785,123 @@ async fn create_message_api(
             success: false,
             data: None,
             message: format!("Failed to create message: {}", e),
+        }),
+    }
+}
+
+// ============= User Management API =============
+
+/// List users
+async fn list_users_api(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+) -> Json<ApiResponse<Vec<crate::db::User>>> {
+    match db_pool.list_users().await {
+        Ok(users) => Json(ApiResponse {
+            success: true,
+            data: Some(users),
+            message: "Users retrieved".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to list users: {}", e),
+        }),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct CreateUserRequest {
+    username: String,
+    password_hash: String, // In a real system, we'd hash this on the server
+    #[serde(default)]
+    role_id: Option<String>,
+}
+
+/// Create a new user
+async fn create_user_api(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    Json(req): Json<CreateUserRequest>,
+) -> Json<ApiResponse<i32>> {
+    let new_user = crate::db::NewUser {
+        username: req.username,
+        password_hash: req.password_hash,
+        role_id: req.role_id,
+    };
+
+    match db_pool.create_user(new_user).await {
+        Ok(id) => Json(ApiResponse {
+            success: true,
+            data: Some(id),
+            message: "User created successfully".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to create user: {}", e),
+        }),
+    }
+}
+
+/// Delete user
+async fn delete_user_api(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::extract::Path(id): axum::extract::Path<i32>,
+) -> Json<ApiResponse<()>> {
+    match db_pool.delete_user(id).await {
+        Ok(true) => Json(ApiResponse {
+            success: true,
+            data: Some(()),
+            message: "User deleted".to_string(),
+        }),
+        Ok(false) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: "User not found".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to delete user: {}", e),
+        }),
+    }
+}
+
+/// Toggle user status
+async fn toggle_user_api(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::extract::Path(id): axum::extract::Path<i32>,
+) -> Json<ApiResponse<()>> {
+    // We need a way to get user by id to toggle
+    // For now, let's just list and find (inefficient but works for small user lists)
+    // Or add get_user_by_id to DatabasePool
+    match db_pool.list_users().await {
+        Ok(users) => {
+            if let Some(user) = users.into_iter().find(|u| u.id == id) {
+                let new_status = if user.status == "active" { "disabled" } else { "active" };
+                match db_pool.update_user_status(id, new_status).await {
+                    Ok(_) => Json(ApiResponse {
+                        success: true,
+                        data: Some(()),
+                        message: format!("User status updated to {}", new_status),
+                    }),
+                    Err(e) => Json(ApiResponse {
+                        success: false,
+                        data: None,
+                        message: format!("Failed to toggle user status: {}", e),
+                    }),
+                }
+            } else {
+                Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: "User not found".to_string(),
+                })
+            }
+        }
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to list users: {}", e),
         }),
     }
 }

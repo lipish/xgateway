@@ -3,7 +3,9 @@ import { apiGet, apiPut, apiPost, apiDelete } from "@/lib/api"
 import { t } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Loader2, Plus, Search } from "lucide-react"
+import { Loader2, Plus, Search, HelpCircle, RefreshCw } from "lucide-react"
+import { Header } from "@/components/layout/header"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 
 import type { ProviderType, ModelInfo } from "@/components/providers/types"
 import { generateIdFromLabel } from "@/components/providers/utils"
@@ -25,6 +27,9 @@ export function ModelTypesPage() {
   const [showEditProvider, setShowEditProvider] = useState(false)
   const [editingProvider, setEditingProvider] = useState<ProviderType | null>(null)
   const [providerForm, setProviderForm] = useState({ id: "", label: "", base_url: "", driver_type: "openai_compatible", docs_url: "" })
+  const [error, setError] = useState<string | null>(null)
+  const [modelToDelete, setModelToDelete] = useState<{ typeId: string; modelId: string } | null>(null)
+  const [providerToDelete, setProviderToDelete] = useState<string | null>(null)
 
   const handleLabelChange = (label: string) => {
     const id = generateIdFromLabel(label)
@@ -70,11 +75,13 @@ export function ModelTypesPage() {
   const saveModel = async () => {
     if (!editingModel) return
     if (!modelForm.id || !modelForm.name) {
-      alert(t("modelTypes.pleaseEnterModelInfo"))
+      setError(t("modelTypes.pleaseEnterModelInfo"))
+      setTimeout(() => setError(null), 3000)
       return
     }
 
     setSaving(true)
+    setError(null)
     try {
       const providerType = providerTypes.find(pt => pt.id === editingModel.typeId)
       if (!providerType) return
@@ -88,18 +95,19 @@ export function ModelTypesPage() {
         await fetchProviderTypes()
         closeDialog()
       } else {
-        alert(response.message || t("common.saveFailed"))
+        setError(response.message || t("common.saveFailed"))
       }
     } catch {
-      alert(t("common.networkError"))
+      setError(t("common.networkError"))
     } finally {
       setSaving(false)
     }
   }
 
-  const deleteModel = async (typeId: string, modelId: string) => {
-    if (!confirm(t("modelTypes.confirmDeleteModel"))) return
+  const handleDeleteModel = async () => {
+    if (!modelToDelete) return
 
+    const { typeId, modelId } = modelToDelete
     const providerType = providerTypes.find(pt => pt.id === typeId)
     if (!providerType) return
 
@@ -108,15 +116,18 @@ export function ModelTypesPage() {
     if (response.success) {
       await fetchProviderTypes()
     }
+    setModelToDelete(null)
   }
 
   const addProvider = async () => {
     if (!providerForm.id || !providerForm.label) {
-      alert(t("modelTypes.pleaseEnterProviderInfo"))
+      setError(t("modelTypes.pleaseEnterProviderInfo"))
+      setTimeout(() => setError(null), 3000)
       return
     }
 
     setSaving(true)
+    setError(null)
     try {
       const response = await apiPost<{ success: boolean; message?: string }>("/api/provider-types", {
         ...providerForm,
@@ -129,10 +140,10 @@ export function ModelTypesPage() {
         setShowAddProvider(false)
         setProviderForm({ id: "", label: "", base_url: "", driver_type: "openai_compatible", docs_url: "" })
       } else {
-        alert(response.message || t("common.saveFailed"))
+        setError(response.message || t("common.saveFailed"))
       }
     } catch {
-      alert(t("common.networkError"))
+      setError(t("common.networkError"))
     } finally {
       setSaving(false)
     }
@@ -152,11 +163,13 @@ export function ModelTypesPage() {
 
   const editProvider = async () => {
     if (!editingProvider || !providerForm.label) {
-      alert(t("modelTypes.pleaseEnterProviderInfo"))
+      setError(t("modelTypes.pleaseEnterProviderInfo"))
+      setTimeout(() => setError(null), 3000)
       return
     }
 
     setSaving(true)
+    setError(null)
     try {
       const response = await apiPut<{ success: boolean; message?: string }>(`/api/provider-types/${editingProvider.id}`, {
         label: providerForm.label,
@@ -169,30 +182,32 @@ export function ModelTypesPage() {
         setShowEditProvider(false)
         setEditingProvider(null)
       } else {
-        alert(response.message || t("common.saveFailed"))
+        setError(response.message || t("common.saveFailed"))
       }
     } catch {
-      alert(t("common.networkError"))
+      setError(t("common.networkError"))
     } finally {
       setSaving(false)
     }
   }
 
-  const deleteProvider = async (providerId: string) => {
-    if (!confirm(t("modelTypes.confirmDelete"))) return
+  const handleDeleteProvider = async () => {
+    if (!providerToDelete) return
 
     try {
-      const response = await apiDelete<{ success: boolean; message?: string }>(`/api/provider-types/${providerId}`)
+      const response = await apiDelete<{ success: boolean; message?: string }>(`/api/provider-types/${providerToDelete}`)
       if (response.success) {
         await fetchProviderTypes()
-        if (selectedType?.id === providerId) {
+        if (selectedType?.id === providerToDelete) {
           setSelectedType(null)
         }
       } else {
-        alert(response.message || t("common.saveFailed"))
+        setError(response.message || t("common.saveFailed"))
       }
     } catch {
-      alert(t("common.networkError"))
+      setError(t("common.networkError"))
+    } finally {
+      setProviderToDelete(null)
     }
   }
 
@@ -202,8 +217,18 @@ export function ModelTypesPage() {
   )
 
   return (
-    <div className="flex flex-col">
-      <div className="flex-1 p-6 max-w-[1600px] mx-auto w-full">
+    <div className="flex flex-col page-transition">
+      <Header
+        title={t('nav.modelTypes')}
+        subtitle={t('providers.description')}
+      />
+      <div className="flex-1 max-w-[1600px] mx-auto w-full">
+        {error && (
+          <div className="mb-6 p-4 rounded-lg bg-destructive/5 text-destructive border border-destructive/20 flex items-center justify-between">
+            <span className="text-sm font-medium">{error}</span>
+            <Button variant="ghost" size="sm" onClick={() => setError(null)}>×</Button>
+          </div>
+        )}
         {loading && (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -253,9 +278,9 @@ export function ModelTypesPage() {
                   provider={selectedType}
                   onAddModel={openAddModel}
                   onEditModel={openEditModel}
-                  onDeleteModel={deleteModel}
+                  onDeleteModel={(typeId, modelId) => setModelToDelete({ typeId, modelId })}
                   onEditProvider={openEditProvider}
-                  onDeleteProvider={deleteProvider}
+                  onDeleteProvider={setProviderToDelete}
                 />
               ) : (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground">
@@ -294,6 +319,40 @@ export function ModelTypesPage() {
           onSubmit={editProvider}
           saving={saving}
         />
+
+        <AlertDialog open={!!modelToDelete} onOpenChange={(open) => !open && setModelToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('modelTypes.confirmDeleteModel')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('modelTypes.deleteModelWarning') || 'This action cannot be undone. This will permanently delete the model definition.'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteModel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {t('common.delete')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={!!providerToDelete} onOpenChange={(open) => !open && setProviderToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('modelTypes.confirmDelete')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('modelTypes.deleteProviderWarning') || 'This action cannot be undone. This will permanently delete the provider and all its models.'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteProvider} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {t('common.delete')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   )

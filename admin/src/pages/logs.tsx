@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react"
 import { apiGet } from "@/lib/api"
+import { Header } from "@/components/layout/header"
 import { useI18n, t } from "@/lib/i18n"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Header } from "@/components/layout/header"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { RefreshCw, Search, Download, Clock, Server } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface RequestLog {
   id: number
@@ -37,7 +38,7 @@ export function LogsPage() {
   const fetchLogs = async () => {
     try {
       setLoading(true)
-      const data = await apiGet('/api/logs?limit=100')
+      const data = await apiGet('/api/logs?limit=100') as any
       if (data.success) {
         const logsData = data.data || []
         setLogs(logsData)
@@ -56,7 +57,7 @@ export function LogsPage() {
 
   const filteredLogs = logs.filter(log => {
     const matchesSearch = log.provider_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          log.model.toLowerCase().includes(searchQuery.toLowerCase())
+      log.model.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = statusFilter === "all" || log.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -86,33 +87,37 @@ export function LogsPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      <div className="flex-1 p-6 max-w-[1600px] mx-auto w-full overflow-hidden">
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <div className="flex items-center gap-2 flex-1">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder={t('logs.search')} className="pl-9" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-            </div>
-            <select
-              className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="all">{t('logs.allStatus')}</option>
-              <option value="success">{t('common.success')}</option>
-              <option value="error">{t('common.error')}</option>
-              <option value="timeout">{t('logs.timeout')}</option>
-            </select>
-          </div>
+    <div className="flex flex-col h-full page-transition">
+      <Header
+        title={t('logs.title')}
+        subtitle={t('logs.description')}
+        actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={fetchLogs}>
-              <RefreshCw className="mr-2 h-4 w-4" /> {t('apiKeys.refresh')}
+              <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} /> {t('common.refresh')}
             </Button>
             <Button variant="outline" size="sm" onClick={exportLogs}>
               <Download className="mr-2 h-4 w-4" /> {t('logs.export')}
             </Button>
           </div>
+        }
+      />
+      <div className="flex-1 max-w-[1600px] mx-auto w-full overflow-hidden">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder={t('logs.search')} className="pl-9" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+          </div>
+          <select
+            className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">{t('logs.allStatus')}</option>
+            <option value="success">{t('common.success')}</option>
+            <option value="error">{t('common.error')}</option>
+            <option value="timeout">{t('logs.timeout')}</option>
+          </select>
         </div>
 
         <div className="flex gap-6 h-[calc(100%-60px)]">
@@ -217,11 +222,10 @@ export function LogsPage() {
 
                         return messages.map((msg, idx) => (
                           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[85%] p-3 rounded-lg text-sm ${
-                              msg.role === 'user'
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted'
-                            }`}>
+                            <div className={`max-w-[85%] p-3 rounded-lg text-sm ${msg.role === 'user'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted'
+                              }`}>
                               <div className="text-xs opacity-70 mb-1">{msg.role === 'user' ? t('logs.user') : t('logs.assistant')}</div>
                               <div className="whitespace-pre-wrap">{msg.content}</div>
                             </div>

@@ -6,6 +6,7 @@ import { MonitoringPage } from "@/pages/monitoring"
 import { LogsPage } from "@/pages/logs"
 import { SettingsPage } from "@/pages/settings"
 import { ApiKeysPage } from "@/pages/api-keys"
+import { UsersPage } from "@/pages/users"
 import { HelpPage } from "@/pages/help"
 import { ChatPage } from "@/pages/chat"
 import { ModelTypesPage } from "@/pages/providers"
@@ -22,6 +23,7 @@ function App() {
           <Route path="monitoring" element={<MonitoringPage />} />
           <Route path="logs" element={<LogsPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="users" element={<UsersPage />} />
           <Route path="api-keys" element={<ApiKeysPage />} />
           <Route path="help" element={<HelpPage />} />
         </Route>
@@ -29,5 +31,6 @@ function App() {
     </BrowserRouter>
   )
 }
+
 
 export default App

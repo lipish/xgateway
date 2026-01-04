@@ -63,9 +63,7 @@ export function ProviderDetail({ provider, onAddModel, onEditModel, onDeleteMode
             <div
               onClick={(e) => {
                 e.stopPropagation()
-                if (confirm(t("modelTypes.confirmDelete"))) {
-                  onDeleteProvider(provider.id)
-                }
+                onDeleteProvider(provider.id)
               }}
               className="h-8 w-8 flex items-center justify-center cursor-pointer text-muted-foreground hover:text-destructive rounded-md transition-colors"
               title={t("providers.delete")}

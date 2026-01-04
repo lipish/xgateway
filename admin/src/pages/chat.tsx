@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
 import { apiGet, apiPost } from "@/lib/api"
+import { Header } from "@/components/layout/header"
 import { useI18n, t } from "@/lib/i18n"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,9 +10,9 @@ import remarkGfm from "remark-gfm"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"
 
+import { useNavigate } from "react-router-dom"
 import { Send, Loader2, Bot, Plus, X, MessageSquarePlus, History, Trash2, PanelLeftClose, PanelLeft, Settings } from "lucide-react"
 import { Select } from "@/components/ui/select"
-import { useNavigate } from "react-router-dom"
 
 interface Provider {
   id: number
@@ -52,14 +53,14 @@ export function ChatPage() {
   const inputRefs = useRef<{ [key: string]: HTMLTextAreaElement | null }>({})
 
   const fetchConversations = async () => {
-    const result = await apiGet("/api/conversations?limit=50")
+    const result = await apiGet("/api/conversations?limit=50") as any
     if (result.success) {
       setConversations(result.data)
     }
   }
 
   useEffect(() => {
-    apiGet("/api/instances").then(result => {
+    apiGet("/api/instances").then((result: any) => {
       if (result.success) {
         const enabledProviders = result.data.filter((p: Provider) => p.enabled)
         setProviders(enabledProviders)
@@ -114,7 +115,7 @@ export function ChatPage() {
   }
 
   const loadConversation = async (conversationId: number, panelId: string) => {
-    const result = await apiGet(`/api/conversations/${conversationId}`)
+    const result = await apiGet(`/api/conversations/${conversationId}`) as any
     if (result.success) {
       const conv = result.data
       setPanels(prev => prev.map(p => p.id === panelId ? {
@@ -136,7 +137,7 @@ export function ChatPage() {
   }
 
   const createConversation = async (providerId: number, title?: string): Promise<number | null> => {
-    const result = await apiPost("/api/conversations", { provider_id: providerId, title })
+    const result = await apiPost("/api/conversations", { provider_id: providerId, title }) as any
     if (result.success) {
       fetchConversations()
       return result.data.id
@@ -284,7 +285,11 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] -m-6 page-transition">
+    <div className="flex flex-col h-full page-transition overflow-hidden">
+      <Header
+        title={t('chat.title')}
+        subtitle={t('chat.description')}
+      />
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* 历史对话侧边栏 */}
         {showHistory && (
@@ -333,7 +338,7 @@ export function ChatPage() {
         )}
 
         {/* 主内容区 */}
-        <div className="flex-1 p-6 flex flex-col overflow-hidden min-h-0">
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
           <div className="flex gap-2 mb-4 shrink-0">
             {!showHistory && (
               <Button variant="outline" size="sm" onClick={() => setShowHistory(true)}>
@@ -349,115 +354,115 @@ export function ChatPage() {
           <div className={`flex-1 grid gap-4 overflow-hidden min-h-0 ${panels.length === 1 ? 'grid-cols-1' : panels.length === 2 ? 'grid-cols-2' : panels.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
             {panels.map(panel => (
               <div key={panel.id} className={panels.length === 1 ? "max-w-[50%] mx-auto w-full flex min-h-0" : "flex min-h-0"}>
-              <Card className="flex flex-col overflow-hidden min-h-0 flex-1">
-                <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
-                  <div className="flex items-center gap-2">
-                    <Select
-                      value={panel.providerId?.toString() || ""}
-                      onChange={v => setProviderForPanel(panel.id, parseInt(v))}
-                      options={providers.map(p => ({ value: p.id.toString(), label: `${p.name} (${p.provider_type})` }))}
-                      placeholder={t('chat.selectProviderPlaceholder')}
-                      className="w-[220px]"
-                    />
-                    {panel.providerId && (
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => navigate(`/instances?select=${panel.providerId}`)}
-                        title={t('providers.edit')}
-                      >
-                        <Settings className="w-4 h-4" />
+                <Card className="flex flex-col overflow-hidden min-h-0 flex-1">
+                  <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={panel.providerId?.toString() || ""}
+                        onChange={v => setProviderForPanel(panel.id, parseInt(v))}
+                        options={providers.map(p => ({ value: p.id.toString(), label: `${p.name} (${p.provider_type})` }))}
+                        placeholder={t('chat.selectProviderPlaceholder')}
+                        className="w-[220px]"
+                      />
+                      {panel.providerId && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => navigate(`/instances?select=${panel.providerId}`)}
+                          title={t('providers.edit')}
+                        >
+                          <Settings className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => clearPanel(panel.id)} title={t('chat.newChat')}>
+                        <MessageSquarePlus className="w-4 h-4" />
                       </Button>
-                    )}
-                  </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => clearPanel(panel.id)} title={t('chat.newChat')}>
-                      <MessageSquarePlus className="w-4 h-4" />
-                    </Button>
-                    {panels.length > 1 && (
-                      <Button variant="ghost" size="icon" onClick={() => removePanel(panel.id)} title={t('chat.close')}>
-                        <X className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col overflow-hidden p-0 min-h-0">
-                  <div className="flex-1 overflow-y-auto space-y-3 text-sm p-6 pb-0 scrollbar-hide min-h-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                    {panel.messages.length === 0 && !panel.providerId && (
-                      <div className="text-center text-muted-foreground py-8">{t('chat.selectProviderFirst')}</div>
-                    )}
-                    {panel.messages.length === 0 && panel.providerId && (
-                      <div className="text-center text-muted-foreground py-8">{t('chat.sendMessageToStart')}</div>
-                    )}
-                    {panel.messages.map((msg, i) => (
-                      <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : ""}`}>
-                        {msg.role === "assistant" && <Bot className="w-5 h-5 shrink-0 mt-1" />}
-                        <div className={`max-w-[90%] rounded-lg px-3 py-2 overflow-hidden ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                          {msg.role === "user" ? (
-                            <pre className="whitespace-pre-wrap break-all font-sans text-sm">{msg.content}</pre>
-                          ) : (
-                            <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-pre:my-2 prose-pre:p-0 prose-pre:bg-transparent">
-                              <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                components={{
-                                  code({ className, children, ...props }) {
-                                    const match = /language-(\w+)/.exec(className || '')
-                                    const isInline = !match && !String(children).includes('\n')
-                                    return isInline ? (
-                                      <code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-sm" {...props}>
-                                        {children}
-                                      </code>
-                                    ) : (
-                                      <SyntaxHighlighter
-                                        style={oneDark}
-                                        language={match?.[1] || 'text'}
-                                        PreTag="div"
-                                        className="rounded-md text-sm !my-2"
-                                      >
-                                        {String(children).replace(/\n$/, '')}
-                                      </SyntaxHighlighter>
-                                    )
-                                  }
-                                }}
-                              >
-                                {msg.content}
-                              </ReactMarkdown>
-                            </div>
-                          )}
+                      {panels.length > 1 && (
+                        <Button variant="ghost" size="icon" onClick={() => removePanel(panel.id)} title={t('chat.close')}>
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-1 flex flex-col overflow-hidden p-0 min-h-0">
+                    <div className="flex-1 overflow-y-auto space-y-3 text-sm p-6 pb-0 scrollbar-hide min-h-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                      {panel.messages.length === 0 && !panel.providerId && (
+                        <div className="text-center text-muted-foreground py-8">{t('chat.selectProviderFirst')}</div>
+                      )}
+                      {panel.messages.length === 0 && panel.providerId && (
+                        <div className="text-center text-muted-foreground py-8">{t('chat.sendMessageToStart')}</div>
+                      )}
+                      {panel.messages.map((msg, i) => (
+                        <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : ""}`}>
+                          {msg.role === "assistant" && <Bot className="w-5 h-5 shrink-0 mt-1" />}
+                          <div className={`max-w-[90%] rounded-lg px-3 py-2 overflow-hidden ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                            {msg.role === "user" ? (
+                              <pre className="whitespace-pre-wrap break-all font-sans text-sm">{msg.content}</pre>
+                            ) : (
+                              <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-pre:my-2 prose-pre:p-0 prose-pre:bg-transparent">
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
+                                  components={{
+                                    code({ className, children, ...props }) {
+                                      const match = /language-(\w+)/.exec(className || '')
+                                      const isInline = !match && !String(children).includes('\n')
+                                      return isInline ? (
+                                        <code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-sm" {...props}>
+                                          {children}
+                                        </code>
+                                      ) : (
+                                        <SyntaxHighlighter
+                                          style={oneDark}
+                                          language={match?.[1] || 'text'}
+                                          PreTag="div"
+                                          className="rounded-md text-sm !my-2"
+                                        >
+                                          {String(children).replace(/\n$/, '')}
+                                        </SyntaxHighlighter>
+                                      )
+                                    }
+                                  }}
+                                >
+                                  {msg.content}
+                                </ReactMarkdown>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                    {panel.loading && panel.messages[panel.messages.length - 1]?.role !== "assistant" && (
-                      <div className="flex gap-2">
-                        <Bot className="w-5 h-5 shrink-0" />
-                        <div className="bg-muted rounded-lg px-3 py-2"><Loader2 className="w-4 h-4 animate-spin" /></div>
-                      </div>
-                    )}
-                    <div ref={el => messagesEndRefs.current[panel.id] = el} />
-                  </div>
-                  <div className="flex gap-2 px-6 py-4 border-t bg-white shrink-0">
-                    <textarea
-                      ref={el => inputRefs.current[panel.id] = el}
-                      className="flex-1 min-h-[40px] max-h-24 px-3 py-2 rounded-xl bg-muted/50 text-sm resize-none focus:outline-none focus:bg-muted transition-colors placeholder:text-muted-foreground/60"
-                      placeholder={t('chat.inputMessage')}
-                      value={panel.input}
-                      onChange={e => setInputForPanel(panel.id, e.target.value)}
-                      onKeyDown={e => handleKeyDownForPanel(panel.id, e)}
-                      disabled={!panel.providerId}
-                      rows={1}
-                    />
-                    <Button
-                      size="icon"
-                      className="h-10 w-10 rounded-xl shrink-0"
-                      onClick={() => sendMessageForPanel(panel.id)}
-                      disabled={panel.loading || !panel.input.trim() || !panel.providerId}
-                    >
-                      {panel.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                      ))}
+                      {panel.loading && panel.messages[panel.messages.length - 1]?.role !== "assistant" && (
+                        <div className="flex gap-2">
+                          <Bot className="w-5 h-5 shrink-0" />
+                          <div className="bg-muted rounded-lg px-3 py-2"><Loader2 className="w-4 h-4 animate-spin" /></div>
+                        </div>
+                      )}
+                      <div ref={(el) => { messagesEndRefs.current[panel.id] = el }} />
+                    </div>
+                    <div className="flex gap-2 px-6 py-4 border-t bg-white shrink-0">
+                      <textarea
+                        ref={(el) => { inputRefs.current[panel.id] = el }}
+                        className="flex-1 min-h-[40px] max-h-24 px-3 py-2 rounded-xl bg-muted/50 text-sm resize-none focus:outline-none focus:bg-muted transition-colors placeholder:text-muted-foreground/60"
+                        placeholder={t('chat.inputMessage')}
+                        value={panel.input}
+                        onChange={e => setInputForPanel(panel.id, e.target.value)}
+                        onKeyDown={e => handleKeyDownForPanel(panel.id, e)}
+                        disabled={!panel.providerId}
+                        rows={1}
+                      />
+                      <Button
+                        size="icon"
+                        className="h-10 w-10 rounded-xl shrink-0"
+                        onClick={() => sendMessageForPanel(panel.id)}
+                        disabled={panel.loading || !panel.input.trim() || !panel.providerId}
+                      >
+                        {panel.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             ))}
           </div>

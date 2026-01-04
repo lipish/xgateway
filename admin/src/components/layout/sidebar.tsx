@@ -42,12 +42,13 @@ function getNavigation() {
       ],
     },
     {
-      title: t('nav.settings'),
+      title: t('nav.management'),
       items: [
-        { name: t('nav.settings'), href: "/settings", icon: Settings },
+        { name: t('nav.users'), href: "/users", icon: User },
         { name: t('nav.apiKeys'), href: "/api-keys", icon: Key },
       ],
     },
+
     {
       title: t('nav.monitoring'),
       items: [
@@ -110,17 +111,6 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border/30 px-4 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
-            <User className="h-4 w-4 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">{t('common.admin')}</p>
-            <p className="text-xs text-muted-foreground truncate">{t('common.email')}</p>
-          </div>
-        </div>
-      </SidebarFooter>
     </SidebarBase>
   )
 }

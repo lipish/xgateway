@@ -7,24 +7,89 @@ use super::types::ProxyState;
 
 pub async fn handle_chat_completions(
     axum::extract::State(state): axum::extract::State<ProxyState>,
+    headers: axum::http::HeaderMap,
     axum::Json(request): axum::Json<serde_json::Value>,
 ) -> axum::response::Response {
     let db_pool = &state.db_pool;
     let pool_manager = &state.pool_manager;
 
-    if let RateLimitResult::Denied { retry_after } = pool_manager.check_rate_limit(None).await {
-        return (
-            StatusCode::TOO_MANY_REQUESTS,
-            [("Retry-After", retry_after.as_secs().to_string())],
-            axum::Json(serde_json::json!({
-                "error": {
-                    "message": format!("Rate limit exceeded. Retry after {} seconds.", retry_after.as_secs()),
-                    "type": "rate_limit_exceeded",
-                    "retry_after_seconds": retry_after.as_secs()
-                }
-            }))
-        ).into_response();
-    }
+    // 1. Extract and Validate API Key
+    let api_key = headers.get(axum::http::header::AUTHORIZATION)
+        .and_then(|h| h.to_str().ok())
+        .and_then(|s| s.strip_prefix("Bearer "));
+
+    let api_key_info = if let Some(key) = api_key {
+        // In a real system, we would hash the key here
+        match db_pool.get_api_key_by_hash(key).await {
+            Ok(Some(info)) => Some(info),
+            _ => {
+                return (
+                    StatusCode::UNAUTHORIZED,
+                    axum::Json(serde_json::json!({
+                        "error": {
+                            "message": "Invalid API Key",
+                            "type": "invalid_api_key"
+                        }
+                    }))
+                ).into_response();
+            }
+        }
+    } else {
+        // For development/backward compatibility, we might allow no key if not enforced
+        // But for Enterprise, we should enforce it.
+        None
+    };
+
+    // 2. Check Rate Limits (QPS and Concurrency)
+    let _concurrency_permit = if let Some(key_info) = &api_key_info {
+        // Use the API Key's specific limits
+        match pool_manager.check_api_key_limit(key_info).await {
+            RateLimitResult::Denied { retry_after } => {
+                return (
+                    StatusCode::TOO_MANY_REQUESTS,
+                    [("Retry-After", retry_after.as_secs().to_string())],
+                    axum::Json(serde_json::json!({
+                        "error": {
+                            "message": format!("Rate limit exceeded for API Key. Retry after {} seconds.", retry_after.as_secs()),
+                            "type": "rate_limit_exceeded"
+                        }
+                    }))
+                ).into_response();
+            }
+            RateLimitResult::ConcurrencyExceeded => {
+                return (
+                    StatusCode::TOO_MANY_REQUESTS,
+                    axum::Json(serde_json::json!({
+                        "error": {
+                            "message": "Concurrency limit exceeded for API Key.",
+                            "type": "concurrency_limit_exceeded"
+                        }
+                    }))
+                ).into_response();
+            }
+            RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
+        }
+    } else {
+        // Fallback to global rate limit
+        match pool_manager.check_rate_limit(None).await {
+            RateLimitResult::Denied { retry_after } => {
+                return (
+                    StatusCode::TOO_MANY_REQUESTS,
+                    [("Retry-After", retry_after.as_secs().to_string())],
+                    axum::Json(serde_json::json!({
+                        "error": {
+                            "message": format!("Global rate limit exceeded. Retry after {} seconds.", retry_after.as_secs()),
+                            "type": "rate_limit_exceeded"
+                        }
+                    }))
+                ).into_response();
+            }
+            RateLimitResult::ConcurrencyExceeded => unreachable!(),
+            RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
+        }
+    };
+
+
 
     let is_stream = request
         .get("stream")

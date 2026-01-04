@@ -12,3 +12,10 @@ mod messages;
 
 // Request log operations module
 mod request_logs;
+
+// User operations module
+pub mod users;
+
+// API Key operations module
+pub mod api_keys;
+

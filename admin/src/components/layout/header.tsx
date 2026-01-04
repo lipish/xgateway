@@ -1,28 +1,34 @@
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface HeaderProps {
-  title: string
-  description?: string
+  title?: string
+  subtitle?: string
   onRefresh?: () => void
+  loading?: boolean
   actions?: React.ReactNode
 }
 
-export function Header({ title, description, onRefresh, actions }: HeaderProps) {
+export function Header({ title, subtitle, onRefresh, loading, actions }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-10 h-14 border-b bg-background">
-      <div className="flex h-full items-center gap-4 px-6 max-w-[1600px] mx-auto">
-        <div className="flex-1">
-          <h1 className="text-lg font-semibold">{title}</h1>
-          {description && (
-            <p className="text-sm text-muted-foreground">{description}</p>
-          )}
+    <header className="mb-6">
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-1">
+          {title && <h1 className="text-2xl font-bold tracking-tight">{title}</h1>}
+          {subtitle && <p className="text-muted-foreground">{subtitle}</p>}
         </div>
         <div className="flex items-center gap-2">
           {onRefresh && (
-            <Button variant="outline" size="sm" onClick={onRefresh}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              刷新
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onRefresh}
+              disabled={loading}
+              className="h-9 w-9"
+              title="Refresh"
+            >
+              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
             </Button>
           )}
           {actions}

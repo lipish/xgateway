@@ -98,11 +98,10 @@ export function ProviderList({
                 </TableCell>
                 <TableCell className="text-center">{provider.priority}</TableCell>
                 <TableCell className="text-center">
-                  <div className="flex items-center justify-center">
+                  <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
                     <Switch
                       checked={provider.enabled}
                       onCheckedChange={() => onToggleProvider(provider.id)}
-                      onClick={(e) => e.stopPropagation()}
                     />
                   </div>
                 </TableCell>
