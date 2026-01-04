@@ -16,12 +16,7 @@ impl Provider for TencentProvider {
             .ok_or_else(|| anyhow::anyhow!("Tencent provider requires secret_id"))?;
         let secret_key = config.secret_key.as_ref()
             .ok_or_else(|| anyhow::anyhow!("Tencent provider requires secret_key"))?;
-        
         Ok(LlmClient::tencent(secret_id, secret_key)?)
-    }
-    
-    fn default_model() -> &'static str {
-        "hunyuan-lite"
     }
     
     fn env_var_name() -> &'static str {

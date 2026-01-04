@@ -80,10 +80,7 @@ export function ProviderDetail({ provider, onAddModel, onEditModel, onDeleteMode
             <div className="text-xs font-medium text-muted-foreground mb-1.5">{t('modelTypes.baseUrl')}</div>
             <div className="text-xs font-mono text-foreground/90 break-all">{provider.base_url || '-'}</div>
           </div>
-          <div className="p-3 rounded-lg bg-background border border-border/50">
-            <div className="text-xs font-medium text-muted-foreground mb-1.5">{t('modelTypes.defaultModel')}</div>
-            <div className="text-xs font-mono text-foreground/90">{provider.default_model || '-'}</div>
-          </div>
+          {/* Corrected: Removed default model block */}
           <div className="p-3 rounded-lg bg-background border border-border/50">
             <div className="text-xs font-medium text-muted-foreground mb-1.5">{t('modelTypes.driverType')}</div>
             <div className="text-xs font-mono text-foreground/90 uppercase">{provider.driver_type || '-'}</div>

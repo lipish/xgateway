@@ -204,6 +204,11 @@ impl ProviderPool {
         self.metrics.get_all_summaries().await
     }
 
+    /// Get all circuit states
+    pub async fn get_all_circuit_states(&self) -> HashMap<i64, super::circuit_breaker::CircuitState> {
+        self.failover_manager.get_all_circuit_states().await
+    }
+
     /// Check if a provider is available (healthy and circuit breaker allows)
     pub async fn is_provider_available(&self, provider_id: i64) -> bool {
         self.health_checker.is_healthy(provider_id).await

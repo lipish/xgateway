@@ -109,19 +109,16 @@ impl ProviderConfig {
 pub trait Provider: Send + Sync {
     /// Provider name (e.g., "minimax", "openai")
     fn name() -> &'static str;
-    
+
     /// Create LLM client
     fn create_client(config: &ProviderConfig) -> Result<LlmClient>;
-    
-    /// Default model name
-    fn default_model() -> &'static str;
-    
+
     /// Environment variable name (for reading API Key)
     fn env_var_name() -> &'static str;
-    
+
     /// API type
     fn api_type() -> ApiType;
-    
+
     /// Whether base_url is required
     fn requires_base_url() -> bool {
         false
@@ -156,7 +153,6 @@ impl ProviderRegistry {
             "openai" => Some(ProviderInfo {
                 name: "openai".to_string(),
                 display_name: "OpenAI".to_string(),
-                default_model: "gpt-4".to_string(),
                 env_var: "OPENAI_API_KEY".to_string(),
                 api_type: ApiType::Native,
                 driver: DriverType::OpenAI,
@@ -168,7 +164,6 @@ impl ProviderRegistry {
             "anthropic" => Some(ProviderInfo {
                 name: "anthropic".to_string(),
                 display_name: "Anthropic".to_string(),
-                default_model: "claude-3-5-sonnet-20241022".to_string(),
                 env_var: "ANTHROPIC_API_KEY".to_string(),
                 api_type: ApiType::Native,
                 driver: DriverType::Anthropic,
@@ -180,7 +175,6 @@ impl ProviderRegistry {
             "zhipu" => Some(ProviderInfo {
                 name: "zhipu".to_string(),
                 display_name: "智谱 AI (Zhipu)".to_string(),
-                default_model: "glm-4-flash".to_string(),
                 env_var: "ZHIPU_API_KEY".to_string(),
                 api_type: ApiType::OpenAICompatible,
                 driver: DriverType::OpenAICompatible,
@@ -192,7 +186,6 @@ impl ProviderRegistry {
             "ollama" => Some(ProviderInfo {
                 name: "ollama".to_string(),
                 display_name: "Ollama".to_string(),
-                default_model: "llama2".to_string(),
                 env_var: "".to_string(),
                 api_type: ApiType::Native,
                 driver: DriverType::Ollama,
@@ -204,7 +197,6 @@ impl ProviderRegistry {
             "aliyun" => Some(ProviderInfo {
                 name: "aliyun".to_string(),
                 display_name: "阿里云 (Aliyun DashScope)".to_string(),
-                default_model: "qwen-max".to_string(),
                 env_var: "ALIYUN_API_KEY".to_string(),
                 api_type: ApiType::Native,
                 driver: DriverType::Aliyun,
@@ -216,7 +208,6 @@ impl ProviderRegistry {
             "volcengine" => Some(ProviderInfo {
                 name: "volcengine".to_string(),
                 display_name: "火山引擎 (Volcengine Ark)".to_string(),
-                default_model: "doubao-pro-32k".to_string(),
                 env_var: "VOLCENGINE_API_KEY".to_string(),
                 api_type: ApiType::Native,
                 driver: DriverType::Volcengine,
@@ -228,7 +219,6 @@ impl ProviderRegistry {
             "tencent" => Some(ProviderInfo {
                 name: "tencent".to_string(),
                 display_name: "腾讯混元 (Tencent Hunyuan)".to_string(),
-                default_model: "hunyuan-lite".to_string(),
                 env_var: "TENCENT_API_KEY".to_string(),
                 api_type: ApiType::Native,
                 driver: DriverType::Tencent,
@@ -240,7 +230,6 @@ impl ProviderRegistry {
             "longcat" => Some(ProviderInfo {
                 name: "longcat".to_string(),
                 display_name: "龙猫 (Longcat)".to_string(),
-                default_model: "LongCat-Flash-Chat".to_string(),
                 env_var: "LONGCAT_API_KEY".to_string(),
                 api_type: ApiType::OpenAICompatible,
                 driver: DriverType::OpenAICompatible,
@@ -252,7 +241,6 @@ impl ProviderRegistry {
             "moonshot" => Some(ProviderInfo {
                 name: "moonshot".to_string(),
                 display_name: "月之暗面 (Moonshot AI)".to_string(),
-                default_model: "kimi-k2-turbo-preview".to_string(),
                 env_var: "MOONSHOT_API_KEY".to_string(),
                 api_type: ApiType::OpenAICompatible,
                 driver: DriverType::OpenAICompatible,
@@ -264,7 +252,6 @@ impl ProviderRegistry {
             "minimax" => Some(ProviderInfo {
                 name: "minimax".to_string(),
                 display_name: "MiniMax".to_string(),
-                default_model: "MiniMax-M2".to_string(),
                 env_var: "MINIMAX_API_KEY".to_string(),
                 api_type: ApiType::OpenAICompatible,
                 driver: DriverType::OpenAICompatible,
@@ -276,7 +263,6 @@ impl ProviderRegistry {
             "deepseek" => Some(ProviderInfo {
                 name: "deepseek".to_string(),
                 display_name: "DeepSeek".to_string(),
-                default_model: "deepseek-chat".to_string(),
                 env_var: "DEEPSEEK_API_KEY".to_string(),
                 api_type: ApiType::OpenAICompatible,
                 driver: DriverType::OpenAICompatible,
@@ -302,11 +288,9 @@ impl ProviderRegistry {
                 // Parse driver type string to enum
                 let driver = serde_json::from_str::<DriverType>(&format!("\"{}\"", pt.driver_type))
                     .unwrap_or(DriverType::OpenAICompatible);
-
                 Some(ProviderInfo {
                     name: pt.id,
                     display_name: pt.label,
-                    default_model: pt.default_model,
                     env_var: String::new(),
                     api_type: ApiType::OpenAICompatible,
                     driver,
@@ -319,7 +303,7 @@ impl ProviderRegistry {
             _ => None,
         }
     }
-    
+
     /// List all registered provider names
     #[allow(dead_code)]
     pub fn list_providers() -> Vec<&'static str> {
@@ -345,7 +329,6 @@ impl ProviderRegistry {
 pub struct ProviderInfo {
     pub name: String,
     pub display_name: String,
-    pub default_model: String,
     pub env_var: String,
     pub api_type: ApiType,
     pub driver: DriverType,

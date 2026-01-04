@@ -11,18 +11,7 @@ import {
 } from "@/components/ui/dialog"
 import { Loader2 } from "lucide-react"
 import { t } from "@/lib/i18n"
-
-interface ProviderTypeConfig {
-  id: string
-  label: string
-  base_url: string
-  default_model: string
-  models: Array<{
-    id: string
-    name: string
-    description?: string
-  }>
-}
+import type { ProviderTypeConfig } from "./types"
 
 interface EditProviderDialogProps {
   open: boolean

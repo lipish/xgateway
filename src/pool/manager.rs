@@ -246,6 +246,7 @@ impl PoolManager {
             // by doing a lightweight HEAD request to the base URL
             let client = reqwest::Client::builder()
                 .timeout(Duration::from_secs(30))
+                .no_proxy() // Disable system proxies to rule out local configuration issues
                 .http1_only()
                 .build()?;
 
@@ -272,23 +273,34 @@ impl PoolManager {
             // Standard /models endpoint check for OpenAI-compatible providers
             let client = reqwest::Client::builder()
                 .timeout(Duration::from_secs(30))
+                .no_proxy() // Disable system proxies
                 .build()?;
 
             let url = format!("{}/models", base_url.trim_end_matches('/'));
             let start = std::time::Instant::now();
 
+            tracing::debug!("Checking health for {} at {}", provider.name, url);
+
             let response = client
                 .get(&url)
                 .header("Authorization", format!("Bearer {}", api_key))
                 .send()
-                .await?;
-
-            let latency_ms = start.elapsed().as_millis() as u64;
-
-            if response.status().is_success() {
-                Ok(latency_ms)
-            } else {
-                Err(anyhow::anyhow!("Health check failed: HTTP {}", response.status()))
+                .await;
+            
+            match response {
+                Ok(resp) => {
+                    let latency_ms = start.elapsed().as_millis() as u64;
+                    if resp.status().is_success() {
+                        Ok(latency_ms)
+                    } else {
+                        tracing::warn!("Health check for {} failed with status: {}", provider.name, resp.status());
+                        Err(anyhow::anyhow!("Health check failed: HTTP {}", resp.status()))
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("Health check for {} failed with error: {}", provider.name, e);
+                    Err(anyhow::anyhow!("Connection failed: {}", e))
+                }
             }
         }
     }
@@ -342,14 +354,22 @@ impl PoolManager {
         PoolStatusSummary {
             total_providers: pool_status.total,
             healthy_providers: pool_status.healthy,
+            degraded_providers: pool_status.degraded,
             unhealthy_providers: pool_status.unhealthy,
-            total_requests,
+            total_requests_today: total_requests,
             total_failures,
             success_rate: if total_requests > 0 {
-                (total_requests - total_failures) as f64 / total_requests as f64
+                ((total_requests - total_failures) as f64 / total_requests as f64) * 100.0
             } else {
-                1.0
+                100.0
             },
+            avg_latency_ms: if !metrics.is_empty() {
+                let sum: f64 = metrics.values().map(|m| m.avg_latency_ms).sum();
+                sum / metrics.len() as f64
+            } else {
+                0.0
+            },
+            load_balance_strategy: "RoundRobin".to_string(), // TODO: Get from pool
         }
     }
 }
@@ -359,8 +379,11 @@ impl PoolManager {
 pub struct PoolStatusSummary {
     pub total_providers: usize,
     pub healthy_providers: usize,
+    pub degraded_providers: usize,
     pub unhealthy_providers: usize,
-    pub total_requests: u64,
+    pub total_requests_today: u64,
     pub total_failures: u64,
     pub success_rate: f64,
+    pub avg_latency_ms: f64,
+    pub load_balance_strategy: String,
 }

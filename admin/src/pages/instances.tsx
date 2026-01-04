@@ -66,7 +66,7 @@ export function ProvidersPage() {
   const [errorDialogOpen, setErrorDialogOpen] = useState(false);
 
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
-  
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingProvider, setDeletingProvider] = useState<Provider | null>(null);
 
@@ -80,7 +80,7 @@ export function ProvidersPage() {
       setAddDialogOpen(true);
       setSearchParams({}, { replace: true });
     }
-    
+
     const selectId = searchParams.get("select");
     if (selectId && providers.length > 0) {
       const id = parseInt(selectId);
@@ -154,7 +154,7 @@ export function ProvidersPage() {
   const deleteProvider = async (id: number) => {
     const provider = providers.find((p) => p.id === id);
     if (!provider) return;
-    
+
     setDeletingProvider(provider);
     setDeleteDialogOpen(true);
   };
@@ -191,7 +191,7 @@ export function ProvidersPage() {
       name: "",
       providerType: defaultType,
       apiKey: "",
-      model: defaults?.default_model || "",
+      model: defaults?.models[0]?.id || "",
       baseUrl: defaults?.base_url || "",
       priority: "10",
       endpoint: "",
@@ -207,7 +207,7 @@ export function ProvidersPage() {
       setAddForm({
         ...addForm,
         providerType: type,
-        model: defaults.default_model,
+        model: defaults.models[0]?.id || "",
         baseUrl: defaults.base_url,
       });
     }
@@ -247,16 +247,16 @@ export function ProvidersPage() {
         enabled: true,
         priority: parseInt(addForm.priority) || 10,
       };
-      
+
       if (addForm.providerType === 'volcengine' && addForm.endpoint) {
         payload.endpoint = addForm.endpoint;
       }
-      
+
       if (addForm.providerType === 'tencent') {
         payload.secret_id = addForm.secretId;
         payload.secret_key = addForm.secretKey;
       }
-      
+
       const result = await apiPost<ApiResponse<Provider>>("/api/instances", payload);
       if (result.success && result.data) {
         setProviders([result.data, ...providers]);
@@ -328,9 +328,9 @@ export function ProvidersPage() {
     setEditError(null);
     try {
       const originalConfig = JSON.parse(editingProvider.config || "{}");
-      
+
       const isMasked = (value: string) => value.includes('*');
-      
+
       const payload: any = {
         name: editForm.name,
         config: JSON.stringify({
@@ -340,16 +340,16 @@ export function ProvidersPage() {
         }),
         priority: parseInt(editForm.priority) || 10,
       };
-      
+
       if (editingProvider.provider_type === 'volcengine' && editForm.endpoint) {
         payload.endpoint = editForm.endpoint;
       }
-      
+
       if (editingProvider.provider_type === 'tencent') {
         payload.secret_id = isMasked(editForm.secretId) ? editingProvider.secret_id : editForm.secretId;
         payload.secret_key = isMasked(editForm.secretKey) ? editingProvider.secret_key : editForm.secretKey;
       }
-      
+
       const response = await fetch(`/api/instances/${editingProvider.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },

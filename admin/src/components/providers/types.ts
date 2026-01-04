@@ -12,7 +12,6 @@ export interface ProviderType {
   id: string
   label: string
   base_url: string
-  default_model: string
   driver_type: string
   models: ModelInfo[]
   enabled: boolean

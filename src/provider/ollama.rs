@@ -16,10 +16,6 @@ impl Provider for OllamaProvider {
         Ok(LlmClient::ollama()?)
     }
     
-    fn default_model() -> &'static str {
-        "llama2"
-    }
-    
     fn env_var_name() -> &'static str {
         ""  // Ollama doesn't require API key
     }
@@ -32,4 +28,3 @@ impl Provider for OllamaProvider {
         false
     }
 }
-

@@ -230,6 +230,16 @@ impl FailoverManager {
             tracing::info!("Reset circuit breaker for provider {}", provider_id);
         }
     }
+
+    /// Get all circuit states
+    pub async fn get_all_circuit_states(&self) -> HashMap<i64, super::circuit_breaker::CircuitState> {
+        let breakers = self.circuit_breakers.read().await;
+        let mut states = HashMap::new();
+        for (id, breaker) in breakers.iter() {
+            states.insert(*id, breaker.state().await);
+        }
+        states
+    }
 }
 
 impl Default for FailoverManager {

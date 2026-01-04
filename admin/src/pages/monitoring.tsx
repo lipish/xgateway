@@ -51,17 +51,17 @@ export function MonitoringPage() {
         fetch('/api/pool/status'),
         fetch('/api/pool/health')
       ])
-      
+
       if (poolRes.ok) {
         const poolData = await poolRes.json()
         if (poolData.success) setPoolStatus(poolData.data)
       }
-      
+
       if (healthRes.ok) {
         const healthData = await healthRes.json()
         if (healthData.success) setProviderHealth(healthData.data || [])
       }
-      
+
       setError(null)
     } catch (err) {
       setError('Failed to fetch monitoring data')
@@ -175,7 +175,15 @@ export function MonitoringPage() {
                         {getStatusIcon(provider.status)}
                         <CardTitle className="text-base">{provider.name}</CardTitle>
                       </div>
-                      {getCircuitBadge(provider.circuit_state)}
+                      <Badge
+                        variant={provider.circuit_state === 'closed' ? 'outline' : 'destructive'}
+                        className={provider.circuit_state === 'closed' ? 'bg-primary/10 text-primary border-0' : ''}
+                      >
+                        {provider.circuit_state === 'closed' ? t('monitoring.circuitClosed') :
+                          provider.circuit_state === 'open' ? t('monitoring.circuitOpen') :
+                            provider.circuit_state === 'half_open' ? t('monitoring.circuitHalfOpen') :
+                              t('monitoring.circuitUnknown')}
+                      </Badge>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-2">

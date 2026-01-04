@@ -17,10 +17,6 @@ impl Provider for MoonshotProvider {
         Ok(LlmClient::openai_compatible(&config.api_key, base_url, Self::name())?)
     }
     
-    fn default_model() -> &'static str {
-        "kimi-k2-turbo-preview"
-    }
-    
     fn env_var_name() -> &'static str {
         "MOONSHOT_API_KEY"
     }
@@ -41,4 +37,3 @@ impl Provider for MoonshotProvider {
         Some("https://api.moonshot.cn/v1")
     }
 }
-

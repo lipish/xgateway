@@ -7,9 +7,36 @@ use axum::{Router, routing::{get, post, put, delete}, Json};
 use serde::{Serialize, Deserialize};
 use crate::db::{DatabasePool, NewProviderType, UpdateProviderType, ModelInfo, NewConversation, UpdateConversation, NewMessage, Conversation, Message, ConversationListItem, ConversationWithMessages, RequestLog};
 use crate::adapter::types::DriverType;
+use std::sync::Arc;
+use crate::pool::manager::{PoolManager, PoolStatusSummary};
+use axum::extract::FromRef;
+
+/// Admin state for combined handlers
+#[derive(Clone)]
+pub struct AdminState {
+    pub db_pool: DatabasePool,
+    pub pool_manager: Arc<PoolManager>,
+}
+
+impl FromRef<AdminState> for DatabasePool {
+    fn from_ref(state: &AdminState) -> Self {
+        state.db_pool.clone()
+    }
+}
+
+impl FromRef<AdminState> for Arc<PoolManager> {
+    fn from_ref(state: &AdminState) -> Self {
+        state.pool_manager.clone()
+    }
+}
 
 /// Create admin API router (pure REST API, no HTML pages)
-pub fn create_admin_app(db_pool: DatabasePool) -> Router {
+pub fn create_admin_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -> Router {
+    let state = AdminState {
+        db_pool,
+        pool_manager,
+    };
+
     Router::new()
         // Service Instance management API
         .route("/api/instances", get(list_providers_api).post(create_provider_api))
@@ -21,7 +48,10 @@ pub fn create_admin_app(db_pool: DatabasePool) -> Router {
         .route("/api/provider-types", get(get_provider_types_api).post(create_provider_type_api))
         .route("/api/provider-types/:id", put(update_provider_type_api).delete(delete_provider_type_api))
         // Pool management API (note: /api/pool/status is defined in main.rs with pool_manager)
+        .route("/api/pool/status", get(get_pool_status_api))
         .route("/api/pool/health", get(get_pool_health_api))
+        .route("/api/pool/metrics", get(get_pool_metrics_api))
+        .route("/api/pool/metrics/:id", get(get_provider_metrics_api))
         .route("/api/pool/settings", get(get_pool_settings_api).post(save_pool_settings_api))
         // Logs API
         .route("/api/logs", get(get_logs_api))
@@ -33,7 +63,7 @@ pub fn create_admin_app(db_pool: DatabasePool) -> Router {
         .route("/api/conversations", get(list_conversations_api).post(create_conversation_api))
         .route("/api/conversations/:id", get(get_conversation_api).put(update_conversation_api).delete(delete_conversation_api))
         .route("/api/conversations/:id/messages", get(list_messages_api).post(create_message_api))
-        .with_state(db_pool)
+        .with_state(state)
 }
 
 #[derive(Serialize)]
@@ -44,46 +74,124 @@ struct ApiResponse<T: Serialize> {
 }
 
 /// Get pool status API
-#[allow(dead_code)]
-async fn get_pool_status_api() -> Json<ApiResponse<serde_json::Value>> {
+async fn get_pool_status_api(
+    axum::extract::State(pool_manager): axum::extract::State<Arc<PoolManager>>,
+) -> Json<ApiResponse<PoolStatusSummary>> {
+    let summary = pool_manager.get_status_summary().await;
     Json(ApiResponse {
         success: true,
-        data: Some(serde_json::json!({
-            "total_providers": 3,
-            "healthy_providers": 3,
-            "degraded_providers": 0,
-            "unhealthy_providers": 0,
-            "load_balance_strategy": "RoundRobin",
-            "total_requests_today": 156,
-            "avg_latency_ms": 503
-        })),
+        data: Some(summary),
         message: "Pool status retrieved".to_string(),
     })
 }
 
 /// Get pool health API
 async fn get_pool_health_api(
-    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::extract::State(pool_manager): axum::extract::State<Arc<PoolManager>>,
 ) -> Json<ApiResponse<Vec<serde_json::Value>>> {
-    let providers = db_pool.list_providers().await.unwrap_or_default();
+    let providers = pool_manager.pool().get_all_providers().await;
+    let metrics = pool_manager.get_all_metrics().await;
+    let health_statuses = pool_manager.pool().get_all_health_statuses().await;
+    let circuit_states = pool_manager.pool().get_all_circuit_states().await;
+
     let health_data: Vec<serde_json::Value> = providers.iter().map(|p| {
+        let m = metrics.get(&p.id);
+        let status = health_statuses.get(&p.id).cloned().unwrap_or(crate::pool::health::HealthStatus::Unknown);
+        let circuit_state = circuit_states.get(&p.id).cloned().unwrap_or(crate::pool::circuit_breaker::CircuitState::Closed);
+        
+        let success_rate = m.map(|m| {
+            if m.total_requests > 0 {
+                (m.successful_requests as f64 / m.total_requests as f64) * 100.0
+            } else {
+                100.0
+            }
+        }).unwrap_or(100.0);
+
+        let circuit_state_str = match circuit_state {
+            crate::pool::circuit_breaker::CircuitState::Closed => "closed",
+            crate::pool::circuit_breaker::CircuitState::Open => "open",
+            crate::pool::circuit_breaker::CircuitState::HalfOpen => "half_open",
+        };
+
         serde_json::json!({
             "id": p.id,
             "name": p.name,
-            "status": if p.enabled { "healthy" } else { "unhealthy" },
-            "latency_avg": 500.0,
-            "success_rate": 99.5,
-            "circuit_state": "closed",
-            "active_connections": 0,
-            "total_requests": 50
+            "status": format!("{:?}", status).to_lowercase(),
+            "latency_avg": m.map(|m| m.avg_latency_ms).unwrap_or(0.0),
+            "success_rate": success_rate,
+            "circuit_state": circuit_state_str,
+            "active_connections": m.map(|m| m.active_connections).unwrap_or(0),
+            "total_requests": m.map(|m| m.total_requests).unwrap_or(0),
+            "last_check": chrono::Utc::now().to_rfc3339() // TODO: Get actual last check time
         })
     }).collect();
+
+    tracing::debug!("Healthy API Data: {:?}", health_data);
 
     Json(ApiResponse {
         success: true,
         data: Some(health_data),
         message: "Health data retrieved".to_string(),
     })
+}
+
+/// Get all metrics API
+async fn get_pool_metrics_api(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::extract::State(pool_manager): axum::extract::State<Arc<PoolManager>>,
+) -> Json<serde_json::Value> {
+    let metrics = pool_manager.get_all_metrics().await;
+    let providers = db_pool.list_providers().await.unwrap_or_default();
+    let health_statuses = pool_manager.get_health_status().await;
+
+    let detailed: Vec<serde_json::Value> = providers.iter().map(|p| {
+        let m = metrics.get(&p.id).cloned().unwrap_or_default();
+        let health = health_statuses.get(&p.id).map(|s| format!("{:?}", s)).unwrap_or("Unknown".to_string());
+        let success_rate = if m.total_requests > 0 {
+            (m.successful_requests as f64 / m.total_requests as f64) * 100.0
+        } else {
+            100.0
+        };
+        serde_json::json!({
+            "provider_id": p.id,
+            "provider_name": p.name,
+            "enabled": p.enabled,
+            "health_status": health,
+            "total_requests": m.total_requests,
+            "successful_requests": m.successful_requests,
+            "failed_requests": m.failed_requests,
+            "success_rate": format!("{:.2}%", success_rate),
+            "avg_latency_ms": m.avg_latency_ms,
+            "p50_latency_ms": m.p50_latency_ms,
+            "p95_latency_ms": m.p95_latency_ms,
+            "p99_latency_ms": m.p99_latency_ms,
+            "active_connections": m.active_connections,
+            "tokens_used": m.tokens_used,
+            "requests_per_second": m.requests_per_second
+        })
+    }).collect();
+
+    Json(serde_json::json!({
+        "providers": detailed,
+        "timestamp": chrono::Utc::now().to_rfc3339()
+    }))
+}
+
+/// Get provider metrics API
+async fn get_provider_metrics_api(
+    axum::extract::State(pool_manager): axum::extract::State<Arc<PoolManager>>,
+    axum::extract::Path(id): axum::extract::Path<i64>,
+) -> Json<serde_json::Value> {
+    match pool_manager.get_metrics(id).await {
+        Some(m) => Json(serde_json::json!({
+            "success": true,
+            "data": m
+        })),
+        None => Json(serde_json::json!({
+            "success": false,
+            "error": "Provider not found"
+        }))
+    }
 }
 
 /// Get pool settings API
@@ -216,7 +324,6 @@ async fn get_provider_types_api(
                     "id": t.id,
                     "label": t.label,
                     "base_url": t.base_url,
-                    "default_model": t.default_model,
                     "driver_type": t.driver_type,
                     "models": models,
                     "enabled": t.enabled,
@@ -248,8 +355,6 @@ struct CreateProviderTypeRequest {
     label: String,
     #[serde(default)]
     base_url: String,
-    #[serde(default)]
-    default_model: String,
     #[serde(default)]
     driver_type: String,
     #[serde(default)]
@@ -296,7 +401,6 @@ async fn create_provider_type_api(
         id: req.id,
         label: req.label,
         base_url: req.base_url,
-        default_model: req.default_model,
         driver_type: req.driver_type,
         models: req.models.into_iter().map(|m| ModelInfo {
             id: m.id,
@@ -331,7 +435,6 @@ async fn create_provider_type_api(
 struct UpdateProviderTypeRequest {
     label: Option<String>,
     base_url: Option<String>,
-    default_model: Option<String>,
     driver_type: Option<String>,
     models: Option<Vec<CreateModelInfo>>,
     enabled: Option<bool>,
@@ -359,7 +462,6 @@ async fn update_provider_type_api(
     let update = UpdateProviderType {
         label: req.label,
         base_url: req.base_url,
-        default_model: req.default_model,
         driver_type: req.driver_type,
         models: req.models.map(|models| {
             models.into_iter().map(|m| ModelInfo {

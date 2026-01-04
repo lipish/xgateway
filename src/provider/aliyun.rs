@@ -15,10 +15,6 @@ impl Provider for AliyunProvider {
         Ok(LlmClient::aliyun(&config.api_key)?)
     }
     
-    fn default_model() -> &'static str {
-        "qwen-max"
-    }
-    
     fn env_var_name() -> &'static str {
         "ALIYUN_API_KEY"
     }
@@ -30,9 +26,8 @@ impl Provider for AliyunProvider {
     fn requires_api_key() -> bool {
         true
     }
-
+    
     fn default_base_url() -> Option<&'static str> {
         Some("https://dashscope.aliyuncs.com/compatible-mode/v1")
     }
 }
-

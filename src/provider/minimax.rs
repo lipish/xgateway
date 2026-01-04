@@ -19,10 +19,6 @@ impl Provider for MinimaxProvider {
         Ok(LlmClient::openai_compatible(&config.api_key, base_url, Self::name())?)
     }
     
-    fn default_model() -> &'static str {
-        "MiniMax-M2"
-    }
-    
     fn env_var_name() -> &'static str {
         "MINIMAX_API_KEY"
     }

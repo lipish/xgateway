@@ -24,7 +24,7 @@ export function ModelTypesPage() {
   const [showAddProvider, setShowAddProvider] = useState(false)
   const [showEditProvider, setShowEditProvider] = useState(false)
   const [editingProvider, setEditingProvider] = useState<ProviderType | null>(null)
-  const [providerForm, setProviderForm] = useState({ id: "", label: "", base_url: "", default_model: "", driver_type: "openai_compatible", docs_url: "" })
+  const [providerForm, setProviderForm] = useState({ id: "", label: "", base_url: "", driver_type: "openai_compatible", docs_url: "" })
 
   const handleLabelChange = (label: string) => {
     const id = generateIdFromLabel(label)
@@ -127,7 +127,7 @@ export function ModelTypesPage() {
       if (response.success) {
         await fetchProviderTypes()
         setShowAddProvider(false)
-        setProviderForm({ id: "", label: "", base_url: "", default_model: "", driver_type: "openai_compatible", docs_url: "" })
+        setProviderForm({ id: "", label: "", base_url: "", driver_type: "openai_compatible", docs_url: "" })
       } else {
         alert(response.message || t("common.saveFailed"))
       }
@@ -144,7 +144,6 @@ export function ModelTypesPage() {
       id: provider.id,
       label: provider.label,
       base_url: provider.base_url,
-      default_model: provider.default_model,
       driver_type: provider.driver_type,
       docs_url: provider.docs_url || ""
     })
@@ -162,7 +161,6 @@ export function ModelTypesPage() {
       const response = await apiPut<{ success: boolean; message?: string }>(`/api/provider-types/${editingProvider.id}`, {
         label: providerForm.label,
         base_url: providerForm.base_url,
-        default_model: providerForm.default_model,
         driver_type: providerForm.driver_type,
         docs_url: providerForm.docs_url
       })

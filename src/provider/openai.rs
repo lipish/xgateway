@@ -19,10 +19,6 @@ impl Provider for OpenAIProvider {
         }
     }
     
-    fn default_model() -> &'static str {
-        "gpt-4"
-    }
-    
     fn env_var_name() -> &'static str {
         "OPENAI_API_KEY"
     }
@@ -39,4 +35,3 @@ impl Provider for OpenAIProvider {
         false  // 可选
     }
 }
-

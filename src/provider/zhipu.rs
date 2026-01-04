@@ -15,10 +15,6 @@ impl Provider for ZhipuProvider {
         Ok(LlmClient::zhipu_openai_compatible(&config.api_key)?)
     }
     
-    fn default_model() -> &'static str {
-        "glm-4-flash"
-    }
-    
     fn env_var_name() -> &'static str {
         "ZHIPU_API_KEY"
     }
@@ -39,4 +35,3 @@ impl Provider for ZhipuProvider {
         Some("https://open.bigmodel.cn/api/paas/v4")
     }
 }
-

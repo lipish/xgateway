@@ -14,7 +14,6 @@ interface EditProviderDialogProps {
     id: string
     label: string
     base_url: string
-    default_model: string
     driver_type: string
     docs_url: string
   }
@@ -52,14 +51,6 @@ export function EditProviderDialog({
               value={providerForm.base_url}
               onChange={e => onFormChange({ ...providerForm, base_url: e.target.value })}
               placeholder="https://api.openai.com/v1"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium">{t("modelTypes.defaultModel")}</label>
-            <Input
-              value={providerForm.default_model}
-              onChange={e => onFormChange({ ...providerForm, default_model: e.target.value })}
-              placeholder="gpt-4"
             />
           </div>
           <div>

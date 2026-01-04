@@ -26,7 +26,6 @@ export interface ProviderTypeConfig {
   id: string;
   label: string;
   base_url: string;
-  default_model: string;
   models: ModelInfo[];
   docs_url?: string;
 }

@@ -15,10 +15,6 @@ impl Provider for AnthropicProvider {
         Ok(LlmClient::anthropic(&config.api_key)?)
     }
     
-    fn default_model() -> &'static str {
-        "claude-3-5-sonnet-20241022"
-    }
-    
     fn env_var_name() -> &'static str {
         "ANTHROPIC_API_KEY"
     }
@@ -31,4 +27,3 @@ impl Provider for AnthropicProvider {
         true
     }
 }
-

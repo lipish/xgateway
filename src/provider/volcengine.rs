@@ -15,10 +15,6 @@ impl Provider for VolcengineProvider {
         Ok(LlmClient::volcengine(&config.api_key)?)
     }
     
-    fn default_model() -> &'static str {
-        "doubao-seed-1-8-251215"
-    }
-    
     fn env_var_name() -> &'static str {
         "VOLCENGINE_API_KEY"
     }
@@ -30,7 +26,7 @@ impl Provider for VolcengineProvider {
     fn requires_api_key() -> bool {
         true
     }
-
+    
     fn default_base_url() -> Option<&'static str> {
         Some("https://ark.cn-beijing.volces.com/api/v3")
     }

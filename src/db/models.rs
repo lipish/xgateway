@@ -124,7 +124,6 @@ pub struct ProviderType {
     pub id: String,              // e.g., "openai", "anthropic"
     pub label: String,           // Display name
     pub base_url: String,        // Default API base URL
-    pub default_model: String,   // Default model ID
     pub models: String,          // JSON array of model objects
     pub driver_type: String,     // e.g., "openai_compatible", "aliyun"
     pub enabled: bool,
@@ -158,7 +157,6 @@ pub struct NewProviderType {
     pub id: String,
     pub label: String,
     pub base_url: String,
-    pub default_model: String,
     pub driver_type: String,
     pub models: Vec<ModelInfo>,
     #[serde(default)]
@@ -174,7 +172,6 @@ pub struct NewProviderType {
 pub struct UpdateProviderType {
     pub label: Option<String>,
     pub base_url: Option<String>,
-    pub default_model: Option<String>,
     pub driver_type: Option<String>,
     pub models: Option<Vec<ModelInfo>>,
     pub enabled: Option<bool>,
@@ -189,7 +186,6 @@ pub struct ProviderTypeResponse {
     pub id: String,
     pub label: String,
     pub base_url: String,
-    pub default_model: String,
     pub models: Vec<String>,  // Just model IDs for the dropdown
 }
 
@@ -205,7 +201,6 @@ impl ProviderType {
             id: self.id.clone(),
             label: self.label.clone(),
             base_url: self.base_url.clone(),
-            default_model: self.default_model.clone(),
             models: model_ids,
         }
     }

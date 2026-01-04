@@ -17,10 +17,6 @@ impl Provider for LongcatProvider {
         Ok(LlmClient::openai_compatible(&config.api_key, base_url, Self::name())?)
     }
     
-    fn default_model() -> &'static str {
-        "LongCat-Flash-Chat"
-    }
-    
     fn env_var_name() -> &'static str {
         "LONGCAT_API_KEY"
     }
