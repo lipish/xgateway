@@ -64,7 +64,7 @@ export function LogsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'success': return <Badge className="bg-primary/10 text-primary border-0" variant="outline">{t('common.success')}</Badge>
-      case 'error': return <Badge variant="destructive">{t('common.error')}</Badge>
+      case 'error': return <Badge className="bg-destructive text-destructive-foreground border-0" variant="destructive">{t('common.error')}</Badge>
       case 'timeout': return <Badge variant="secondary">{t('common.timeout')}</Badge>
       default: return <Badge variant="outline">{status}</Badge>
     }
