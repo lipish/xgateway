@@ -114,7 +114,13 @@ export function UsersPage() {
             if (data.success) {
                 setShowCreateDialog(false)
                 setNewUser({ username: '', password: '', role_id: 'user' })
-                fetchUsers()
+                await fetchUsers()
+                // Select the newly created user
+                if (data.data && data.data.id) {
+                    const newUser = users.find(u => u.id === data.data.id) || data.data
+                    setSelectedUser(newUser)
+                    fetchUserInstances(newUser.id)
+                }
             } else {
                 setError(data.message || 'Failed to create user')
             }
@@ -201,105 +207,190 @@ export function UsersPage() {
 
     return (
         <div className="flex flex-col page-transition">
-            <PageHeader
-                title={t('nav.users')}
-                subtitle={t('users.description')}
-                actions={
-                    <Button
-                        size="sm"
-                        onClick={() => setShowCreateDialog(true)}
-                    >
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        {t('users.create')}
-                    </Button>
-                }
-            />
-            <div className="flex-1 space-y-4 max-w-[1400px] mx-auto w-full">
+            <div className="flex-1 space-y-6 max-w-[1400px] mx-auto w-full">
+                <PageHeader
+                    title={t('nav.users')}
+                    subtitle={t('users.description')}
+                    actions={
+                        <Button
+                            size="sm"
+                            onClick={() => setShowCreateDialog(true)}
+                        >
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            {t('users.create')}
+                        </Button>
+                    }
+                />
 
-                <Card>
-                    <CardContent className="pt-6">
-                        {loading ? (
-                            <div className="flex flex-col gap-4">
-                                {[1, 2, 3].map(i => (
-                                    <div key={i} className="h-10 w-full bg-muted animate-pulse rounded" />
-                                ))}
+                {!loading && users.length > 0 && (
+                    <div className="flex gap-6 h-[calc(100vh-12rem)]">
+                        {/* User List */}
+                        <Card className="w-96 flex flex-col overflow-hidden">
+                            <CardContent className="p-4 flex-1 overflow-y-auto">
+                                <div className="space-y-2">
+                                    {users.map((user) => (
+                                        <div
+                                            key={user.id}
+                                            className={cn(
+                                                "p-3 rounded-lg border cursor-pointer transition-all hover:border-primary/50",
+                                                selectedUser?.id === user.id ? "border-primary bg-primary/5" : "border-border"
+                                            )}
+                                            onClick={() => {
+                                                setSelectedUser(user)
+                                                fetchUserInstances(user.id)
+                                            }}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                                                    <UserIcon className="h-5 w-5 text-muted-foreground" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="font-medium truncate">{user.username}</div>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <Badge variant="secondary" className="text-xs font-normal">{user.role_id}</Badge>
+                                                        <Badge
+                                                            className={cn(
+                                                                "text-xs",
+                                                                user.status === 'active' ? "bg-emerald-500/10 text-emerald-600 border-0" : "bg-muted text-muted-foreground border-0"
+                                                            )}
+                                                        >
+                                                            {user.status}
+                                                        </Badge>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* User Detail */}
+                        <Card className="flex-1 flex flex-col overflow-hidden">
+                            <CardContent className="p-6 flex-1 overflow-y-auto">
+                                {selectedUser ? (
+                                    <div className="space-y-6">
+                                        <div className="flex items-start justify-between">
+                                            <div>
+                                                <h2 className="text-2xl font-bold">{selectedUser.username}</h2>
+                                                <div className="flex items-center gap-2 mt-2">
+                                                    <Badge variant="secondary">{selectedUser.role_id}</Badge>
+                                                    <Badge
+                                                        className={cn(
+                                                            "cursor-pointer",
+                                                            selectedUser.status === 'active' ? "bg-emerald-500/10 text-emerald-600 border-0" : "bg-muted text-muted-foreground border-0"
+                                                        )}
+                                                        onClick={() => toggleUserStatus(selectedUser)}
+                                                    >
+                                                        {selectedUser.status}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => setUserToDelete(selectedUser.id)}
+                                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+
+                                        <div className="border rounded-lg p-4 bg-muted/30">
+                                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                                <div>
+                                                    <div className="text-muted-foreground">{t('users.createdAt')}</div>
+                                                    <div className="font-medium mt-1">
+                                                        {new Date(selectedUser.created_at).toLocaleDateString()}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-muted-foreground">User ID</div>
+                                                    <div className="font-medium mt-1">#{selectedUser.id}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {selectedUser.role_id === 'user' && (
+                                            <div>
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h3 className="text-lg font-semibold">Granted Instances</h3>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => setShowGrantDialog(true)}
+                                                    >
+                                                        <Plus className="h-4 w-4 mr-2" />
+                                                        Grant Instance
+                                                    </Button>
+                                                </div>
+                                                <div className="border rounded-lg divide-y">
+                                                    {userInstances.length === 0 ? (
+                                                        <div className="p-8 text-center text-muted-foreground">
+                                                            <Server className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                                                            <p>No instances granted yet</p>
+                                                        </div>
+                                                    ) : (
+                                                        userInstances.map((ui) => {
+                                                            const provider = providers.find(p => p.id === ui.provider_id)
+                                                            return (
+                                                                <div key={ui.id} className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <Server className="h-5 w-5 text-muted-foreground" />
+                                                                        <div>
+                                                                            <div className="font-medium">{provider?.name || `Instance #${ui.provider_id}`}</div>
+                                                                            <div className="text-xs text-muted-foreground mt-1">
+                                                                                Granted on {new Date(ui.granted_at).toLocaleDateString()}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                                                                        onClick={() => handleRevokeInstance(ui.provider_id)}
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </Button>
+                                                                </div>
+                                                            )
+                                                        })
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                                        <UserIcon className="h-16 w-16 mb-4 opacity-20" />
+                                        <p>Select a user to view details</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
+
+                {loading && (
+                    <Card>
+                        <CardContent className="p-6">
+                            <div className="flex items-center justify-center">
+                                <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
                             </div>
-                        ) : users.length === 0 ? (
+                        </CardContent>
+                    </Card>
+                )}
+
+                {!loading && users.length === 0 && (
+                    <Card>
+                        <CardContent className="pt-6">
                             <div className="text-center py-12 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
                                 <UserIcon className="h-12 w-12 mx-auto mb-4 opacity-20" />
                                 <p>{t('users.noUsers')}</p>
                             </div>
-                        ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>{t('users.username')}</TableHead>
-                                        <TableHead>{t('users.role')}</TableHead>
-                                        <TableHead>{t('users.status')}</TableHead>
-                                        <TableHead>{t('users.createdAt')}</TableHead>
-                                        <TableHead className="text-right">{t('users.actions')}</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {users.map((user) => (
-                                        <TableRow key={user.id}>
-                                            <TableCell className="font-medium">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                                        <UserIcon className="h-4 w-4 text-primary" />
-                                                    </div>
-                                                    <span>{user.username}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant="secondary" className="font-normal">{user.role_id}</Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    className={cn(
-                                                        "cursor-pointer",
-                                                        user.status === 'active' ? "bg-primary/10 text-primary border-0" : "bg-muted text-muted-foreground border-0"
-                                                    )}
-                                                    onClick={() => toggleUserStatus(user)}
-                                                    title={t('common.toggleStatus')}
-                                                >
-                                                    {user.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground text-sm">
-                                                {new Date(user.created_at).toLocaleDateString()}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-1">
-                                                    {user.role_id === 'user' && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8"
-                                                            onClick={() => handleManageInstances(user)}
-                                                            title="Manage instances"
-                                                        >
-                                                            <Server className="h-4 w-4" />
-                                                        </Button>
-                                                    )}
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8"
-                                                        onClick={() => setUserToDelete(user.id)}
-                                                        title={t('common.delete')}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        )}
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                )}
 
                 <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
                     <DialogContent>
@@ -307,14 +398,30 @@ export function UsersPage() {
                             <DialogTitle>{t('users.create')}</DialogTitle>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="username">{t('users.username')}</Label>
-                                <Input
-                                    id="username"
-                                    value={newUser.username}
-                                    onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                                    placeholder={t('users.usernamePlaceholder')}
-                                />
+                            <div className="grid grid-cols-[1fr_auto] gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="username">{t('users.username')}</Label>
+                                    <Input
+                                        id="username"
+                                        value={newUser.username}
+                                        onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                                        placeholder={t('users.usernamePlaceholder')}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="role">{t('users.role')}</Label>
+                                    <Select
+                                        id="role"
+                                        value={newUser.role_id}
+                                        onChange={(value) => setNewUser({ ...newUser, role_id: value })}
+                                        options={[
+                                            { value: 'user', label: 'User' },
+                                            { value: 'admin', label: 'Administrator' }
+                                        ]}
+                                        placeholder="Select role"
+                                        className="w-40"
+                                    />
+                                </div>
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="password">{t('users.password')}</Label>
@@ -324,19 +431,6 @@ export function UsersPage() {
                                     value={newUser.password}
                                     onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                                     placeholder={t('users.passwordPlaceholder')}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="role">{t('users.role')}</Label>
-                                <Select
-                                    id="role"
-                                    value={newUser.role_id}
-                                    onChange={(value) => setNewUser({ ...newUser, role_id: value })}
-                                    options={[
-                                        { value: 'user', label: 'User' },
-                                        { value: 'admin', label: 'Administrator' }
-                                    ]}
-                                    placeholder="Select role"
                                 />
                             </div>
                             {error && (
@@ -375,7 +469,7 @@ export function UsersPage() {
                 </Dialog>
 
                 <Dialog open={showGrantDialog} onOpenChange={setShowGrantDialog}>
-                    <DialogContent className="max-w-2xl">
+                    <DialogContent className="max-w-lg">
                         <DialogHeader>
                             <DialogTitle>Manage Instance Access - {selectedUser?.username}</DialogTitle>
                             <DialogDescription>
