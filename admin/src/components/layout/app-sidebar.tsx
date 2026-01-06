@@ -42,7 +42,7 @@ function getNavigation() {
             title: t('nav.management'),
             items: [
                 { name: t('nav.users'), href: "/users", icon: User },
-                { name: t('nav.apiKeys'), href: "/api-keys", icon: Key },
+                { name: t('nav.apiKeys'), href: "/apikeys", icon: Key },
             ],
         },
         {

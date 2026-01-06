@@ -262,13 +262,27 @@ async fn get_logs_api(
 /// List API keys
 async fn list_api_keys_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
-) -> Json<ApiResponse<Vec<crate::db::ApiKey>>> {
+) -> Json<ApiResponse<Vec<serde_json::Value>>> {
     match db_pool.list_api_keys().await {
-        Ok(keys) => Json(ApiResponse {
-            success: true,
-            data: Some(keys),
-            message: "API keys retrieved".to_string(),
-        }),
+        Ok(keys) => {
+            let keys_with_parsed_ids: Vec<serde_json::Value> = keys.into_iter().map(|key| {
+                let mut json = serde_json::to_value(&key).unwrap_or(serde_json::json!({}));
+                
+                if let Some(provider_ids_str) = &key.provider_ids {
+                    if let Ok(provider_ids) = serde_json::from_str::<Vec<i64>>(provider_ids_str) {
+                        json["provider_ids"] = serde_json::json!(provider_ids);
+                    }
+                }
+                
+                json
+            }).collect();
+            
+            Json(ApiResponse {
+                success: true,
+                data: Some(keys_with_parsed_ids),
+                message: "API keys retrieved".to_string(),
+            })
+        },
         Err(e) => Json(ApiResponse {
             success: false,
             data: None,
@@ -282,6 +296,7 @@ struct CreateApiKeyRequest {
     name: String,
     scope: String,
     provider_id: Option<i64>,
+    provider_ids: Option<Vec<i64>>,
     qps_limit: f64,
     concurrency_limit: i32,
     expires_in_days: Option<i64>,
@@ -306,6 +321,7 @@ async fn create_api_key_api(
         name: req.name,
         scope: req.scope,
         provider_id: req.provider_id,
+        provider_ids: req.provider_ids,
         qps_limit: req.qps_limit,
         concurrency_limit: req.concurrency_limit,
         expires_at,

@@ -46,13 +46,13 @@ const Select = ({ value, onChange, options, placeholder = "请选择...", classN
           triggerClassName
         )}
       >
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-1 min-w-0">
           {icon}
-          <span className={cn("whitespace-nowrap", selectedOption ? "" : "text-muted-foreground")}>
+          <span className={cn("whitespace-nowrap truncate", selectedOption ? "" : "text-muted-foreground")}>
             {selectedOption?.label || placeholder}
           </span>
-          <ChevronDown className={cn("h-3.5 w-3.5 opacity-50 transition-transform shrink-0", open && "rotate-180")} />
         </div>
+        <ChevronDown className={cn("ml-auto h-3.5 w-3.5 opacity-50 transition-transform shrink-0", open && "rotate-180")} />
       </button>
       {open && (
         <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md">

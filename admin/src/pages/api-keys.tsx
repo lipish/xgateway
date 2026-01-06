@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { PageHeader } from "@/components/layout/page-header"
 import { cn } from "@/lib/utils"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { Select } from "@/components/ui/select"
 
 interface ApiKey {
   id: number
@@ -18,6 +19,7 @@ interface ApiKey {
   key_hash: string
   scope: string
   provider_id: number | null
+  provider_ids: number[] | null
   qps_limit: number
   concurrency_limit: number
   status: string
@@ -25,14 +27,22 @@ interface ApiKey {
   created_at: string
 }
 
+interface Provider {
+  id: number
+  name: string
+  provider_type: string
+  enabled: boolean
+}
+
 export function ApiKeysPage() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
+  const [providers, setProviders] = useState<Provider[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [newKeyData, setNewKeyData] = useState({
     name: "",
     scope: "global",
-    provider_id: null as number | null,
+    provider_ids: [] as number[],
     qps_limit: 10,
     concurrency_limit: 5
   })
@@ -43,6 +53,7 @@ export function ApiKeysPage() {
 
   useEffect(() => {
     fetchApiKeys()
+    fetchProviders()
   }, [])
 
   const fetchApiKeys = async () => {
@@ -52,6 +63,7 @@ export function ApiKeysPage() {
       if (response.ok) {
         const data = await response.json()
         if (data.success) {
+          console.log('API Keys Response:', data.data)
           setApiKeys(data.data || [])
         }
       }
@@ -59,6 +71,20 @@ export function ApiKeysPage() {
       // Failed silently
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchProviders = async () => {
+    try {
+      const response = await fetch('/api/instances')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          setProviders(data.data || [])
+        }
+      }
+    } catch {
+      // Failed silently
     }
   }
 
@@ -140,7 +166,7 @@ export function ApiKeysPage() {
           setShowCreateDialog(open)
           if (!open) setCreatedKey(null)
         }}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>{t('apiKeys.create')}</DialogTitle>
               <DialogDescription>
@@ -150,9 +176,9 @@ export function ApiKeysPage() {
 
             {createdKey ? (
               <div className="space-y-4 py-4">
-                <div className="rounded-md bg-muted p-3 flex items-center justify-between group">
-                  <code className="text-sm font-mono break-all">{createdKey}</code>
-                  <Button variant="ghost" size="icon" onClick={() => copyToClipboard(createdKey)}>
+                <div className="rounded-md bg-muted p-3 flex items-center gap-2 group">
+                  <code className="text-sm font-mono break-all flex-1">{createdKey}</code>
+                  <Button variant="ghost" size="icon" className="shrink-0" onClick={() => copyToClipboard(createdKey)}>
                     {copySuccess ? <span className="text-[10px] text-primary">Copied!</span> : <Copy className="h-4 w-4" />}
                   </Button>
                 </div>
@@ -180,15 +206,38 @@ export function ApiKeysPage() {
                 </div>
                 <div className="grid gap-2">
                   <Label>{t('apiKeys.scope')}</Label>
-                  <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  <Select
                     value={newKeyData.scope}
-                    onChange={e => setNewKeyData({ ...newKeyData, scope: e.target.value })}
-                  >
-                    <option value="global">{t('apiKeys.global')}</option>
-                    <option value="instance">{t('apiKeys.instance')}</option>
-                  </select>
+                    onChange={(value) => setNewKeyData({ ...newKeyData, scope: value, provider_ids: value === 'global' ? [] : newKeyData.provider_ids })}
+                    options={[
+                      { value: 'global', label: t('apiKeys.global') },
+                      { value: 'instance', label: t('apiKeys.instance') }
+                    ]}
+                  />
                 </div>
+                {newKeyData.scope === 'instance' && (
+                  <div className="grid gap-2">
+                    <Label>{t('apiKeys.selectInstance')}</Label>
+                    <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-1">
+                      {providers.map(provider => (
+                        <label key={provider.id} className="flex items-center gap-2 p-2 hover:bg-accent rounded cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={newKeyData.provider_ids.includes(provider.id)}
+                            onChange={(e) => {
+                              const newProviderIds = e.target.checked
+                                ? [...newKeyData.provider_ids, provider.id]
+                                : newKeyData.provider_ids.filter(id => id !== provider.id)
+                              setNewKeyData({ ...newKeyData, provider_ids: newProviderIds })
+                            }}
+                            className="h-4 w-4"
+                          />
+                          <span className="text-sm">{provider.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {error && (
                   <p className="text-sm text-destructive mt-2">{error}</p>
                 )}
@@ -239,14 +288,28 @@ export function ApiKeysPage() {
                       <TableCell className="font-medium">{key.name}</TableCell>
                       <TableCell>
                         <code className="bg-muted px-2 py-1 rounded text-xs font-mono">
-                          {key.key_hash.substring(0, 8)}...
+                          ****{key.key_hash.substring(key.key_hash.length - 4)}
                         </code>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="gap-1 font-normal">
-                          {key.scope === 'global' ? <Globe className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
-                          {key.scope === 'global' ? t('apiKeys.global') : t('apiKeys.instance')}
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="outline" className="gap-1 font-normal w-fit">
+                            {key.scope === 'global' ? <Globe className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
+                            {key.scope === 'global' ? t('apiKeys.global') : t('apiKeys.instance')}
+                          </Badge>
+                          {key.scope === 'instance' && key.provider_ids && key.provider_ids.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {key.provider_ids.map(providerId => {
+                                const provider = providers.find(p => p.id === providerId)
+                                return provider ? (
+                                  <Badge key={providerId} variant="secondary" className="text-xs">
+                                    {provider.name}
+                                  </Badge>
+                                ) : null
+                              })}
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">

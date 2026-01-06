@@ -365,6 +365,8 @@ pub struct ApiKey {
     pub name: String,
     pub scope: String,
     pub provider_id: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub provider_ids: Option<String>,
     pub qps_limit: f64,
     pub concurrency_limit: i32,
     pub status: String,
@@ -381,6 +383,7 @@ pub struct NewApiKey {
     pub name: String,
     pub scope: String, // "global" or "instance"
     pub provider_id: Option<i64>,
+    pub provider_ids: Option<Vec<i64>>,
     pub qps_limit: f64,
     pub concurrency_limit: i32,
     pub expires_at: Option<DateTime<Utc>>,

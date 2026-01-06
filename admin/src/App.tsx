@@ -24,7 +24,7 @@ function App() {
           <Route path="logs" element={<LogsPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="users" element={<UsersPage />} />
-          <Route path="api-keys" element={<ApiKeysPage />} />
+          <Route path="apikeys" element={<ApiKeysPage />} />
           <Route path="help" element={<HelpPage />} />
         </Route>
       </Routes>

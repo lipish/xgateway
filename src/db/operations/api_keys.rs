@@ -4,16 +4,21 @@ use crate::db::{DatabasePool, ApiKey, NewApiKey};
 
 impl DatabasePool {
     pub async fn create_api_key(&self, api_key: NewApiKey) -> Result<i32> {
+        let provider_ids_json = api_key.provider_ids.as_ref().map(|ids| {
+            serde_json::to_string(ids).unwrap_or_else(|_| "[]".to_string())
+        });
+
         match self {
             Self::Sqlite(pool) => {
                 let result = sqlx::query(
-                    "INSERT INTO api_keys (owner_id, key_hash, name, scope, provider_id, qps_limit, concurrency_limit, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                    "INSERT INTO api_keys (owner_id, key_hash, name, scope, provider_id, provider_ids, qps_limit, concurrency_limit, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 )
                 .bind(api_key.owner_id)
                 .bind(&api_key.key_hash)
                 .bind(&api_key.name)
                 .bind(&api_key.scope)
                 .bind(api_key.provider_id)
+                .bind(provider_ids_json.as_ref())
                 .bind(api_key.qps_limit)
                 .bind(api_key.concurrency_limit)
                 .bind(api_key.expires_at)
@@ -23,13 +28,14 @@ impl DatabasePool {
             }
             Self::Postgres(pool) => {
                 let row = sqlx::query(
-                    "INSERT INTO api_keys (owner_id, key_hash, name, scope, provider_id, qps_limit, concurrency_limit, expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id"
+                    "INSERT INTO api_keys (owner_id, key_hash, name, scope, provider_id, provider_ids, qps_limit, concurrency_limit, expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id"
                 )
                 .bind(api_key.owner_id)
                 .bind(&api_key.key_hash)
                 .bind(&api_key.name)
                 .bind(&api_key.scope)
                 .bind(api_key.provider_id)
+                .bind(provider_ids_json.as_ref())
                 .bind(api_key.qps_limit)
                 .bind(api_key.concurrency_limit)
                 .bind(api_key.expires_at)
@@ -41,8 +47,8 @@ impl DatabasePool {
     }
 
     pub async fn get_api_key_by_hash(&self, key_hash: &str) -> Result<Option<ApiKey>> {
-        let query = "SELECT id, owner_id, key_hash, name, scope, provider_id, qps_limit, concurrency_limit, status, expires_at, created_at, updated_at FROM api_keys WHERE key_hash = ? AND status = 'active'";
-        let pg_query = "SELECT id, owner_id, key_hash, name, scope, provider_id, qps_limit, concurrency_limit, status, expires_at, created_at, updated_at FROM api_keys WHERE key_hash = $1 AND status = 'active'";
+        let query = "SELECT id, owner_id, key_hash, name, scope, provider_id, provider_ids, qps_limit, concurrency_limit, status, expires_at, created_at, updated_at FROM api_keys WHERE key_hash = ? AND status = 'active'";
+        let pg_query = "SELECT id, owner_id, key_hash, name, scope, provider_id, provider_ids, qps_limit, concurrency_limit, status, expires_at, created_at, updated_at FROM api_keys WHERE key_hash = $1 AND status = 'active'";
 
         match self {
             Self::Sqlite(pool) => {
@@ -61,7 +67,7 @@ impl DatabasePool {
     }
 
     pub async fn list_api_keys(&self) -> Result<Vec<ApiKey>> {
-        let query = "SELECT id, owner_id, key_hash, name, scope, provider_id, qps_limit, concurrency_limit, status, expires_at, created_at, updated_at FROM api_keys ORDER BY created_at DESC";
+        let query = "SELECT id, owner_id, key_hash, name, scope, provider_id, provider_ids, qps_limit, concurrency_limit, status, expires_at, created_at, updated_at FROM api_keys ORDER BY created_at DESC";
         match self {
             Self::Sqlite(pool) => Ok(sqlx::query_as::<_, ApiKey>(query).fetch_all(pool).await?),
             Self::Postgres(pool) => Ok(sqlx::query_as::<_, ApiKey>(query).fetch_all(pool).await?),
@@ -69,8 +75,8 @@ impl DatabasePool {
     }
 
     pub async fn get_api_key_by_id(&self, id: i32) -> Result<Option<ApiKey>> {
-        let query = "SELECT id, owner_id, key_hash, name, scope, provider_id, qps_limit, concurrency_limit, status, expires_at, created_at, updated_at FROM api_keys WHERE id = ?";
-        let pg_query = "SELECT id, owner_id, key_hash, name, scope, provider_id, qps_limit, concurrency_limit, status, expires_at, created_at, updated_at FROM api_keys WHERE id = $1";
+        let query = "SELECT id, owner_id, key_hash, name, scope, provider_id, provider_ids, qps_limit, concurrency_limit, status, expires_at, created_at, updated_at FROM api_keys WHERE id = ?";
+        let pg_query = "SELECT id, owner_id, key_hash, name, scope, provider_id, provider_ids, qps_limit, concurrency_limit, status, expires_at, created_at, updated_at FROM api_keys WHERE id = $1";
         match self {
             Self::Sqlite(pool) => Ok(sqlx::query_as::<_, ApiKey>(query).bind(id).fetch_optional(pool).await?),
             Self::Postgres(pool) => Ok(sqlx::query_as::<_, ApiKey>(pg_query).bind(id).fetch_optional(pool).await?),
