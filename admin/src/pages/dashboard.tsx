@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Header } from "@/components/layout/header"
+import { PageHeader } from "@/components/layout/page-header"
 import {
   Table,
   TableBody,
@@ -13,26 +13,21 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-import { useI18n, t } from "@/lib/i18n"
+import { t } from "@/lib/i18n"
 import {
   Server,
   Activity,
   Zap,
   Clock,
-  TrendingUp,
-  Plus,
   Loader2,
   MessageSquare,
-  Settings,
-  Trash2,
   Shield,
   BarChart3,
   Database,
-  Heart,
-  RefreshCw,
   ArrowRight,
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
+import { Skeleton } from "@/components/ui/skeleton"
 import { apiGet, apiPost } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
@@ -172,7 +167,7 @@ export function DashboardPage() {
     <div className="flex flex-col page-transition">
 
       <div className="flex-1 space-y-6 max-w-[1600px] mx-auto w-full">
-        <Header
+        <PageHeader
           title={t('dashboard.title')}
           subtitle={t('dashboard.description')}
           onRefresh={fetchDashboardData}
@@ -184,12 +179,12 @@ export function DashboardPage() {
             {[1, 2, 3, 4].map((i) => (
               <Card key={i}>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-                  <div className="h-4 w-4 bg-muted animate-pulse rounded" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-4" />
                 </CardHeader>
                 <CardContent>
-                  <div className="h-8 w-12 bg-muted animate-pulse rounded mb-2" />
-                  <div className="h-3 w-16 bg-muted animate-pulse rounded" />
+                  <Skeleton className="h-8 w-12 mb-2" />
+                  <Skeleton className="h-3 w-16" />
                 </CardContent>
               </Card>
             ))}
@@ -235,8 +230,9 @@ export function DashboardPage() {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle>{t('dashboard.recentProviders')}</CardTitle>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/instances')} title={t('dashboard.viewAll')}>
-                    <ArrowRight className="h-4 w-4" />
+                  <Button variant="outline" size="sm" onClick={() => navigate('/instances')}>
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    {t('dashboard.viewAll')}
                   </Button>
                 </div>
               </CardHeader>
@@ -320,65 +316,37 @@ export function DashboardPage() {
             {/* Comprehensive Monitoring */}
             <Card className="w-96 shrink-0 flex flex-col">
               <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                <CardTitle>{t('dashboard.comprehensiveMonitoring')}</CardTitle>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/monitoring')} title={t('dashboard.viewDetailedMonitoring')}>
-                  <BarChart3 className="h-4 w-4" />
+                <div>
+                  <CardTitle className="text-lg">{t('dashboard.comprehensiveMonitoring')}</CardTitle>
+                  <CardDescription>{t('dashboard.systemStatusDescription') || 'Real-time health status'}</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => navigate('/monitoring')}>
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  {t('dashboard.viewDetailedMonitoring')}
                 </Button>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
-                <div className="space-y-2 flex-1">
-                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                      <Activity className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">{t('dashboard.systemLoad')}</span>
+                <div className="space-y-1.5 flex-1">
+                  {[
+                    { label: t('dashboard.systemLoad'), icon: Activity, status: t('dashboard.normal'), color: 'bg-emerald-500' },
+                    { label: t('dashboard.responseSpeed'), icon: Zap, status: t('dashboard.good'), color: 'bg-emerald-500' },
+                    { label: t('dashboard.providerPool'), icon: Server, status: stats && stats.enabled > 0 ? `${stats.enabled}${t('dashboard.active')}` : t('dashboard.noAvailable'), color: stats && stats.enabled > 0 ? 'bg-emerald-500' : 'bg-amber-500' },
+                    { label: t('dashboard.database'), icon: Database, status: t('dashboard.connected'), color: 'bg-emerald-500' },
+                    { label: t('dashboard.healthCheck'), icon: Shield, status: t('dashboard.passed'), color: 'bg-emerald-500' },
+                    { label: t('dashboard.uptime'), icon: Clock, status: t('dashboard.stable'), color: 'bg-emerald-500' },
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors group">
+                      <div className="flex items-center gap-3">
+                        <div className={cn("w-1.5 h-1.5 rounded-full", item.color)} />
+                        <item.icon className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                        <span className="text-sm font-medium">{item.label}</span>
+                      </div>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                        {item.status}
+                      </span>
                     </div>
-                    <span className="text-sm font-semibold">{t('dashboard.normal')}</span>
-                  </div>
-                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                      <Zap className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">{t('dashboard.responseSpeed')}</span>
-                    </div>
-                    <span className="text-sm font-semibold">{t('dashboard.good')}</span>
-                  </div>
-                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/50">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-2 h-2 rounded-full ${stats && stats.enabled > 0 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                      <Server className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">{t('dashboard.providerPool')}</span>
-                    </div>
-                    <span className="text-sm font-semibold">
-                      {stats && stats.enabled > 0 ? `${stats.enabled}${t('dashboard.active')}` : t('dashboard.noAvailable')}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                      <Database className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">{t('dashboard.database')}</span>
-                    </div>
-                    <span className="text-sm font-semibold">{t('dashboard.connected')}</span>
-                  </div>
-                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                      <Shield className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">{t('dashboard.healthCheck')}</span>
-                    </div>
-                    <span className="text-sm font-semibold">{t('dashboard.passed')}</span>
-                  </div>
-                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">{t('dashboard.uptime')}</span>
-                    </div>
-                    <span className="text-sm font-semibold">{t('dashboard.stable')}</span>
-                  </div>
+                  ))}
                 </div>
-
               </CardContent>
             </Card>
           </div>

@@ -14,10 +14,12 @@ interface SelectProps {
   options: SelectOption[]
   placeholder?: string
   className?: string
+  triggerClassName?: string
+  icon?: React.ReactNode
   id?: string
 }
 
-const Select = ({ value, onChange, options, placeholder = "请选择...", className, id }: SelectProps) => {
+const Select = ({ value, onChange, options, placeholder = "请选择...", className, triggerClassName, icon, id }: SelectProps) => {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -39,12 +41,18 @@ const Select = ({ value, onChange, options, placeholder = "请选择...", classN
         id={id}
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        className={cn(
+          "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+          triggerClassName
+        )}
       >
-        <span className={selectedOption ? "" : "text-muted-foreground"}>
-          {selectedOption?.label || placeholder}
-        </span>
-        <ChevronDown className={cn("h-4 w-4 opacity-50 transition-transform", open && "rotate-180")} />
+        <div className="flex items-center gap-2 truncate">
+          {icon}
+          <span className={selectedOption ? "truncate" : "text-muted-foreground truncate"}>
+            {selectedOption?.label || placeholder}
+          </span>
+        </div>
+        <ChevronDown className={cn("h-4 w-4 opacity-50 transition-transform shrink-0", open && "rotate-180")} />
       </button>
       {open && (
         <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md">

@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { useI18n, t } from "@/lib/i18n"
+import { t } from "@/lib/i18n"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Trash2, Copy, RefreshCw, Key, Shield, Globe, Zap } from "lucide-react"
+import { Plus, Trash2, Copy, Key, Shield, Globe, Zap } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Header } from "@/components/layout/header"
+import { PageHeader } from "@/components/layout/page-header"
 import { cn } from "@/lib/utils"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 
@@ -55,8 +55,8 @@ export function ApiKeysPage() {
           setApiKeys(data.data || [])
         }
       }
-    } catch (err) {
-      console.error('Failed to fetch API keys:', err)
+    } catch {
+      // Failed silently
     } finally {
       setLoading(false)
     }
@@ -77,7 +77,7 @@ export function ApiKeysPage() {
       } else {
         setError(data.message || t('apiKeys.createFailed'))
       }
-    } catch (err) {
+    } catch {
       setError(t('common.networkError'))
     }
   }
@@ -121,20 +121,16 @@ export function ApiKeysPage() {
 
   return (
     <div className="flex flex-col page-transition">
-      <Header
+      <PageHeader
         title={t('nav.apiKeys')}
         subtitle={t('apiKeys.description')}
-        onRefresh={fetchApiKeys}
-        loading={loading}
         actions={
           <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9"
+            size="sm"
             onClick={() => setShowCreateDialog(true)}
-            title={t('apiKeys.create')}
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="mr-2 h-4 w-4" />
+            {t('apiKeys.create')}
           </Button>
         }
       />

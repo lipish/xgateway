@@ -2,9 +2,10 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { useI18n, t } from "@/lib/i18n"
+import { t } from "@/lib/i18n"
 import { Activity, Heart, Shield, Gauge, RefreshCw, AlertTriangle, CheckCircle, XCircle } from "lucide-react"
-import { Header } from "@/components/layout/header"
+import { PageHeader } from "@/components/layout/page-header"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 interface ProviderHealth {
@@ -83,29 +84,20 @@ export function MonitoringPage() {
 
   return (
     <div className="flex flex-col page-transition">
-      <Header
+      <PageHeader
         title={t('nav.monitoring')}
         subtitle={t('dashboard.description')}
+        onRefresh={fetchMonitoringData}
+        loading={loading}
         actions={
           <div className="flex gap-2">
             <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9"
-              onClick={fetchMonitoringData}
-              disabled={loading}
-              title={t('common.refresh')}
-            >
-              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-            </Button>
-            <Button
-              variant={autoRefresh ? "secondary" : "ghost"}
-              size="icon"
-              className={cn("h-9 w-9", autoRefresh && "bg-primary/10 text-primary hover:bg-primary/20")}
+              variant={autoRefresh ? "secondary" : "outline"}
+              size="sm"
               onClick={() => setAutoRefresh(!autoRefresh)}
-              title={autoRefresh ? t('monitoring.stopAutoRefresh') : t('monitoring.autoRefresh')}
             >
-              <Activity className={cn("h-4 w-4", autoRefresh && "animate-pulse")} />
+              <Activity className={cn("mr-2 h-4 w-4", autoRefresh && "animate-pulse")} />
+              {autoRefresh ? t('monitoring.stopAutoRefresh') : t('monitoring.autoRefresh')}
             </Button>
           </div>
         }
@@ -121,42 +113,50 @@ export function MonitoringPage() {
 
         {/* Pool Overview */}
         <div className="grid gap-4 md:grid-cols-4">
-          <Card>
+          <Card className="hover:border-primary/40 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t('monitoring.healthyProviders')}</CardTitle>
               <Heart className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-primary">
-                {poolStatus?.healthy_providers ?? '--'} <span className="text-sm font-normal text-muted-foreground">/ {poolStatus?.total_providers ?? '--'}</span>
-              </div>
+              {loading ? <Skeleton className="h-8 w-20" /> : (
+                <div className="text-2xl font-bold text-primary">
+                  {poolStatus?.healthy_providers ?? '--'} <span className="text-sm font-normal text-muted-foreground">/ {poolStatus?.total_providers ?? '--'}</span>
+                </div>
+              )}
             </CardContent>
           </Card>
-          <Card>
+          <Card className="hover:border-primary/40 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t('monitoring.loadBalanceStrategy')}</CardTitle>
               <Gauge className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{poolStatus?.load_balance_strategy ?? 'RoundRobin'}</div>
+              {loading ? <Skeleton className="h-8 w-32" /> : (
+                <div className="text-2xl font-bold">{poolStatus?.load_balance_strategy ?? 'RoundRobin'}</div>
+              )}
             </CardContent>
           </Card>
-          <Card>
+          <Card className="hover:border-primary/40 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t('monitoring.todayRequests')}</CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{poolStatus?.total_requests_today ?? '--'}</div>
+              {loading ? <Skeleton className="h-8 w-24" /> : (
+                <div className="text-2xl font-bold">{poolStatus?.total_requests_today ?? '--'}</div>
+              )}
             </CardContent>
           </Card>
-          <Card>
+          <Card className="hover:border-primary/40 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t('monitoring.avgLatency')}</CardTitle>
               <Shield className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{poolStatus?.avg_latency_ms ?? '--'} <span className="text-sm font-normal text-muted-foreground">ms</span></div>
+              {loading ? <Skeleton className="h-8 w-28" /> : (
+                <div className="text-2xl font-bold">{poolStatus?.avg_latency_ms ?? '--'} <span className="text-sm font-normal text-muted-foreground">ms</span></div>
+              )}
             </CardContent>
           </Card>
         </div>

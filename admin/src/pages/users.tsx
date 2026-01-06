@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Header } from "@/components/layout/header"
-import { useI18n, t } from "@/lib/i18n"
+import { PageHeader } from "@/components/layout/page-header"
+import { t } from "@/lib/i18n"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Trash2, RefreshCw, User as UserIcon, Server } from "lucide-react"
+import { Plus, Trash2, RefreshCw, User as UserIcon, Server, UserPlus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -118,7 +118,7 @@ export function UsersPage() {
             } else {
                 setError(data.message || 'Failed to create user')
             }
-        } catch (err) {
+        } catch {
             setError(t('common.networkError'))
         } finally {
             setCreating(false)
@@ -201,20 +201,16 @@ export function UsersPage() {
 
     return (
         <div className="flex flex-col page-transition">
-            <Header
+            <PageHeader
                 title={t('nav.users')}
                 subtitle={t('users.description')}
-                onRefresh={fetchUsers}
-                loading={loading}
                 actions={
                     <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9"
+                        size="sm"
                         onClick={() => setShowCreateDialog(true)}
-                        title={t('users.create')}
                     >
-                        <Plus className="h-4 w-4" />
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        {t('users.create')}
                     </Button>
                 }
             />

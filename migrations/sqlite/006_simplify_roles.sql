@@ -7,7 +7,7 @@ DELETE FROM roles WHERE id IN ('super_admin', 'developer');
 UPDATE roles SET permissions = '["provider:*", "user:*", "api_key:*", "instance:grant"]' WHERE id = 'admin';
 
 -- Create user role
-INSERT INTO roles (id, name, permissions) VALUES 
+INSERT OR REPLACE INTO roles (id, name, permissions) VALUES 
 ('user', 'User', '["instance:view_granted", "api_key:view_granted"]');
 
 -- Update existing users with developer role to user role

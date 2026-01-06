@@ -3,8 +3,8 @@ import { apiGet, apiPut, apiPost, apiDelete } from "@/lib/api"
 import { t } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Loader2, Plus, Search, HelpCircle, RefreshCw } from "lucide-react"
-import { Header } from "@/components/layout/header"
+import { Loader2, Plus, Search } from "lucide-react"
+import { PageHeader } from "@/components/layout/page-header"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 
 import type { ProviderType, ModelInfo } from "@/components/providers/types"
@@ -218,7 +218,7 @@ export function ModelTypesPage() {
 
   return (
     <div className="flex flex-col page-transition">
-      <Header
+      <PageHeader
         title={t('nav.modelTypes')}
         subtitle={t('providers.description')}
       />
@@ -256,13 +256,15 @@ export function ModelTypesPage() {
                 <span className="text-sm text-muted-foreground">
                   {t('providers.total')} {filteredProviderTypes.length} {t('providers.unit')}
                 </span>
-                <div
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setShowAddProvider(true)}
-                  className="h-8 w-8 flex items-center justify-center cursor-pointer text-muted-foreground hover:text-foreground rounded-md transition-colors"
-                  title={t("modelTypes.addProvider")}
+                  className="h-8 gap-2"
                 >
-                  <Plus className="h-5 w-5" />
-                </div>
+                  <Plus className="h-4 w-4" />
+                  {t("common.add")}
+                </Button>
               </div>
 
               <ProviderList

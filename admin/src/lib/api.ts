@@ -4,14 +4,16 @@
  * This module provides a centralized way to make API calls with proper
  * base URL configuration. The API URL can be configured via:
  * 1. VITE_API_URL environment variable (recommended for development)
- * 2. Default to http://localhost:8000
+ * 2. Default to empty string (Vite proxy will forward /api/* requests)
  */
 
 // Get API URL from environment or use default
 const getApiUrl = (): string => {
   // Use environment variable if set, otherwise use empty string
   // (Vite proxy will forward /api/* requests to the backend)
-  return import.meta.env.VITE_API_URL || ''
+  const apiUrl = import.meta.env.VITE_API_URL || ''
+  console.log('API_URL from env:', import.meta.env.VITE_API_URL, 'final:', apiUrl)
+  return apiUrl
 }
 
 export const API_URL = getApiUrl()

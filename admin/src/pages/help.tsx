@@ -1,13 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useI18n, t } from "@/lib/i18n"
-import { Header } from "@/components/layout/header"
+import { t } from "@/lib/i18n"
+import { PageHeader } from "@/components/layout/page-header"
 import { Badge } from "@/components/ui/badge"
-import { Book, Code, MessageCircle, Github, Globe, Zap, HelpCircle } from "lucide-react"
+import { Book, Code, MessageCircle, Github, Globe, Zap } from "lucide-react"
 
 export function HelpPage() {
   return (
     <div className="flex flex-col page-transition">
-      <Header
+      <PageHeader
         title={t('nav.help')}
         subtitle={t('help.description')}
       />

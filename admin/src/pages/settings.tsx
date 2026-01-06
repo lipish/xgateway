@@ -2,11 +2,13 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-
-import { useI18n, t } from "@/lib/i18n"
+import { Label } from "@/components/ui/label"
+import { Select } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
+import { t } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
-import { Settings, Save, RotateCcw, RefreshCw, Loader2 } from "lucide-react"
-import { Header } from "@/components/layout/header"
+import { Settings, Save, RotateCcw, RefreshCw, Loader2, Shield, Zap, Heart } from "lucide-react"
+import { PageHeader } from "@/components/layout/page-header"
 
 interface PoolSettings {
   load_balance_strategy: string
@@ -53,8 +55,8 @@ export function SettingsPage() {
           setSettings(data.data)
         }
       }
-    } catch (err) {
-      console.error('Failed to fetch settings:', err)
+    } catch {
+      console.error('Failed to fetch settings')
     } finally {
       setLoading(false)
     }
@@ -95,16 +97,18 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-col page-transition">
-      <Header
+      <PageHeader
         title={t('settings.title')}
         subtitle={t('settings.description')}
         actions={
           <div className="flex gap-2">
-            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={resetToDefaults} disabled={saving} title={t('settings.reset')}>
-              <RotateCcw className="h-4 w-4" />
+            <Button variant="outline" size="sm" onClick={resetToDefaults} disabled={saving}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              {t('settings.reset')}
             </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={saveSettings} disabled={saving} title={t('settings.save')}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            <Button size="sm" onClick={saveSettings} disabled={saving}>
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              {t('settings.save')}
             </Button>
           </div>
         }
@@ -121,79 +125,71 @@ export function SettingsPage() {
         {loading ? (
           <div className="grid gap-6 md:grid-cols-2">
             {[1, 2, 3, 4].map(i => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader><div className="h-6 w-32 bg-muted rounded" /></CardHeader>
-                <CardContent><div className="h-20 bg-muted rounded" /></CardContent>
+              <Card key={i}>
+                <CardHeader className="pb-3">
+                  <Skeleton className="h-6 w-32 mb-1" />
+                  <Skeleton className="h-4 w-full" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                </CardContent>
               </Card>
             ))}
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                <div className="space-y-1">
-                  <CardTitle className="flex items-center gap-2">
-                    <Settings className="h-5 w-5 text-muted-foreground" /> {t('settings.loadBalance')}
-                  </CardTitle>
-                  <CardDescription>{t('settings.loadBalanceDesc')}</CardDescription>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={saveSettings}
-                    disabled={saving}
-                    title={t('settings.save')}
-                    className="h-8 w-8"
-                  >
-                    {saving ? <RotateCcw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 text-primary" />}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={resetToDefaults}
-                    title={t('settings.reset')}
-                    className="h-8 w-8"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={fetchSettings}
-                    disabled={loading}
-                    title={t('common.refresh')}
-                    className="h-8 w-8"
-                  >
-                    <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-                  </Button>
+            <Card className="hover:border-primary/40 transition-colors">
+              <CardHeader className="pb-3 border-b mb-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Settings className="h-5 w-5 text-primary" /> {t('settings.loadBalance')}
+                    </CardTitle>
+                    <CardDescription>{t('settings.loadBalanceDesc')}</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={fetchSettings}
+                      disabled={loading}
+                      title={t('common.refresh')}
+                      className="h-8 w-8"
+                    >
+                      <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">{t('settings.strategy')}</label>
-                  <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  <Label htmlFor="strategy">{t('settings.strategy')}</Label>
+                  <Select
+                    id="strategy"
                     value={settings.load_balance_strategy}
-                    onChange={(e) => setSettings({ ...settings, load_balance_strategy: e.target.value })}
-                  >
-                    {STRATEGIES.map(s => (
-                      <option key={s.value} value={s.value}>{t(`settings.${s.value}` as any)}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setSettings({ ...settings, load_balance_strategy: val })}
+                    options={STRATEGIES.map(s => ({ value: s.value, label: t(`settings.${s.value}` as any) }))}
+                    placeholder={t('settings.selectStrategy')}
+                  />
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle>{t('settings.healthCheck')}</CardTitle>
+            <Card className="hover:border-primary/40 transition-colors">
+              <CardHeader className="pb-3 border-b mb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Heart className="h-5 w-5 text-primary" /> {t('settings.healthCheck')}
+                </CardTitle>
                 <CardDescription>{t('settings.healthCheckProviderDesc')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">{t('settings.interval')}</label>
+                  <Label htmlFor="interval">{t('settings.interval')} (s)</Label>
                   <Input
+                    id="interval"
                     type="number"
                     value={settings.health_check_interval_secs}
                     onChange={(e) => setSettings({ ...settings, health_check_interval_secs: parseInt(e.target.value) || 30 })}
@@ -202,54 +198,68 @@ export function SettingsPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle>{t('settings.circuitBreaker')}</CardTitle>
+            <Card className="hover:border-primary/40 transition-colors">
+              <CardHeader className="pb-3 border-b mb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Shield className="h-5 w-5 text-primary" /> {t('settings.circuitBreaker')}
+                </CardTitle>
                 <CardDescription>{t('settings.circuitBreakerThresholdDesc')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t('settings.threshold')} ({t('settings.thresholdUnit')})</label>
-                  <Input
-                    type="number"
-                    value={settings.circuit_breaker_threshold}
-                    onChange={(e) => setSettings({ ...settings, circuit_breaker_threshold: parseInt(e.target.value) || 5 })}
-                  />
-                  <p className="text-xs text-muted-foreground">{t('settings.thresholdHint')}</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="threshold">{t('settings.threshold')} ({t('settings.thresholdUnit')})</Label>
+                    <Input
+                      id="threshold"
+                      type="number"
+                      value={settings.circuit_breaker_threshold}
+                      onChange={(e) => setSettings({ ...settings, circuit_breaker_threshold: parseInt(e.target.value) || 5 })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="timeout">{t('settings.timeout')} (s)</Label>
+                    <Input
+                      id="timeout"
+                      type="number"
+                      value={settings.circuit_breaker_timeout_secs}
+                      onChange={(e) => setSettings({ ...settings, circuit_breaker_timeout_secs: parseInt(e.target.value) || 60 })}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t('settings.timeout')}</label>
-                  <Input
-                    type="number"
-                    value={settings.circuit_breaker_timeout_secs}
-                    onChange={(e) => setSettings({ ...settings, circuit_breaker_timeout_secs: parseInt(e.target.value) || 60 })}
-                  />
-                  <p className="text-xs text-muted-foreground">{t('settings.timeoutHint')}</p>
+                <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+                  <p className="text-xs text-muted-foreground"><span className="font-semibold text-primary">{t('settings.thresholdHint')}</span>: {t('settings.thresholdHintDesc') || 'Number of failures before breaking'}</p>
+                  <p className="text-xs text-muted-foreground"><span className="font-semibold text-primary">{t('settings.timeoutHint')}</span>: {t('settings.timeoutHintDesc') || 'Seconds to wait before recovery'}</p>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle>{t('settings.retry')}</CardTitle>
+            <Card className="hover:border-primary/40 transition-colors">
+              <CardHeader className="pb-3 border-b mb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Zap className="h-5 w-5 text-primary" /> {t('settings.retry')}
+                </CardTitle>
                 <CardDescription>{t('settings.retryStrategyDesc')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t('settings.maxRetries')}</label>
-                  <Input
-                    type="number"
-                    value={settings.max_retries}
-                    onChange={(e) => setSettings({ ...settings, max_retries: parseInt(e.target.value) || 3 })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t('settings.retryDelay')}</label>
-                  <Input
-                    type="number"
-                    value={settings.retry_delay_ms}
-                    onChange={(e) => setSettings({ ...settings, retry_delay_ms: parseInt(e.target.value) || 1000 })}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="maxRetries">{t('settings.maxRetries')}</Label>
+                    <Input
+                      id="maxRetries"
+                      type="number"
+                      value={settings.max_retries}
+                      onChange={(e) => setSettings({ ...settings, max_retries: parseInt(e.target.value) || 3 })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="retryDelay">{t('settings.retryDelay')} (ms)</Label>
+                    <Input
+                      id="retryDelay"
+                      type="number"
+                      value={settings.retry_delay_ms}
+                      onChange={(e) => setSettings({ ...settings, retry_delay_ms: parseInt(e.target.value) || 1000 })}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>

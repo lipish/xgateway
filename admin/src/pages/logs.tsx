@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react"
 import { apiGet } from "@/lib/api"
-import { Header } from "@/components/layout/header"
-import { useI18n, t } from "@/lib/i18n"
+import { PageHeader } from "@/components/layout/page-header"
+import { t } from "@/lib/i18n"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { RefreshCw, Search, Download, Clock, Server } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Search, Download, Clock, Server } from "lucide-react"
 
 interface RequestLog {
   id: number
@@ -88,16 +87,16 @@ export function LogsPage() {
 
   return (
     <div className="flex flex-col h-full page-transition">
-      <Header
+      <PageHeader
         title={t('logs.title')}
         subtitle={t('logs.description')}
+        onRefresh={fetchLogs}
+        loading={loading}
         actions={
           <div className="flex gap-2">
-            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={fetchLogs} title={t('common.refresh')}>
-              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={exportLogs} title={t('logs.export')}>
-              <Download className="h-4 w-4" />
+            <Button variant="outline" size="sm" onClick={exportLogs}>
+              <Download className="mr-2 h-4 w-4" />
+              {t('logs.export')}
             </Button>
           </div>
         }

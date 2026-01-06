@@ -129,6 +129,8 @@ export const zh = {
     error: '错误',
     networkError: '网络错误',
     selectProviderPlaceholder: '选择 Provider',
+    startChat: '开始对话',
+    maximize: '最大化',
   },
   logs: {
     title: '请求日志',

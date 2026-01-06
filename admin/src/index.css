@@ -50,8 +50,8 @@
     --input: 220 14% 90%;
     --ring: 220 14% 80%;
 
-    /* Large radius for friendly feel */
-    --radius: 0.875rem;
+    /* Reduce radius for a sharper, more professional feel */
+    --radius: 0.4rem;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 10% 46%;

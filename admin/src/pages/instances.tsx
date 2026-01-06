@@ -2,11 +2,9 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "@/lib/api";
 import { t } from "@/lib/i18n";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Header } from "@/components/layout/header";
-import { Loader2, Server, RefreshCw } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
+import { Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -383,7 +381,7 @@ export function ProvidersPage() {
   return (
     <div className="flex flex-col page-transition">
       <div className="flex-1 space-y-6 max-w-[1600px] mx-auto w-full">
-        <Header
+        <PageHeader
           title={t('nav.providers')}
           subtitle={t('dashboard.totalProvidersDesc')}
           onRefresh={fetchProviders}
