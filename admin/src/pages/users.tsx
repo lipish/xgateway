@@ -214,7 +214,7 @@ export function UsersPage() {
                     </Button>
                 }
             />
-            <div className="flex-1 space-y-4 max-w-[1600px] mx-auto w-full">
+            <div className="flex-1 space-y-4 max-w-[1400px] mx-auto w-full">
 
                 <Card>
                     <CardContent className="pt-6">

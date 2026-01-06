@@ -11,7 +11,7 @@ export function HelpPage() {
         title={t('nav.help')}
         subtitle={t('help.description')}
       />
-      <div className="flex-1 space-y-6 max-w-[1600px] mx-auto w-full">
+      <div className="flex-1 space-y-6 max-w-[1400px] mx-auto w-full">
 
         <div className="grid gap-6 md:grid-cols-2">
           <Card className="hover:border-primary/40 transition-colors">

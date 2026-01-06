@@ -222,7 +222,7 @@ export function ModelTypesPage() {
         title={t('nav.modelTypes')}
         subtitle={t('providers.description')}
       />
-      <div className="flex-1 max-w-[1600px] mx-auto w-full">
+      <div className="flex-1 max-w-[1400px] mx-auto w-full">
         {error && (
           <div className="mb-6 p-4 rounded-lg bg-destructive/5 text-destructive border border-destructive/20 flex items-center justify-between">
             <span className="text-sm font-medium">{error}</span>

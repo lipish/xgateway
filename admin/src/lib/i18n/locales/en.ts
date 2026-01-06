@@ -107,6 +107,8 @@ export const en = {
   chat: {
     title: 'Chat Test',
     description: 'Test chat functionality of service instances',
+    subtitle: 'Maximum 4 windows for side-by-side comparison · Current',
+    windows: ' windows',
     selectProvider: 'Select Service Instance',
     message: 'Enter message',
     send: 'Send',
@@ -129,6 +131,8 @@ export const en = {
     error: 'Error',
     networkError: 'Network error',
     selectProviderPlaceholder: 'Select Provider',
+    startChat: 'Start Chat',
+    maximize: 'Maximize',
   },
   logs: {
     title: 'Request Logs',
@@ -360,5 +364,6 @@ export const en = {
     logout: 'Logout',
     yes: 'Yes',
     no: 'No',
+    refresh: 'Refresh',
   },
 }

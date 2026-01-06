@@ -380,10 +380,10 @@ export function ProvidersPage() {
 
   return (
     <div className="flex flex-col page-transition">
-      <div className="flex-1 space-y-6 max-w-[1600px] mx-auto w-full">
+      <div className="flex-1 space-y-6 max-w-[1400px] mx-auto w-full">
         <PageHeader
           title={t('nav.providers')}
-          subtitle={t('dashboard.totalProvidersDesc')}
+          subtitle={t('providers.description')}
           onRefresh={fetchProviders}
           loading={loading}
         />

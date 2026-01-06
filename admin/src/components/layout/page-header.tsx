@@ -13,7 +13,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, onRefresh, loading, actions }: PageHeaderProps) {
     return (
-        <div className="mb-8 flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+        <div className="mb-8 flex flex-col gap-1 md:flex-row md:items-center md:justify-between max-w-[1400px] mx-auto w-full">
             <div className="space-y-1">
                 {title && (
                     <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">

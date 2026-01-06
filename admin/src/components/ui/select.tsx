@@ -42,17 +42,17 @@ const Select = ({ value, onChange, options, placeholder = "请选择...", classN
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+          "flex h-10 w-full items-center rounded-md border border-input px-3 py-2 text-sm ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           triggerClassName
         )}
       >
-        <div className="flex items-center gap-2 truncate">
+        <div className="flex items-center gap-1">
           {icon}
-          <span className={selectedOption ? "truncate" : "text-muted-foreground truncate"}>
+          <span className={cn("whitespace-nowrap", selectedOption ? "" : "text-muted-foreground")}>
             {selectedOption?.label || placeholder}
           </span>
+          <ChevronDown className={cn("h-3.5 w-3.5 opacity-50 transition-transform shrink-0", open && "rotate-180")} />
         </div>
-        <ChevronDown className={cn("h-4 w-4 opacity-50 transition-transform shrink-0", open && "rotate-180")} />
       </button>
       {open && (
         <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md">
@@ -82,4 +82,3 @@ const Select = ({ value, onChange, options, placeholder = "请选择...", classN
 
 export { Select }
 export type { SelectOption }
-

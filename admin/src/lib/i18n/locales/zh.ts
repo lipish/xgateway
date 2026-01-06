@@ -107,6 +107,8 @@ export const zh = {
   chat: {
     title: '对话测试',
     description: '测试服务实例的对话功能',
+    subtitle: '最多支持 4 个窗口并排对比 · 当前',
+    windows: '个',
     selectProvider: '选择服务实例',
     message: '输入消息',
     send: '发送',
@@ -362,5 +364,6 @@ export const zh = {
     logout: '退出登录',
     yes: '是',
     no: '否',
+    refresh: '刷新',
   },
 }

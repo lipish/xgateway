@@ -134,7 +134,7 @@ export function ApiKeysPage() {
           </Button>
         }
       />
-      <div className="flex-1 space-y-4 max-w-[1600px] mx-auto w-full">
+      <div className="flex-1 space-y-4 max-w-[1400px] mx-auto w-full">
 
         <Dialog open={showCreateDialog} onOpenChange={(open) => {
           setShowCreateDialog(open)

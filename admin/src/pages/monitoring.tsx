@@ -102,7 +102,7 @@ export function MonitoringPage() {
           </div>
         }
       />
-      <div className="flex-1 space-y-4 max-w-[1600px] mx-auto w-full">
+      <div className="flex-1 space-y-4 max-w-[1400px] mx-auto w-full">
 
         {error && (
           <div className="p-4 rounded-lg bg-destructive/5 text-destructive border border-destructive/20 flex items-center gap-2">

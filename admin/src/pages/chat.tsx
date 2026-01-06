@@ -11,7 +11,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"
 
 import { useNavigate } from "react-router-dom"
-import { Send, Loader2, Bot, Plus, X, MessageSquarePlus, History, Trash2, PanelLeftClose, PanelLeft, Settings, Sparkles, Maximize2 } from "lucide-react"
+import { Send, Loader2, Bot, Plus, X, MessageSquarePlus, History, Trash2, PanelLeftClose, PanelLeft, Settings, Sparkles, Maximize2, Minimize2, Image, Paperclip } from "lucide-react"
 import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
@@ -38,6 +38,7 @@ interface ChatPanel {
   messages: { role: "user" | "assistant"; content: string }[]
   loading: boolean
   input: string
+  maximized?: boolean
 }
 
 export function ChatPage() {
@@ -104,6 +105,10 @@ export function ChatPage() {
   const removePanel = (id: string) => {
     if (panels.length <= 1) return
     setPanels(prev => prev.filter(p => p.id !== id))
+  }
+
+  const toggleMaximizePanel = (panelId: string) => {
+    setPanels(prev => prev.map(p => p.id === panelId ? { ...p, maximized: !p.maximized } : p))
   }
 
   const setProviderForPanel = (panelId: string, providerId: number) => {
@@ -276,15 +281,7 @@ export function ChatPage() {
     <div className="flex flex-col h-full page-transition overflow-hidden">
       <PageHeader
         title={t('chat.title')}
-        subtitle={
-          <div className="flex flex-col gap-1">
-            <p>{t('chat.description')}</p>
-            <p className="text-sm opacity-70 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
-              {`最多支持 4 个窗口并排对比 · 当前 ${panels.length} 个`}
-            </p>
-          </div>
-        }
+        subtitle={`${t('chat.subtitle')} ${panels.length} ${t('chat.windows')}`}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => setShowHistory(!showHistory)}>
@@ -298,7 +295,7 @@ export function ChatPage() {
           </div>
         }
       />
-      <div className="flex-1 flex overflow-hidden min-h-0">
+      <div className="flex-1 flex overflow-hidden min-h-0 max-w-[1400px] mx-auto w-full">
         {/* 历史对话侧边栏 */}
         {showHistory && (
           <div className="w-64 border-r bg-muted/30 flex flex-col shrink-0">
@@ -349,13 +346,17 @@ export function ChatPage() {
           </div>
         )}
 
-        <div className="flex-1 flex flex-col overflow-hidden min-h-0 pl-4">
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
           <div className={`flex-1 grid gap-4 overflow-hidden min-h-0 ${panels.length === 1 ? 'grid-cols-1' : panels.length === 2 ? 'grid-cols-2' : panels.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
             {panels.map(panel => (
-              <div key={panel.id} className={panels.length === 1 ? "max-w-[50%] mx-auto w-full flex min-h-0" : "flex min-h-0"}>
+              <div key={panel.id} className={cn(
+                "flex min-h-0",
+                panels.length === 1 ? "max-w-[50%] mx-auto w-full" : "",
+                panel.maximized && "fixed inset-0 z-50 bg-background p-4"
+              )}>
                 <Card className="flex flex-col overflow-hidden min-h-0 flex-1 p-0 gap-0">
                   {/* Card Header */}
-                  <div className="px-4 py-3 flex items-center justify-between gap-4 shrink-0 flex-nowrap border-b border-transparent">
+                  <div className="px-4 py-3 flex items-center justify-between gap-4 shrink-0 flex-nowrap border-b border-transparent bg-card">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <div className="relative group/model">
                         <Select
@@ -364,8 +365,7 @@ export function ChatPage() {
                           options={providers.map(p => ({ value: p.id.toString(), label: `${p.name}` }))}
                           placeholder={t('chat.selectProviderPlaceholder')}
                           className="w-auto min-w-[120px]"
-                          triggerClassName="h-8 rounded-full bg-muted/50 border-none hover:bg-muted font-medium text-xs px-3 gap-1.5"
-                          icon={<div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />}
+                          triggerClassName="h-8 rounded-full bg-card border-0 hover:bg-muted/30 font-medium text-xs px-3 gap-1.5"
                         />
                       </div>
                     </div>
@@ -385,10 +385,10 @@ export function ChatPage() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 hover:bg-muted rounded-lg"
-                        onClick={() => {/* TODO: Maximize */ }}
+                        onClick={() => toggleMaximizePanel(panel.id)}
                         title={t('chat.maximize')}
                       >
-                        <Maximize2 className="w-4 h-4" />
+                        {panel.maximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                       </Button>
                       {panels.length > 1 && (
                         <Button
@@ -476,11 +476,18 @@ export function ChatPage() {
                       )}
                       <div ref={(el) => { messagesEndRefs.current[panel.id] = el }} />
                     </div>
-                    <div className="p-4 pt-0 shrink-0">
-                      <div className="relative flex items-end gap-2 p-1.5 rounded-2xl bg-muted/30 border border-transparent focus-within:border-primary/20 transition-all">
+                    <div className="p-4 pt-0 shrink-0 flex justify-center">
+                      <div className="relative flex items-center gap-3 px-4 py-2 rounded-3xl bg-muted/30 border border-border/30 max-w-[800px] w-full">
+                        <button className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted/50 transition-colors">
+                          <Image className="w-5 h-5 text-muted-foreground" strokeWidth={1.2} />
+                        </button>
+                        <button className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted/50 transition-colors">
+                          <Paperclip className="w-5 h-5 text-muted-foreground" strokeWidth={1.2} />
+                        </button>
                         <textarea
                           ref={(el) => { inputRefs.current[panel.id] = el }}
-                          className="flex-1 min-h-[44px] max-h-32 px-3 py-2.5 bg-transparent text-sm resize-none focus:outline-none placeholder:text-muted-foreground/40"
+                          className="flex-1 min-h-[28px] max-h-32 py-1 bg-transparent text-sm resize-none focus:outline-none placeholder:text-muted-foreground/50 border-none"
+                          style={{ fontSize: '14px' }}
                           placeholder={t('chat.inputMessage')}
                           value={panel.input}
                           onChange={e => setInputForPanel(panel.id, e.target.value)}
@@ -488,19 +495,18 @@ export function ChatPage() {
                           disabled={!panel.providerId}
                           rows={1}
                         />
-                        <Button
-                          size="icon"
+                        <button
                           className={cn(
-                            "h-9 w-9 shrink-0 rounded-xl transition-all",
+                            "shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-all",
                             panel.input.trim()
-                              ? "bg-primary text-primary-foreground shadow-md hover:scale-105 active:scale-95"
-                              : "bg-primary/10 text-primary opacity-40 cursor-not-allowed"
+                              ? "text-[#007AFF] hover:bg-[#007AFF]/10"
+                              : "text-[#D1D1D1] cursor-not-allowed"
                           )}
                           onClick={() => sendMessageForPanel(panel.id)}
                           disabled={panel.loading || !panel.input.trim() || !panel.providerId}
                         >
-                          {panel.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 fill-current" />}
-                        </Button>
+                          {panel.loading ? <Loader2 className="w-5 h-5 animate-spin" strokeWidth={1.2} /> : <Send className="w-5 h-5" strokeWidth={1.2} />}
+                        </button>
                       </div>
                     </div>
                   </CardContent>

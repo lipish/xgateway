@@ -25,8 +25,9 @@ export function SiteHeader() {
         ? [{ name: t('nav.dashboard'), href: "/" }]
         : pathParts.map((part, index) => {
             const href = `/${pathParts.slice(0, index + 1).join('/')}`
+            const navKey = part === 'instances' ? 'providers' : part
             return {
-                name: t(`nav.${part}` as any) || part,
+                name: t(`nav.${navKey}` as any) || part,
                 href
             }
         })

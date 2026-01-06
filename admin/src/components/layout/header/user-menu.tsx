@@ -22,7 +22,7 @@ export default function UserMenu() {
                 <Avatar className="h-8 w-8 cursor-pointer ring-offset-background transition-all hover:ring-2 hover:ring-primary/20 text-muted-foreground hover:text-foreground">
                     <AvatarImage src="" alt="Admin" />
                     <AvatarFallback className="rounded-lg bg-transparent">
-                        <UserCircle className="h-5 w-5" />
+                        <UserCircle className="h-4 w-4" />
                     </AvatarFallback>
                 </Avatar>
             </DropdownMenuTrigger>
@@ -32,7 +32,7 @@ export default function UserMenu() {
                         <Avatar className="h-8 w-8 text-muted-foreground">
                             <AvatarImage src="" alt="Admin" />
                             <AvatarFallback className="rounded-lg bg-transparent">
-                                <UserCircle className="h-5 w-5" />
+                                <UserCircle className="h-4 w-4" />
                             </AvatarFallback>
                         </Avatar>
                         <div className="grid flex-1 text-left text-sm leading-tight">
