@@ -310,6 +310,7 @@ pub struct NewRequestLog {
 
 /// Role - RBAC roles and permissions
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[allow(dead_code)]
 pub struct Role {
     pub id: String,
     pub name: String,

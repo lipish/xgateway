@@ -38,6 +38,8 @@ pub fn create_admin_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -
     };
 
     Router::new()
+        // Auth API
+        .route("/api/auth/login", post(login_api))
         // Service Instance management API
         .route("/api/instances", get(list_providers_api).post(create_provider_api))
         .route("/api/instances/stats", get(get_provider_stats_api))
@@ -921,6 +923,68 @@ async fn toggle_user_api(
             success: false,
             data: None,
             message: format!("Failed to list users: {}", e),
+        }),
+    }
+}
+
+// ============= Auth API =============
+
+#[derive(Debug, Deserialize)]
+struct LoginRequest {
+    username: String,
+    password: String,
+}
+
+#[derive(Debug, Serialize)]
+struct LoginResponse {
+    user: serde_json::Value,
+    token: String,
+}
+
+/// Login API endpoint
+async fn login_api(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    Json(req): Json<LoginRequest>,
+) -> Json<ApiResponse<LoginResponse>> {
+    // Get user by username
+    match db_pool.get_user_by_username(&req.username).await {
+        Ok(Some(user)) => {
+            // Verify password (simple comparison for now, should use bcrypt in production)
+            if user.password_hash == req.password {
+                // Generate a simple token (in production, use JWT)
+                let token = format!("token_{}", uuid::Uuid::new_v4());
+                
+                let response = LoginResponse {
+                    user: serde_json::json!({
+                        "id": user.id,
+                        "username": user.username,
+                        "role_id": user.role_id,
+                    }),
+                    token,
+                };
+                
+                Json(ApiResponse {
+                    success: true,
+                    data: Some(response),
+                    message: "Login successful".to_string(),
+                })
+            } else {
+                Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: "Invalid username or password".to_string(),
+                })
+            }
+        }
+        Ok(None) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: "Invalid username or password".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Login failed: {}", e),
         }),
     }
 }

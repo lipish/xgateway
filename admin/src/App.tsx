@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { DashboardPage } from "@/pages/dashboard"
 import { ProvidersPage } from "@/pages/instances"
@@ -10,25 +10,41 @@ import { UsersPage } from "@/pages/users"
 import { HelpPage } from "@/pages/help"
 import { ChatPage } from "@/pages/chat"
 import { ModelTypesPage } from "@/pages/providers"
+import { LoginPage } from "@/pages/login"
+import { AuthProvider, useAuth } from "@/lib/auth"
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth()
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+        <Route index element={<DashboardPage />} />
+        <Route path="instances" element={<ProvidersPage />} />
+        <Route path="providers" element={<ModelTypesPage />} />
+        <Route path="chat" element={<ChatPage />} />
+        <Route path="monitoring" element={<MonitoringPage />} />
+        <Route path="logs" element={<LogsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="users" element={<UsersPage />} />
+        <Route path="apikeys" element={<ApiKeysPage />} />
+        <Route path="help" element={<HelpPage />} />
+      </Route>
+    </Routes>
+  )
+}
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<DashboardLayout />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="instances" element={<ProvidersPage />} />
-          <Route path="providers" element={<ModelTypesPage />} />
-          <Route path="chat" element={<ChatPage />} />
-          <Route path="monitoring" element={<MonitoringPage />} />
-          <Route path="logs" element={<LogsPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="users" element={<UsersPage />} />
-          <Route path="apikeys" element={<ApiKeysPage />} />
-          <Route path="help" element={<HelpPage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
 

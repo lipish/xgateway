@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Link, useLocation } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import {
     LayoutDashboard,
     Server,
@@ -11,6 +11,7 @@ import {
     MessageSquare,
     Library,
     User,
+    LogOut,
 } from "lucide-react"
 
 import {
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/sidebar"
 import { t } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/lib/auth"
 
 function getNavigation() {
     return [
@@ -57,7 +59,14 @@ function getNavigation() {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const location = useLocation()
+    const navigate = useNavigate()
+    const { logout } = useAuth()
     const navigation = getNavigation()
+
+    const handleLogout = () => {
+        logout()
+        navigate('/login')
+    }
 
     return (
         <Sidebar collapsible="icon" {...props}>
@@ -87,8 +96,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 return (
                                     <SidebarMenuItem key={item.name}>
                                         <SidebarMenuButton asChild tooltip={item.name} isActive={isActive}>
-                                            <Link to={item.href}>
-                                                <item.icon className={cn(isActive && "text-primary")} />
+                                            <Link to={item.href} className={cn("flex items-center gap-3")}>
+                                                <item.icon className="size-4" />
                                                 <span>{item.name}</span>
                                             </Link>
                                         </SidebarMenuButton>
@@ -98,6 +107,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         </SidebarMenu>
                     </SidebarGroup>
                 ))}
+                <SidebarGroup>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton onClick={handleLogout} tooltip={t('common.logout')}>
+                                <LogOut className="size-4" />
+                                <span>{t('common.logout')}</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroup>
             </SidebarContent>
             <SidebarRail />
         </Sidebar>
