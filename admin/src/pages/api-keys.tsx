@@ -39,6 +39,7 @@ export function ApiKeysPage() {
   const [providers, setProviders] = useState<Provider[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [dialogKey, setDialogKey] = useState(0)
   const [newKeyData, setNewKeyData] = useState({
     name: "",
     scope: "global",
@@ -153,7 +154,19 @@ export function ApiKeysPage() {
         action={
           <Button
             size="sm"
-            onClick={() => setShowCreateDialog(true)}
+            onClick={() => {
+              setCreatedKey(null)
+              setNewKeyData({
+                name: "",
+                scope: "global",
+                provider_ids: [],
+                qps_limit: 10,
+                concurrency_limit: 5
+              })
+              setError(null)
+              setDialogKey(prev => prev + 1)
+              setShowCreateDialog(true)
+            }}
           >
             <Plus className="mr-2 h-4 w-4" />
             {t('apiKeys.create')}
@@ -162,9 +175,19 @@ export function ApiKeysPage() {
       />
       <div className="flex-1 space-y-4 max-w-[1400px] mx-auto w-full">
 
-        <Dialog open={showCreateDialog} onOpenChange={(open) => {
+        <Dialog key={dialogKey} open={showCreateDialog} onOpenChange={(open) => {
           setShowCreateDialog(open)
-          if (!open) setCreatedKey(null)
+          if (!open) {
+            setCreatedKey(null)
+            setNewKeyData({
+              name: "",
+              scope: "global",
+              provider_ids: [],
+              qps_limit: 10,
+              concurrency_limit: 5
+            })
+            setError(null)
+          }
         }}>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
@@ -246,7 +269,18 @@ export function ApiKeysPage() {
 
             <DialogFooter>
               {createdKey ? (
-                <Button onClick={() => setShowCreateDialog(false)}>{t('common.confirm')}</Button>
+                <Button onClick={() => {
+                  setCreatedKey(null)
+                  setNewKeyData({
+                    name: "",
+                    scope: "global",
+                    provider_ids: [],
+                    qps_limit: 10,
+                    concurrency_limit: 5
+                  })
+                  setError(null)
+                  setShowCreateDialog(false)
+                }}>{t('common.confirm')}</Button>
               ) : (
                 <Button onClick={handleCreate}>{t('common.save')}</Button>
               )}

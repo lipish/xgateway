@@ -175,7 +175,7 @@ export const en = {
     enterRateLimit: 'Enter QPS limit',
     enterConcurrency: 'Enter concurrency limit',
     createSuccess: 'API Key created successfully!',
-    saveKeyHint: 'Please save your key (shown only once):',
+    saveKeyHint: 'Please save your key (shown only once)',
     createFailed: 'Create failed',
     networkError: 'Network error',
     confirmDelete: 'Are you sure you want to delete this API Key? This action cannot be undone.',
