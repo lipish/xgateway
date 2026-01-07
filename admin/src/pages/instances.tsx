@@ -16,6 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/lib/auth";
 
 import type { Provider, ProviderTypeConfig, ApiResponse, TestResult } from "@/components/instances/types";
 import { ProviderList } from "@/components/instances/ProviderList";
@@ -24,6 +25,8 @@ import { AddProviderDialog } from "@/components/instances/AddProviderDialog";
 import { EditProviderDialog } from "@/components/instances/EditProviderDialog";
 
 export function ProvidersPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role_id === 'admin';
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -112,7 +115,8 @@ export function ProvidersPage() {
   const fetchProviders = async () => {
     try {
       setLoading(true);
-      const result = await apiGet<ApiResponse<Provider[]>>("/api/instances");
+      const endpoint = isAdmin ? "/api/instances" : `/api/users/${user?.id}/instances`;
+      const result = await apiGet<ApiResponse<Provider[]>>(endpoint);
 
       if (result.success) {
         const data = result.data || [];
@@ -385,13 +389,13 @@ export function ProvidersPage() {
         <PageHeader
           title={t('nav.providers')}
           subtitle={t('providers.description')}
-          onRefresh={fetchProviders}
-          loading={loading}
           action={
-            <Button size="sm" onClick={openAddDialog} className="bg-primary hover:bg-primary/90">
-              <Plus className="mr-2 h-4 w-4" />
-              {t('providers.addProvider')}
-            </Button>
+            isAdmin ? (
+              <Button size="sm" onClick={openAddDialog} className="bg-primary hover:bg-primary/90">
+                <Plus className="mr-2 h-4 w-4" />
+                {t('providers.addProvider')}
+              </Button>
+            ) : undefined
           }
         />
         {loading && (
@@ -432,6 +436,7 @@ export function ProvidersPage() {
               onNavigateToChat={(id) => navigate(`/chat?provider=${id}`)}
               testingId={testingId}
               testResult={testResult}
+              isAdmin={isAdmin}
             />
           </div>
         )}

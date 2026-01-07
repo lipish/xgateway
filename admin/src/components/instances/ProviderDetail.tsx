@@ -27,9 +27,10 @@ interface ProviderDetailProps {
   onNavigateToChat: (id: number) => void
   testingId: number | null
   testResult: { id: number; success: boolean; message: string } | null
+  isAdmin?: boolean
 }
 
-export function ProviderDetail({ provider, providerTypeConfig, onEdit, onDelete, onTest, onNavigateToChat, testingId, testResult }: ProviderDetailProps) {
+export function ProviderDetail({ provider, providerTypeConfig, onEdit, onDelete, onTest, onNavigateToChat, testingId, testResult, isAdmin = true }: ProviderDetailProps) {
   if (!provider) {
     return (
       <div className="w-[35%] bg-white rounded-xl shadow-sm border flex flex-col overflow-hidden">
@@ -96,24 +97,28 @@ export function ProviderDetail({ provider, providerTypeConfig, onEdit, onDelete,
             >
               <MessageSquare className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => onEdit(provider)}
-              title={t('providers.edit')}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 hover:text-destructive"
-              onClick={() => onDelete(provider.id)}
-              title={t('providers.delete')}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {isAdmin && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => onEdit(provider)}
+                  title={t('providers.edit')}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 hover:text-destructive"
+                  onClick={() => onDelete(provider.id)}
+                  title={t('providers.delete')}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
+            )}
           </div>
         </div>
         {providerTypeConfig?.docs_url && (

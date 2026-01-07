@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom"
 import { Send, Loader2, Bot, Plus, X, MessageSquarePlus, History, Trash2, PanelLeftClose, PanelLeft, Settings, Sparkles, Maximize2, Minimize2, Image, Paperclip, ChevronDown } from "lucide-react"
 import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/lib/auth"
 
 interface Provider {
   id: number
@@ -43,6 +44,8 @@ interface ChatPanel {
 
 export function ChatPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const isAdmin = user?.role_id === 'admin'
   const [searchParams, setSearchParams] = useSearchParams()
   const [providers, setProviders] = useState<Provider[]>([])
   const [conversations, setConversations] = useState<ConversationItem[]>([])
@@ -62,7 +65,8 @@ export function ChatPage() {
   }
 
   useEffect(() => {
-    apiGet("/api/instances").then((result: any) => {
+    const endpoint = isAdmin ? "/api/instances" : `/api/users/${user?.id}/instances`
+    apiGet(endpoint).then((result: any) => {
       if (result.success) {
         const enabledProviders = result.data.filter((p: Provider) => p.enabled)
         setProviders(enabledProviders)

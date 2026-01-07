@@ -3,7 +3,7 @@ import { apiGet, apiPut, apiPost, apiDelete } from "@/lib/api"
 import { t } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Loader2, Plus, Search } from "lucide-react"
+import { Loader2, Plus, Search, ArrowUpDown } from "lucide-react"
 import { PageHeader } from "@/components/layout/page-header"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 
@@ -20,6 +20,8 @@ export function ModelTypesPage() {
   const [loading, setLoading] = useState(true)
   const [selectedType, setSelectedType] = useState<ProviderType | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [sortBy, setSortBy] = useState<"name" | "models">("name")
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false)
   const [editingModel, setEditingModel] = useState<{ typeId: string; model: ModelInfo | null } | null>(null)
   const [modelForm, setModelForm] = useState<ModelInfo>({ id: "", name: "" })
   const [saving, setSaving] = useState(false)
@@ -214,15 +216,19 @@ export function ModelTypesPage() {
   const filteredProviderTypes = providerTypes.filter(pt =>
     pt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
     pt.id.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  ).sort((a, b) => {
+    if (sortBy === "name") {
+      return a.label.localeCompare(b.label)
+    } else {
+      return b.models.length - a.models.length
+    }
+  })
 
   return (
     <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
       <PageHeader
         title={t('providers.title')}
         subtitle={t('providers.description')}
-        onRefresh={fetchProviderTypes}
-        loading={loading}
         action={
           <Button size="sm" onClick={() => setShowAddProvider(true)} className="bg-primary hover:bg-primary/90">
             <Plus className="mr-2 h-4 w-4" />
@@ -264,15 +270,39 @@ export function ModelTypesPage() {
                 <span className="text-sm text-muted-foreground">
                   {t('providers.total')} {filteredProviderTypes.length} {t('providers.unit')}
                 </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAddProvider(true)}
-                  className="h-8 gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  {t("common.add")}
-                </Button>
+                <div className="relative">
+                  <ArrowUpDown 
+                    className="h-4 w-4 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" 
+                    onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+                  />
+                  {sortDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setSortDropdownOpen(false)} />
+                      <div className="absolute right-0 mt-2 w-40 bg-popover border rounded-lg shadow-lg z-50">
+                        <div className="p-1">
+                          <div
+                            className={`px-3 py-2 text-sm cursor-pointer rounded hover:bg-accent ${sortBy === "name" ? "bg-accent" : ""}`}
+                            onClick={() => {
+                              setSortBy("name")
+                              setSortDropdownOpen(false)
+                            }}
+                          >
+                            Sort by Name
+                          </div>
+                          <div
+                            className={`px-3 py-2 text-sm cursor-pointer rounded hover:bg-accent ${sortBy === "models" ? "bg-accent" : ""}`}
+                            onClick={() => {
+                              setSortBy("models")
+                              setSortDropdownOpen(false)
+                            }}
+                          >
+                            Sort by Models
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               <ProviderList

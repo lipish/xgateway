@@ -33,8 +33,8 @@ export function ProviderList({ providers, selectedProvider, onSelectProvider }: 
               </div>
             </div>
             <div className="text-right shrink-0">
-              <div className="text-xs text-muted-foreground whitespace-nowrap">{t("modelTypes.availableModels")}</div>
-              <div className="text-lg font-semibold mt-0.5">{pt.models.length}</div>
+              <div className="text-lg font-semibold">{pt.models.length}</div>
+              <div className="text-xs text-muted-foreground whitespace-nowrap mt-0.5">{t("modelTypes.availableModels")}</div>
             </div>
           </div>
         </div>
