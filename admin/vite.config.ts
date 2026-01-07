@@ -17,6 +17,7 @@ export default defineConfig({
     __API_URL__: JSON.stringify(apiUrl),
   },
   server: {
+    port: 5173,
     proxy: {
       '/api': {
         target: apiUrl,
