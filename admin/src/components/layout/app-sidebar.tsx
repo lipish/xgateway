@@ -60,13 +60,7 @@ function getNavigation() {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const location = useLocation()
     const navigate = useNavigate()
-    const { logout } = useAuth()
     const navigation = getNavigation()
-
-    const handleLogout = () => {
-        logout()
-        navigate('/login')
-    }
 
     return (
         <Sidebar collapsible="icon" {...props}>
@@ -79,7 +73,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                     <img src="/favicon.svg" alt="X" className="size-8" />
                                 </div>
                                 <div className="grid flex-1 text-left text-sm leading-tight">
-                                    <span className="truncate font-semibold">XGateway</span>
+                                    <span className="truncate font-semibold text-base">XGateway</span>
                                 </div>
                             </Link>
                         </SidebarMenuButton>
@@ -107,16 +101,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         </SidebarMenu>
                     </SidebarGroup>
                 ))}
-                <SidebarGroup>
-                    <SidebarMenu>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton onClick={handleLogout} tooltip={t('common.logout')}>
-                                <LogOut className="size-4" />
-                                <span>{t('common.logout')}</span>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </SidebarMenu>
-                </SidebarGroup>
             </SidebarContent>
             <SidebarRail />
         </Sidebar>

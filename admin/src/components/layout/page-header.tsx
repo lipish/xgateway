@@ -8,10 +8,10 @@ interface PageHeaderProps {
     subtitle?: React.ReactNode
     onRefresh?: () => void
     loading?: boolean
-    actions?: React.ReactNode
+    action?: React.ReactNode
 }
 
-export function PageHeader({ title, subtitle, onRefresh, loading, actions }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, onRefresh, loading, action }: PageHeaderProps) {
     return (
         <div className="mb-8 flex flex-col gap-1 md:flex-row md:items-center md:justify-between max-w-[1400px] mx-auto w-full">
             <div className="space-y-1">
@@ -38,7 +38,7 @@ export function PageHeader({ title, subtitle, onRefresh, loading, actions }: Pag
                         {t('common.refresh')}
                     </Button>
                 )}
-                {actions}
+                {action}
             </div>
         </div>
     )

@@ -1,6 +1,5 @@
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import {
   Table,
@@ -11,7 +10,6 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
-  Plus,
   Search,
 } from "lucide-react"
 import { t } from "@/lib/i18n"
@@ -23,7 +21,6 @@ interface ProviderListProps {
   searchQuery: string
   onSearchChange: (query: string) => void
   onSelectProvider: (provider: Provider) => void
-  onAddProvider: () => void
   onToggleProvider: (id: number) => void
 }
 
@@ -33,7 +30,6 @@ export function ProviderList({
   searchQuery,
   onSearchChange,
   onSelectProvider,
-  onAddProvider,
   onToggleProvider,
 }: ProviderListProps) {
   return (
@@ -53,15 +49,6 @@ export function ProviderList({
             {t('providers.total')} {providers.length} {t('providers.unit')}
           </span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onAddProvider}
-          className="h-8 w-8"
-          title={t("providers.add")}
-        >
-          <Plus className="h-5 w-5" />
-        </Button>
       </div>
       <div className="flex-1 overflow-auto border rounded-lg scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         <Table>

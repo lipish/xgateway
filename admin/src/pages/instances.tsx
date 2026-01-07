@@ -3,8 +3,9 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -379,13 +380,19 @@ export function ProvidersPage() {
   );
 
   return (
-    <div className="flex flex-col page-transition">
+    <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
       <div className="flex-1 space-y-6 max-w-[1400px] mx-auto w-full">
         <PageHeader
           title={t('nav.providers')}
           subtitle={t('providers.description')}
           onRefresh={fetchProviders}
           loading={loading}
+          action={
+            <Button size="sm" onClick={openAddDialog} className="bg-primary hover:bg-primary/90">
+              <Plus className="mr-2 h-4 w-4" />
+              {t('providers.addProvider')}
+            </Button>
+          }
         />
         {loading && (
           <Card>
@@ -413,7 +420,6 @@ export function ProvidersPage() {
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               onSelectProvider={setSelectedProvider}
-              onAddProvider={openAddDialog}
               onToggleProvider={toggleProvider}
             />
 

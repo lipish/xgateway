@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/layout/page-header"
 import { t } from "@/lib/i18n"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Trash2, RefreshCw, User as UserIcon, Server, UserPlus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -199,25 +198,17 @@ export function UsersPage() {
         }
     }
 
-    const handleManageInstances = (user: User) => {
-        setSelectedUser(user)
-        setShowGrantDialog(true)
-        fetchUserInstances(user.id)
-    }
 
     return (
-        <div className="flex flex-col page-transition">
+        <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
             <div className="flex-1 space-y-6 max-w-[1400px] mx-auto w-full">
                 <PageHeader
-                    title={t('nav.users')}
+                    title={t('users.title')}
                     subtitle={t('users.description')}
-                    actions={
-                        <Button
-                            size="sm"
-                            onClick={() => setShowCreateDialog(true)}
-                        >
+                    action={
+                        <Button size="sm" onClick={() => setShowCreateDialog(true)} className="bg-primary hover:bg-primary/90">
                             <UserPlus className="mr-2 h-4 w-4" />
-                            {t('users.create')}
+                            {t('users.addUser')}
                         </Button>
                     }
                 />

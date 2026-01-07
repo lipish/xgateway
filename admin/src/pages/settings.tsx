@@ -96,11 +96,11 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col page-transition">
+    <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
       <PageHeader
         title={t('settings.title')}
         subtitle={t('settings.description')}
-        actions={
+        action={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={resetToDefaults} disabled={saving}>
               <RotateCcw className="mr-2 h-4 w-4" />

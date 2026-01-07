@@ -146,11 +146,11 @@ export function ApiKeysPage() {
   }
 
   return (
-    <div className="flex flex-col page-transition">
+    <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
       <PageHeader
         title={t('nav.apiKeys')}
         subtitle={t('apiKeys.description')}
-        actions={
+        action={
           <Button
             size="sm"
             onClick={() => setShowCreateDialog(true)}

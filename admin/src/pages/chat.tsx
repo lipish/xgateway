@@ -92,10 +92,14 @@ export function ChatPage() {
   useEffect(() => {
     panels.forEach(panel => {
       if (panel.loading || panel.messages.length > 0) {
-        messagesEndRefs.current[panel.id]?.scrollIntoView({ behavior: "smooth" })
+        messagesEndRefs.current[panel.id]?.scrollIntoView({ behavior: "auto" })
       }
     })
-  }, [panels.map(p => p.messages.length).join(','), panels.map(p => p.loading).join(',')])
+  }, [
+    panels.map(p => p.messages.length).join(','),
+    panels.map(p => p.loading).join(','),
+    panels.map(p => p.messages[p.messages.length - 1]?.content.length || 0).join(',')
+  ])
 
   const addPanel = () => {
     if (panels.length >= 4) return
@@ -278,11 +282,11 @@ export function ChatPage() {
   // Removed unused formatTime
 
   return (
-    <div className="flex flex-col h-full page-transition overflow-hidden">
+    <div className="flex-1 min-h-0 flex flex-col page-transition overflow-hidden p-6">
       <PageHeader
         title={t('chat.title')}
-        subtitle={`${t('chat.subtitle')} ${panels.length} ${t('chat.windows')}`}
-        actions={
+        subtitle={`${t('chat.subtitle')} ${panels.length} ${t('chat.windows')} `}
+        action={
           <div className="flex gap-2">
             <div className="relative">
               <Button variant="outline" size="sm" onClick={() => setHistoryOpen(!historyOpen)}>
@@ -342,11 +346,11 @@ export function ChatPage() {
           <div className={`flex-1 grid gap-4 overflow-hidden min-h-0 ${panels.length === 1 ? 'grid-cols-1' : panels.length === 2 ? 'grid-cols-2' : panels.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
             {panels.map(panel => (
               <div key={panel.id} className={cn(
-                "flex min-h-0",
+                "flex h-full min-h-0",
                 panels.length === 1 ? "max-w-[50%] mx-auto w-full" : "",
                 panel.maximized && "fixed inset-0 z-50 bg-background p-4"
               )}>
-                <Card className="flex flex-col overflow-hidden min-h-0 flex-1 p-0 gap-0">
+                <Card className="flex flex-col w-full h-full overflow-hidden p-0 gap-0">
                   {/* Card Header */}
                   <div className="px-4 py-3 flex items-center justify-between gap-4 shrink-0 flex-nowrap border-b border-transparent bg-card">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -354,7 +358,7 @@ export function ChatPage() {
                         <Select
                           value={panel.providerId?.toString() || ""}
                           onChange={v => setProviderForPanel(panel.id, parseInt(v))}
-                          options={providers.map(p => ({ value: p.id.toString(), label: `${p.name}` }))}
+                          options={providers.map(p => ({ value: p.id.toString(), label: `${p.name} ` }))}
                           placeholder={t('chat.selectProviderPlaceholder')}
                           className="w-auto min-w-[120px]"
                           triggerClassName="h-8 rounded-full bg-card border-0 hover:bg-muted/30 font-medium text-xs px-3 gap-1.5"
@@ -367,7 +371,7 @@ export function ChatPage() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 hover:bg-muted rounded-lg"
-                          onClick={() => navigate(`/instances?select=${panel.providerId}`)}
+                          onClick={() => navigate(`/ instances ? select = ${panel.providerId} `)}
                           title={t('providers.edit')}
                         >
                           <Settings className="w-4 h-4" />
@@ -395,8 +399,8 @@ export function ChatPage() {
                       )}
                     </div>
                   </div>
-                  <CardContent className="flex-1 flex flex-col overflow-hidden p-0 min-h-0">
-                    <div className="flex-1 overflow-y-auto space-y-6 text-sm p-6 pb-4 scrollbar-hide min-h-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                  <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-0">
+                    <div className="flex-1 min-h-0 overflow-y-auto space-y-6 text-sm p-6 pb-4 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                       {panel.messages.length === 0 && (
                         <div className="flex-1 flex flex-col items-center justify-center text-center p-8 animate-in fade-in zoom-in duration-300">
                           <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center mb-6 border border-primary/10">
@@ -405,7 +409,7 @@ export function ChatPage() {
                           <h3 className="text-xl font-semibold mb-2">{t('chat.startChat')}</h3>
                           <p className="text-muted-foreground/70 max-w-[240px] leading-relaxed">
                             {panel.providerId
-                              ? `${t('chat.sendMessageToStart')} ${providers.find(p => p.id === panel.providerId)?.name}`
+                              ? `${t('chat.sendMessageToStart')} ${providers.find(p => p.id === panel.providerId)?.name} `
                               : t('chat.selectProviderFirst')}
                           </p>
                         </div>
@@ -468,8 +472,8 @@ export function ChatPage() {
                       )}
                       <div ref={(el) => { messagesEndRefs.current[panel.id] = el }} />
                     </div>
-                    <div className="p-4 pt-0 shrink-0 flex justify-center">
-                      <div className="relative flex items-center gap-3 px-4 py-2 rounded-3xl bg-muted/30 border border-border/30 max-w-[800px] w-full">
+                    <div className="p-4 border-t bg-card shrink-0">
+                      <div className="relative flex items-center gap-3 px-4 py-2 rounded-3xl bg-muted/30 border border-border/30">
                         <button className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted/50 transition-colors">
                           <Image className="w-5 h-5 text-muted-foreground" strokeWidth={1.2} />
                         </button>

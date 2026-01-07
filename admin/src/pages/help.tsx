@@ -3,13 +3,20 @@ import { t } from "@/lib/i18n"
 import { PageHeader } from "@/components/layout/page-header"
 import { Badge } from "@/components/ui/badge"
 import { Book, Code, MessageCircle, Github, Globe, Zap } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export function HelpPage() {
   return (
-    <div className="flex flex-col page-transition">
+    <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
       <PageHeader
-        title={t('nav.help')}
-        subtitle={t('help.description')}
+        title={t('help.title')}
+        subtitle={t('help.subtitle')}
+        action={
+          <Button variant="outline" size="sm" onClick={() => window.open('https://github.com/lipish/llm-link', '_blank')}>
+            <Github className="mr-2 h-4 w-4" />
+            GitHub
+          </Button>
+        }
       />
       <div className="flex-1 space-y-6 max-w-[1400px] mx-auto w-full">
 

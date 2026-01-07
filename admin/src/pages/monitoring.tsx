@@ -83,13 +83,13 @@ export function MonitoringPage() {
   }
 
   return (
-    <div className="flex flex-col page-transition">
+    <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
       <PageHeader
         title={t('nav.monitoring')}
         subtitle={t('dashboard.description')}
         onRefresh={fetchMonitoringData}
         loading={loading}
-        actions={
+        action={
           <div className="flex gap-2">
             <Button
               variant={autoRefresh ? "secondary" : "outline"}

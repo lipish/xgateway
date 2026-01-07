@@ -164,7 +164,7 @@ export function DashboardPage() {
     },
   ]
   return (
-    <div className="flex flex-col page-transition">
+    <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
 
       <div className="flex-1 space-y-6 max-w-[1400px] mx-auto w-full">
         <PageHeader
@@ -315,15 +315,14 @@ export function DashboardPage() {
 
             {/* Comprehensive Monitoring */}
             <Card className="w-96 shrink-0 flex flex-col">
-              <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                <div>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{t('dashboard.comprehensiveMonitoring')}</CardTitle>
-                  <CardDescription>{t('dashboard.systemStatusDescription') || 'Real-time health status'}</CardDescription>
+                  <Button variant="outline" size="sm" onClick={() => navigate('/monitoring')}>
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    {t('dashboard.viewDetailedMonitoring')}
+                  </Button>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => navigate('/monitoring')}>
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  {t('dashboard.viewDetailedMonitoring')}
-                </Button>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <div className="space-y-1.5 flex-1">

@@ -86,14 +86,14 @@ export function LogsPage() {
   }
 
   return (
-    <div className="flex flex-col h-full page-transition">
+    <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
       <PageHeader
         title={t('logs.title')}
         subtitle={t('logs.description')}
         onRefresh={fetchLogs}
         loading={loading}
-        actions={
-          <div className="flex gap-2">
+        action={
+          <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={exportLogs}>
               <Download className="mr-2 h-4 w-4" />
               {t('logs.export')}

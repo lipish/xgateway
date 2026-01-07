@@ -209,6 +209,7 @@ export const zh = {
     confirmDelete: '确定要删除这个用户吗？此操作不可撤销。',
     usernamePlaceholder: '请输入用户名',
     passwordPlaceholder: '请输入密码',
+    addUser: '添加用户',
   },
 
   monitoring: {

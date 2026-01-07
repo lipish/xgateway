@@ -209,6 +209,7 @@ export const en = {
     confirmDelete: 'Are you sure you want to delete this user? This action cannot be undone.',
     usernamePlaceholder: 'Enter username',
     passwordPlaceholder: 'Enter password',
+    addUser: 'Add User',
   },
 
   monitoring: {

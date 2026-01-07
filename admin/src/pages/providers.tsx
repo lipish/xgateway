@@ -217,10 +217,18 @@ export function ModelTypesPage() {
   )
 
   return (
-    <div className="flex flex-col page-transition">
+    <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
       <PageHeader
-        title={t('nav.modelTypes')}
+        title={t('providers.title')}
         subtitle={t('providers.description')}
+        onRefresh={fetchProviderTypes}
+        loading={loading}
+        action={
+          <Button size="sm" onClick={() => setShowAddProvider(true)} className="bg-primary hover:bg-primary/90">
+            <Plus className="mr-2 h-4 w-4" />
+            {t('providers.addProvider')}
+          </Button>
+        }
       />
       <div className="flex-1 max-w-[1400px] mx-auto w-full">
         {error && (
