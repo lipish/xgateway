@@ -102,6 +102,7 @@ pub async fn get_provider_api(
 /// Create new provider
 pub async fn create_provider_api(
     State(db_pool): State<DatabasePool>,
+    State(pool_manager): State<std::sync::Arc<crate::pool::PoolManager>>,
     Json(request): Json<CreateProviderRequest>,
 ) -> Result<Json<SingleProviderResponse>, StatusCode> {
     // Validate request
@@ -137,11 +138,18 @@ pub async fn create_provider_api(
         Ok(provider_id) => {
             // Return the created provider
             match db_pool.get_provider(provider_id).await {
-                Ok(Some(provider)) => Ok(Json(SingleProviderResponse {
-                    success: true,
-                    data: Some(provider),
-                    message: "Provider created successfully".to_string(),
-                })),
+                Ok(Some(provider)) => {
+                    if provider.enabled {
+                        if let Err(e) = pool_manager.add_provider(&provider).await {
+                            tracing::warn!("Failed to add provider to pool: {}", e);
+                        }
+                    }
+                    Ok(Json(SingleProviderResponse {
+                        success: true,
+                        data: Some(provider),
+                        message: "Provider created successfully".to_string(),
+                    }))
+                }
                 Ok(None) => Err(StatusCode::INTERNAL_SERVER_ERROR),
                 Err(e) => {
                     tracing::error!("Failed to retrieve created provider: {}", e);
@@ -163,6 +171,7 @@ pub async fn create_provider_api(
 /// Update provider
 pub async fn update_provider_api(
     State(db_pool): State<DatabasePool>,
+    State(pool_manager): State<std::sync::Arc<crate::pool::PoolManager>>,
     Path(id): Path<i64>,
     Json(request): Json<UpdateProviderRequest>,
 ) -> Result<Json<SingleProviderResponse>, StatusCode> {
@@ -192,11 +201,16 @@ pub async fn update_provider_api(
         Ok(true) => {
             // Return updated provider
             match db_pool.get_provider(id).await {
-                Ok(Some(provider)) => Ok(Json(SingleProviderResponse {
-                    success: true,
-                    data: Some(provider),
-                    message: "Provider updated successfully".to_string(),
-                })),
+                Ok(Some(provider)) => {
+                    if let Err(e) = pool_manager.sync_with_db().await {
+                        tracing::warn!("Failed to sync pool with database: {}", e);
+                    }
+                    Ok(Json(SingleProviderResponse {
+                        success: true,
+                        data: Some(provider),
+                        message: "Provider updated successfully".to_string(),
+                    }))
+                }
                 Ok(None) => Err(StatusCode::INTERNAL_SERVER_ERROR),
                 Err(e) => {
                     tracing::error!("Failed to retrieve updated provider: {}", e);
@@ -219,14 +233,18 @@ pub async fn update_provider_api(
 /// Delete provider
 pub async fn delete_provider_api(
     State(db_pool): State<DatabasePool>,
+    State(pool_manager): State<std::sync::Arc<crate::pool::PoolManager>>,
     Path(id): Path<i64>,
 ) -> Result<Json<ProviderResponse>, StatusCode> {
     match db_pool.delete_provider(id).await {
-        Ok(true) => Ok(Json(ProviderResponse {
-            success: true,
-            data: None,
-            message: "Provider deleted successfully".to_string(),
-        })),
+        Ok(true) => {
+            pool_manager.remove_provider(id).await;
+            Ok(Json(ProviderResponse {
+                success: true,
+                data: None,
+                message: "Provider deleted successfully".to_string(),
+            }))
+        }
         Ok(false) => Ok(Json(ProviderResponse {
             success: false,
             data: None,

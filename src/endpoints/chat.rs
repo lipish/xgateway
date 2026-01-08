@@ -19,7 +19,6 @@ pub async fn handle_chat_completions(
         .and_then(|s| s.strip_prefix("Bearer "));
 
     let api_key_info = if let Some(key) = api_key {
-        // In a real system, we would hash the key here
         match db_pool.get_api_key_by_hash(key).await {
             Ok(Some(info)) => Some(info),
             _ => {
@@ -35,14 +34,11 @@ pub async fn handle_chat_completions(
             }
         }
     } else {
-        // For development/backward compatibility, we might allow no key if not enforced
-        // But for Enterprise, we should enforce it.
         None
     };
 
     // 2. Check Rate Limits (QPS and Concurrency)
     let _concurrency_permit = if let Some(key_info) = &api_key_info {
-        // Use the API Key's specific limits
         match pool_manager.check_api_key_limit(key_info).await {
             RateLimitResult::Denied { retry_after } => {
                 return (
@@ -70,7 +66,6 @@ pub async fn handle_chat_completions(
             RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
         }
     } else {
-        // Fallback to global rate limit
         match pool_manager.check_rate_limit(None).await {
             RateLimitResult::Denied { retry_after } => {
                 return (
@@ -89,13 +84,48 @@ pub async fn handle_chat_completions(
         }
     };
 
-
-
     let is_stream = request
         .get("stream")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
     let requested_provider_id = request.get("provider_id").and_then(|v| v.as_i64());
+
+    // 3. STRICT MODE: Require explicit provider_id in request
+    let provider_id = match requested_provider_id {
+        Some(id) => id,
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                axum::Json(serde_json::json!({
+                    "error": {
+                        "message": "provider_id is required in request body",
+                        "type": "missing_provider_id"
+                    }
+                }))
+            ).into_response();
+        }
+    };
+
+    // 4. Check provider access control if API key is scoped to specific instances
+    if let Some(key_info) = &api_key_info {
+        if key_info.scope == "instance" {
+            if let Some(ref provider_ids_json) = key_info.provider_ids {
+                let allowed_provider_ids: Vec<i64> = serde_json::from_str(provider_ids_json).unwrap_or_default();
+                
+                if !allowed_provider_ids.contains(&provider_id) {
+                    return (
+                        StatusCode::FORBIDDEN,
+                        axum::Json(serde_json::json!({
+                            "error": {
+                                "message": "API key does not have access to this provider",
+                                "type": "provider_access_denied"
+                            }
+                        }))
+                    ).into_response();
+                }
+            }
+        }
+    }
 
     let providers = match db_pool.list_providers().await {
         Ok(p) => p,
@@ -137,183 +167,61 @@ pub async fn handle_chat_completions(
         })
         .filter(|s| !s.is_empty());
 
-    if let Some(provider_id) = requested_provider_id {
-        match providers.iter().find(|p| p.id == provider_id) {
-            Some(provider) => {
-                match send_to_provider(
-                    provider,
-                    &req_body,
-                    is_stream,
-                    request_content.clone(),
-                    db_pool,
-                    pool_manager,
-                )
-                .await
-                {
-                    RequestResult::Success(response) => return response,
-                    RequestResult::Failure { error, latency_ms } => {
-                        let log = NewRequestLog {
-                            provider_id: Some(provider.id),
-                            provider_name: provider.name.clone(),
-                            model: "".to_string(),
-                            status: "error".to_string(),
-                            latency_ms,
-                            tokens_used: 0,
-                            error_message: Some(error.clone()),
-                            request_type: "chat".to_string(),
-                            request_content,
-                            response_content: None,
-                        };
-                        let _ = db_pool.create_request_log(log).await;
-
-                        return (
-                            StatusCode::BAD_GATEWAY,
-                            axum::Json(serde_json::json!({
-                                "error": {
-                                    "message": error,
-                                    "type": "provider_error",
-                                    "provider": provider.name
-                                }
-                            })),
-                        )
-                            .into_response();
+    // Find the requested provider
+    let provider = match providers.iter().find(|p| p.id == provider_id) {
+        Some(p) => p,
+        None => {
+            return (
+                StatusCode::NOT_FOUND,
+                axum::Json(serde_json::json!({
+                    "error": {
+                        "message": format!("Provider with id {} not found", provider_id),
+                        "type": "provider_not_found"
                     }
-                }
-            }
-            None => {
-                return (
-                    StatusCode::NOT_FOUND,
-                    axum::Json(serde_json::json!({
-                        "error": {
-                            "message": format!("Provider with id {} not found", provider_id),
-                            "type": "provider_not_found"
-                        }
-                    })),
-                )
-                    .into_response();
-            }
+                })),
+            )
+                .into_response();
         }
-    }
-
-    let max_attempts = 3;
-    let mut attempted_providers: Vec<i64> = Vec::new();
-    let mut last_error = String::new();
-
-    for attempt in 0..max_attempts {
-        let provider_id = if attempt == 0 {
-            pool_manager.select_provider().await
-        } else {
-            let available: Vec<i64> = providers
-                .iter()
-                .filter(|p| p.enabled && !attempted_providers.contains(&p.id))
-                .map(|p| p.id)
-                .collect();
-            if available.is_empty() {
-                break;
-            }
-            pool_manager
-                .select_fallback(*attempted_providers.last().unwrap_or(&0))
-                .await
-                .or_else(|| available.first().copied())
-        };
-
-        let provider = match provider_id {
-            Some(id) => {
-                match providers
-                    .iter()
-                    .find(|p| p.id == id && !attempted_providers.contains(&p.id))
-                {
-                    Some(p) => p.clone(),
-                    None => {
-                        match providers
-                            .iter()
-                            .find(|p| p.enabled && !attempted_providers.contains(&p.id))
-                        {
-                            Some(p) => p.clone(),
-                            None => break,
-                        }
-                    }
-                }
-            }
-            None => {
-                match providers
-                    .iter()
-                    .find(|p| p.enabled && !attempted_providers.contains(&p.id))
-                {
-                    Some(p) => p.clone(),
-                    None => break,
-                }
-            }
-        };
-
-        attempted_providers.push(provider.id);
-        tracing::info!(
-            "Attempt {} with provider {} (id={})",
-            attempt + 1,
-            provider.name,
-            provider.id
-        );
-
-        match send_to_provider(
-            &provider,
-            &req_body,
-            is_stream,
-            request_content.clone(),
-            db_pool,
-            pool_manager,
-        )
-        .await
-        {
-            RequestResult::Success(response) => {
-                if attempt > 0 {
-                    tracing::info!(
-                        "Failover successful on attempt {} with provider {}",
-                        attempt + 1,
-                        provider.name
-                    );
-                }
-                return response;
-            }
-            RequestResult::Failure {
-                error,
-                latency_ms: _,
-            } => {
-                last_error = error;
-                tracing::warn!(
-                    "Provider {} failed: {}, attempting failover...",
-                    provider.name,
-                    last_error
-                );
-            }
-        }
-    }
-
-    let log = NewRequestLog {
-        provider_id: None,
-        provider_name: "all_providers".to_string(),
-        model: "".to_string(),
-        status: "error".to_string(),
-        latency_ms: 0,
-        tokens_used: 0,
-        error_message: Some(format!(
-            "All {} providers failed. Last error: {}",
-            attempted_providers.len(),
-            last_error
-        )),
-        request_type: "chat".to_string(),
-        request_content,
-        response_content: None,
     };
-    let _ = db_pool.create_request_log(log).await;
 
-    (
-        StatusCode::BAD_GATEWAY,
-        axum::Json(serde_json::json!({
-            "error": {
-                "message": format!("All providers failed after {} attempts. Last error: {}", attempted_providers.len(), last_error),
-                "type": "all_providers_failed",
-                "attempted_count": attempted_providers.len()
-            }
-        }))
-    ).into_response()
+    // Send request to the specified provider (NO RETRY, NO FAILOVER)
+    match send_to_provider(
+        provider,
+        &req_body,
+        is_stream,
+        request_content.clone(),
+        db_pool,
+        pool_manager,
+    )
+    .await
+    {
+        RequestResult::Success(response) => response,
+        RequestResult::Failure { error, latency_ms } => {
+            let log = NewRequestLog {
+                provider_id: Some(provider.id),
+                provider_name: provider.name.clone(),
+                model: "".to_string(),
+                status: "error".to_string(),
+                latency_ms,
+                tokens_used: 0,
+                error_message: Some(error.clone()),
+                request_type: "chat".to_string(),
+                request_content,
+                response_content: None,
+            };
+            let _ = db_pool.create_request_log(log).await;
+
+            (
+                StatusCode::BAD_GATEWAY,
+                axum::Json(serde_json::json!({
+                    "error": {
+                        "message": error,
+                        "type": "provider_error",
+                        "provider": provider.name
+                    }
+                })),
+            )
+                .into_response()
+        }
+    }
 }
