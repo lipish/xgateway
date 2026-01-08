@@ -237,6 +237,52 @@ export function ProviderDetail({ provider, providerTypeConfig, onEdit, onDelete,
           </div>
         </div>
 
+        {/* Pricing & Quota section */}
+        <div className="space-y-3 pt-3 border-t">
+          <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            {t('providers.pricingAndQuota') || 'Pricing & Quota'}
+          </h5>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+              <p className="text-[10px] font-medium text-muted-foreground mb-1">
+                {t('providers.inputPrice')}
+              </p>
+              <p className="text-sm font-semibold">
+                {config.input_price ? `¥${config.input_price}` : "¥0.00"}
+                <span className="text-[10px] text-muted-foreground ml-1">/1M</span>
+              </p>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+              <p className="text-[10px] font-medium text-muted-foreground mb-1">
+                {t('providers.outputPrice')}
+              </p>
+              <p className="text-sm font-semibold">
+                {config.output_price ? `¥${config.output_price}` : "¥0.00"}
+                <span className="text-[10px] text-muted-foreground ml-1">/1M</span>
+              </p>
+            </div>
+            <div className={`p-3 rounded-lg border border-border/50 ${config.quota_limit ? 'bg-primary/5 border-primary/20' : 'bg-muted/30'}`}>
+              <p className="text-[10px] font-medium text-muted-foreground mb-1">
+                {t('providers.quotaLimit')}
+              </p>
+              <p className="text-sm font-semibold">
+                {config.quota_limit ? config.quota_limit.toLocaleString() : "∞"}
+              </p>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+              <p className="text-[10px] font-medium text-muted-foreground mb-1">
+                {t('providers.tokensUsed')}
+              </p>
+              <p className="text-sm font-semibold text-primary">
+                {/* Note: This value would typically come from a dynamic metrics API, 
+                    but for now we show it's available. In a real integration, 
+                    we'd fetch this from /api/monitoring/providers/:id */}
+                -
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Time info section */}
         <div className="space-y-3 pt-3 border-t">
           <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">

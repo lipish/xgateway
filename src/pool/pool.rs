@@ -26,6 +26,12 @@ pub struct ProviderInstanceConfig {
     pub priority: i32,
     pub weight: u32,
     pub enabled: bool,
+    #[serde(default)]
+    pub input_price: f64,
+    #[serde(default)]
+    pub output_price: f64,
+    #[serde(default)]
+    pub quota_limit: Option<u64>,
 }
 
 /// Represents a provider instance in the pool
@@ -96,6 +102,7 @@ impl ProviderPool {
         self.failover_manager.register_provider(id).await;
         self.metrics.register_provider(id).await;
         self.load_balancer.set_priority(id, config.priority).await;
+        self.load_balancer.set_pricing(id, config.input_price, config.output_price, config.quota_limit).await;
 
         self.instances.write().await.insert(id, instance);
         tracing::info!("Added provider {} ({}) to pool", name, id);

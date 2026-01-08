@@ -2,116 +2,89 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Modern Enterprise UI / Clean SaaS Aesthetic */
-
 @layer base {
   :root {
-    /* Clean neutral background - less purple tint */
-    --background: 220 14% 96%;
-    --foreground: 220 10% 12%;
+    --background: 0 0% 100%;
+    --foreground: 240 10% 15%;
 
-    /* Pure white cards for layering */
     --card: 0 0% 100%;
-    --card-foreground: 220 10% 12%;
+    --card-foreground: 240 10% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 10% 12%;
+    --popover-foreground: 240 10% 15%;
 
-    /* Purple accent color for brand - used sparingly */
-    --primary: 270 76% 64%;
+    --primary: 268 78% 64%;
     --primary-foreground: 0 0% 100%;
-    --primary-light: 264 80% 96%;
-    --primary-dark: 267 52% 51%;
 
-    /* Neutral secondary - no purple tint */
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 10% 40%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 10% 30%;
 
-    /* Neutral muted - gray based */
-    --muted: 220 14% 95%;
-    --muted-foreground: 220 10% 46%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
 
-    /* Neutral accent */
-    --accent: 220 14% 96%;
-    --accent-foreground: 220 10% 20%;
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 10% 15%;
 
-    /* Functional colors - balanced with purple */
-    --destructive: 0 91% 71%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 71% 58%;
-    --success-foreground: 142 71% 20%;
+    --success: 142 71% 45%;
+    --success-foreground: 142 71% 95%;
 
-    --warning: 37 100% 64%;
-    --warning-foreground: 37 100% 20%;
+    --warning: 37 100% 55%;
+    --warning-foreground: 37 100% 95%;
 
-    /* Neutral borders - no purple tint */
-    --border: 220 14% 90%;
-    --input: 220 14% 90%;
-    --ring: 220 14% 80%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 268 78% 64%;
 
-    /* Reduce radius for a sharper, more professional feel */
-    --radius: 0.4rem;
+    --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 220 10% 46%;
-    --sidebar-primary: 270 76% 64%;
+    --sidebar-background: 240 5% 96%;
+    --sidebar-foreground: 240 4% 46%;
+    --sidebar-primary: 268 78% 64%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 96%;
-    --sidebar-accent-foreground: 220 10% 20%;
-    --sidebar-border: 220 14% 92%;
-    --sidebar-ring: 220 14% 80%;
+    --sidebar-accent: 240 5% 92%;
+    --sidebar-accent-foreground: 240 10% 15%;
+    --sidebar-border: 240 6% 90%;
+    --sidebar-ring: 268 78% 64%;
 
-    /* Chart colors - purple theme related palette */
-    --chart-1: 270 60% 65%;
-    --chart-2: 250 55% 68%;
-    --chart-3: 290 45% 70%;
-    --chart-4: 230 50% 72%;
-    --chart-5: 310 40% 72%;
+    --chart-1: 268 78% 64%;
+    --chart-2: 240 50% 65%;
+    --chart-3: 280 50% 60%;
+    --chart-4: 220 50% 68%;
+    --chart-5: 300 40% 65%;
 
-    --sidebar: 0 0% 100%;
+    --sidebar: 240 5% 96%;
 
     --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-    /* Neutral shadows - no purple tint */
-    --shadow-2xs: 0 1px 2px 0 hsl(220 10% 10% / 0.03);
-    --shadow-xs: 0 1px 3px 0 hsl(220 10% 10% / 0.04);
-    --shadow-sm: 0 2px 8px -2px hsl(220 10% 10% / 0.06);
-    --shadow: 0 4px 16px -4px hsl(220 10% 10% / 0.08);
-    --shadow-md: 0 8px 24px -6px hsl(220 10% 10% / 0.1);
-    --shadow-lg: 0 16px 40px -8px hsl(220 10% 10% / 0.12);
-    --shadow-xl: 0 24px 56px -12px hsl(220 10% 10% / 0.16);
-    --shadow-2xl: 0 32px 72px -16px hsl(220 10% 10% / 0.2);
-
-    --tracking-normal: 0em;
     --spacing: 0.25rem;
   }
 
   .dark {
-    --background: 270 20% 8%;
-    --foreground: 264 30% 96%;
+    --background: 240 10% 4%;
+    --foreground: 0 0% 95%;
 
-    --card: 270 20% 11%;
-    --card-foreground: 264 30% 96%;
+    --card: 240 10% 6%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 270 20% 11%;
-    --popover-foreground: 264 30% 96%;
+    --popover: 240 10% 6%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 270 76% 64%;
+    --primary: 268 78% 64%;
     --primary-foreground: 0 0% 100%;
-    --primary-light: 270 50% 20%;
-    --primary-dark: 270 76% 75%;
 
-    --secondary: 270 20% 16%;
-    --secondary-foreground: 264 30% 70%;
+    --secondary: 240 5% 15%;
+    --secondary-foreground: 0 0% 80%;
 
-    --muted: 270 20% 16%;
-    --muted-foreground: 260 15% 56%;
+    --muted: 240 5% 15%;
+    --muted-foreground: 240 5% 55%;
 
-    --accent: 270 20% 16%;
-    --accent-foreground: 264 30% 96%;
+    --accent: 240 5% 15%;
+    --accent-foreground: 0 0% 95%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
@@ -122,36 +95,26 @@
     --warning: 37 100% 55%;
     --warning-foreground: 37 100% 95%;
 
-    --border: 270 20% 18%;
-    --input: 270 20% 18%;
-    --ring: 270 20% 40%;
+    --border: 240 5% 18%;
+    --input: 240 5% 18%;
+    --ring: 268 78% 64%;
 
-    --sidebar-background: 270 20% 10%;
-    --sidebar-foreground: 264 30% 70%;
-    --sidebar-primary: 270 76% 64%;
+    --sidebar-background: 240 10% 6%;
+    --sidebar-foreground: 240 5% 55%;
+    --sidebar-primary: 268 78% 64%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 270 50% 20%;
-    --sidebar-accent-foreground: 270 76% 75%;
-    --sidebar-border: 270 20% 18%;
-    --sidebar-ring: 270 20% 40%;
+    --sidebar-accent: 240 5% 12%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 240 5% 18%;
+    --sidebar-ring: 268 78% 64%;
 
-    /* Chart colors - purple theme related palette for dark mode */
-    --chart-1: 270 55% 60%;
-    --chart-2: 250 50% 62%;
-    --chart-3: 290 40% 65%;
-    --chart-4: 230 45% 65%;
-    --chart-5: 310 35% 65%;
+    --chart-1: 268 78% 64%;
+    --chart-2: 240 45% 58%;
+    --chart-3: 280 45% 55%;
+    --chart-4: 220 45% 60%;
+    --chart-5: 300 35% 58%;
 
-    --sidebar: 270 20% 10%;
-
-    --shadow-2xs: 0 1px 2px 0 hsl(270 50% 5% / 0.15);
-    --shadow-xs: 0 1px 3px 0 hsl(270 50% 5% / 0.2);
-    --shadow-sm: 0 2px 8px -2px hsl(270 50% 5% / 0.25);
-    --shadow: 0 4px 16px -4px hsl(270 50% 5% / 0.3);
-    --shadow-md: 0 8px 24px -6px hsl(270 50% 5% / 0.35);
-    --shadow-lg: 0 16px 40px -8px hsl(270 50% 5% / 0.4);
-    --shadow-xl: 0 24px 56px -12px hsl(270 50% 5% / 0.45);
-    --shadow-2xl: 0 32px 72px -16px hsl(270 50% 5% / 0.5);
+    --sidebar: 240 10% 6%;
   }
 }
 
@@ -164,21 +127,20 @@
     @apply bg-background text-foreground;
   }
 
-  /* Hide scrollbar for Chrome, Safari and Opera */
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
 
-  /* Hide scrollbar for IE, Edge and Firefox */
   .scrollbar-hide {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 
   @keyframes fadeIn {
     from {
       opacity: 0;
     }
+
     to {
       opacity: 1;
     }

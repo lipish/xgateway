@@ -26,6 +26,8 @@ const STRATEGIES = [
   { value: "random", label: "random" },
   { value: "priority", label: "priority" },
   { value: "latency", label: "latency" },
+  { value: "lowest_price", label: "lowest_price" },
+  { value: "quota_aware", label: "quota_aware" },
 ]
 
 export function SettingsPage() {
@@ -100,32 +102,13 @@ export function SettingsPage() {
       <PageHeader
         title={t('settings.title')}
         subtitle={t('settings.description')}
-        action={
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={resetToDefaults} disabled={saving}>
-              <RotateCcw className="mr-2 h-4 w-4" />
-              {t('settings.reset')}
-            </Button>
-            <Button size="sm" onClick={saveSettings} disabled={saving}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              {t('settings.save')}
-            </Button>
-          </div>
-        }
       />
-      <div className="flex-1 space-y-6 max-w-[1400px] mx-auto w-full">
 
-        {message && (
-          <div className={`p-4 rounded-lg flex items-center gap-2 border ${message.type === 'success' ? 'bg-primary/5 text-primary border-primary/20' : 'bg-destructive/5 text-destructive border-destructive/20'}`}>
-            <div className={`w-2 h-2 rounded-full ${message.type === 'success' ? 'bg-primary' : 'bg-destructive'}`} />
-            <span className="text-sm font-medium">{message.text}</span>
-          </div>
-        )}
-
+      <div className="flex-1 space-y-6 max-w-[1200px] mx-auto w-full lg:px-4">
         {loading ? (
           <div className="grid gap-6 md:grid-cols-2">
             {[1, 2, 3, 4].map(i => (
-              <Card key={i}>
+              <Card key={i} className="border-none shadow-sm bg-card/50">
                 <CardHeader className="pb-3">
                   <Skeleton className="h-6 w-32 mb-1" />
                   <Skeleton className="h-4 w-full" />
@@ -140,130 +123,147 @@ export function SettingsPage() {
             ))}
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="hover:border-primary/40 transition-colors">
-              <CardHeader className="pb-3 border-b mb-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Settings className="h-5 w-5 text-primary" /> {t('settings.loadBalance')}
-                    </CardTitle>
-                    <CardDescription>{t('settings.loadBalanceDesc')}</CardDescription>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-2 text-purple-600 mb-1">
+                    <Zap className="h-5 w-5" />
+                    <CardTitle className="text-lg font-semibold tracking-tight">{t('settings.loadBalance')}</CardTitle>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={fetchSettings}
-                      disabled={loading}
-                      title={t('common.refresh')}
-                      className="h-8 w-8"
-                    >
-                      <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-                    </Button>
+                  <CardDescription className="text-sm font-medium opacity-80">{t('settings.loadBalanceDesc')}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">{t('settings.strategy')}</Label>
+                    <Select
+                      value={settings.load_balance_strategy}
+                      onChange={(value) => setSettings({ ...settings, load_balance_strategy: value })}
+                      options={STRATEGIES.map(s => ({ value: s.value, label: t(`scheduling.strategies.${s.value}`) || s.label }))}
+                      triggerClassName="h-10"
+                    />
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="strategy">{t('settings.strategy')}</Label>
-                  <Select
-                    id="strategy"
-                    value={settings.load_balance_strategy}
-                    onChange={(val) => setSettings({ ...settings, load_balance_strategy: val })}
-                    options={STRATEGIES.map(s => ({ value: s.value, label: t(`settings.${s.value}` as any) }))}
-                    placeholder={t('settings.selectStrategy')}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="hover:border-primary/40 transition-colors">
-              <CardHeader className="pb-3 border-b mb-4">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Heart className="h-5 w-5 text-primary" /> {t('settings.healthCheck')}
-                </CardTitle>
-                <CardDescription>{t('settings.healthCheckProviderDesc')}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="interval">{t('settings.interval')} (s)</Label>
-                  <Input
-                    id="interval"
-                    type="number"
-                    value={settings.health_check_interval_secs}
-                    onChange={(e) => setSettings({ ...settings, health_check_interval_secs: parseInt(e.target.value) || 30 })}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+              <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-2 text-purple-600 mb-1">
+                    <Heart className="h-5 w-5" />
+                    <CardTitle className="text-lg font-semibold tracking-tight">{t('settings.healthCheck')}</CardTitle>
+                  </div>
+                  <CardDescription className="text-sm font-medium opacity-80">{t('settings.healthCheckDesc')}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">{t('settings.interval')} ({t('common.seconds')})</Label>
+                    <Input
+                      type="number"
+                      value={settings.health_check_interval_secs}
+                      onChange={e => setSettings({ ...settings, health_check_interval_secs: parseInt(e.target.value) })}
+                      className="h-10"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card className="hover:border-primary/40 transition-colors">
-              <CardHeader className="pb-3 border-b mb-4">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Shield className="h-5 w-5 text-primary" /> {t('settings.circuitBreaker')}
-                </CardTitle>
-                <CardDescription>{t('settings.circuitBreakerThresholdDesc')}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="threshold">{t('settings.threshold')} ({t('settings.thresholdUnit')})</Label>
-                    <Input
-                      id="threshold"
-                      type="number"
-                      value={settings.circuit_breaker_threshold}
-                      onChange={(e) => setSettings({ ...settings, circuit_breaker_threshold: parseInt(e.target.value) || 5 })}
-                    />
+              <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-2 text-purple-600 mb-1">
+                    <Shield className="h-5 w-5" />
+                    <CardTitle className="text-lg font-semibold tracking-tight">{t('settings.circuitBreaker')}</CardTitle>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="timeout">{t('settings.timeout')} (s)</Label>
-                    <Input
-                      id="timeout"
-                      type="number"
-                      value={settings.circuit_breaker_timeout_secs}
-                      onChange={(e) => setSettings({ ...settings, circuit_breaker_timeout_secs: parseInt(e.target.value) || 60 })}
-                    />
+                  <CardDescription className="text-sm font-medium opacity-80">{t('settings.circuitBreakerDesc')}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">{t('settings.threshold')}</Label>
+                      <Input
+                        type="number"
+                        value={settings.circuit_breaker_threshold}
+                        onChange={e => setSettings({ ...settings, circuit_breaker_threshold: parseInt(e.target.value) })}
+                        className="h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">{t('settings.timeout')} ({t('common.seconds')})</Label>
+                      <Input
+                        type="number"
+                        value={settings.circuit_breaker_timeout_secs}
+                        onChange={e => setSettings({ ...settings, circuit_breaker_timeout_secs: parseInt(e.target.value) })}
+                        className="h-10"
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="rounded-lg bg-muted/50 p-3 space-y-1">
-                  <p className="text-xs text-muted-foreground"><span className="font-semibold text-primary">{t('settings.thresholdHint')}</span>: {t('settings.thresholdHintDesc') || 'Number of failures before breaking'}</p>
-                  <p className="text-xs text-muted-foreground"><span className="font-semibold text-primary">{t('settings.timeoutHint')}</span>: {t('settings.timeoutHintDesc') || 'Seconds to wait before recovery'}</p>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="hover:border-primary/40 transition-colors">
-              <CardHeader className="pb-3 border-b mb-4">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Zap className="h-5 w-5 text-primary" /> {t('settings.retry')}
-                </CardTitle>
-                <CardDescription>{t('settings.retryStrategyDesc')}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="maxRetries">{t('settings.maxRetries')}</Label>
-                    <Input
-                      id="maxRetries"
-                      type="number"
-                      value={settings.max_retries}
-                      onChange={(e) => setSettings({ ...settings, max_retries: parseInt(e.target.value) || 3 })}
-                    />
+              <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-2 text-purple-600 mb-1">
+                    <RotateCcw className="h-5 w-5" />
+                    <CardTitle className="text-lg font-semibold tracking-tight">{t('settings.retry')}</CardTitle>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="retryDelay">{t('settings.retryDelay')} (ms)</Label>
-                    <Input
-                      id="retryDelay"
-                      type="number"
-                      value={settings.retry_delay_ms}
-                      onChange={(e) => setSettings({ ...settings, retry_delay_ms: parseInt(e.target.value) || 1000 })}
-                    />
+                  <CardDescription className="text-sm font-medium opacity-80">{t('settings.retryDesc')}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">{t('settings.maxRetries')}</Label>
+                      <Input
+                        type="number"
+                        value={settings.max_retries}
+                        onChange={e => setSettings({ ...settings, max_retries: parseInt(e.target.value) })}
+                        className="h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">{t('settings.retryDelay')} (ms)</Label>
+                      <Input
+                        type="number"
+                        value={settings.retry_delay_ms}
+                        onChange={e => setSettings({ ...settings, retry_delay_ms: parseInt(e.target.value) })}
+                        className="h-10"
+                      />
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border/50">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetToDefaults}
+                  className="h-10 px-6 gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  {t('settings.resetToDefaults')}
+                </Button>
+              </div>
+              <div className="flex items-center gap-3">
+                {message && (
+                  <span className={cn(
+                    "text-sm font-medium px-3 py-1 rounded-full",
+                    message.type === 'success' ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
+                  )}>
+                    {message.text}
+                  </span>
+                )}
+                <Button
+                  onClick={saveSettings}
+                  disabled={saving}
+                  className="h-10 px-10 gap-2 bg-purple-600 hover:bg-purple-700 text-white border-0"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {t('common.save')}
+                </Button>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>

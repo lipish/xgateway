@@ -27,6 +27,10 @@ pub enum LoadBalanceStrategy {
     Priority,
     /// Latency-based: prefer providers with lowest latency
     LatencyBased,
+    /// Lowest price: prefer providers with lowest input price
+    LowestPrice,
+    /// Quota aware: prefer providers within quota, then by price
+    QuotaAware,
 }
 
 impl Default for LoadBalanceStrategy {
@@ -42,6 +46,8 @@ pub struct LoadBalancer {
     metrics: Arc<ProviderMetrics>,
     round_robin_counter: AtomicUsize,
     provider_priorities: RwLock<HashMap<i64, i32>>,
+    provider_prices: RwLock<HashMap<i64, (f64, f64)>>, // (input, output)
+    provider_quotas: RwLock<HashMap<i64, Option<u64>>>,
 }
 
 impl LoadBalancer {
@@ -53,6 +59,8 @@ impl LoadBalancer {
             metrics,
             round_robin_counter: AtomicUsize::new(0),
             provider_priorities: RwLock::new(HashMap::new()),
+            provider_prices: RwLock::new(HashMap::new()),
+            provider_quotas: RwLock::new(HashMap::new()),
         }
     }
 
@@ -70,6 +78,12 @@ impl LoadBalancer {
     /// Set priority for a provider
     pub async fn set_priority(&self, provider_id: i64, priority: i32) {
         self.provider_priorities.write().await.insert(provider_id, priority);
+    }
+
+    /// Set pricing and quota for a provider
+    pub async fn set_pricing(&self, provider_id: i64, input_price: f64, output_price: f64, quota: Option<u64>) {
+        self.provider_prices.write().await.insert(provider_id, (input_price, output_price));
+        self.provider_quotas.write().await.insert(provider_id, quota);
     }
 
     /// Select a provider based on current strategy
@@ -115,6 +129,8 @@ impl LoadBalancer {
             LoadBalanceStrategy::Random => self.select_random(providers),
             LoadBalanceStrategy::Priority => self.select_by_priority(providers).await,
             LoadBalanceStrategy::LatencyBased => self.select_by_latency(providers).await,
+            LoadBalanceStrategy::LowestPrice => self.select_by_price(providers).await,
+            LoadBalanceStrategy::QuotaAware => self.select_quota_aware(providers).await,
         }
     }
 
@@ -197,6 +213,51 @@ impl LoadBalancer {
         // If no latency data, fall back to round-robin
         selected.or_else(|| self.select_round_robin(providers))
     }
+
+    /// Pricing-based selection (Lowest input price)
+    async fn select_by_price(&self, providers: &[i64]) -> Option<i64> {
+        let prices = self.provider_prices.read().await;
+        let mut min_price = f64::MAX;
+        let mut selected = None;
+
+        for &id in providers {
+            let price = prices.get(&id).map(|p| p.0).unwrap_or(0.0);
+            if price < min_price {
+                min_price = price;
+                selected = Some(id);
+            }
+        }
+
+        selected
+    }
+
+    /// Quota-aware selection
+    async fn select_quota_aware(&self, providers: &[i64]) -> Option<i64> {
+        let quotas = self.provider_quotas.read().await;
+        
+        let mut eligible = Vec::new();
+        
+        for &id in providers {
+            let quota_limit = quotas.get(&id).copied().flatten();
+            if let Some(limit) = quota_limit {
+                let bytes_used = self.metrics.get_summary(id).await.map(|s| s.tokens_used).unwrap_or(0);
+                if bytes_used < limit {
+                    eligible.push(id);
+                }
+            } else {
+                // No quota limit set, always eligible
+                eligible.push(id);
+            }
+        }
+
+        if eligible.is_empty() {
+            // If all over quota, fall back to selecting by price among all providers
+            return self.select_by_price(providers).await;
+        }
+
+        // Among eligible providers, select the cheapest one
+        self.select_by_price(&eligible).await
+    }
 }
 
 /// Simple random number generator (not cryptographically secure)
@@ -208,5 +269,75 @@ fn rand_simple() -> u32 {
     ((duration.as_nanos() % u32::MAX as u128) as u32)
         .wrapping_mul(1103515245)
         .wrapping_add(12345)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+    use crate::pool::health::HealthStatus;
+
+    #[tokio::test]
+    async fn test_lowest_price_selection() {
+        let health_checker = Arc::new(HealthChecker::new());
+        let metrics = Arc::new(ProviderMetrics::new());
+        let lb = LoadBalancer::new(health_checker.clone(), metrics.clone());
+        
+        lb.set_strategy(LoadBalanceStrategy::LowestPrice).await;
+        
+        // Add two providers
+        lb.set_pricing(1, 10.0, 20.0, None).await;
+        lb.set_pricing(2, 5.0, 15.0, None).await;
+        
+        // Register with health checker to be "healthy"
+        health_checker.register_provider(1).await;
+        health_checker.register_provider(2).await;
+        health_checker.set_status(1, HealthStatus::Healthy).await;
+        health_checker.set_status(2, HealthStatus::Healthy).await;
+        
+        let selected = lb.select_provider(&[1, 2]).await;
+        assert_eq!(selected, Some(2)); // Cheapest is 2
+    }
+
+    #[tokio::test]
+    async fn test_quota_aware_selection() {
+        let health_checker = Arc::new(HealthChecker::new());
+        let metrics = Arc::new(ProviderMetrics::new());
+        let lb = LoadBalancer::new(health_checker.clone(), metrics.clone());
+        
+        lb.set_strategy(LoadBalanceStrategy::QuotaAware).await;
+        
+        // Add two providers
+        // 1: Cheap but limited
+        // 2: Expensive
+        lb.set_pricing(1, 1.0, 2.0, Some(100)).await;
+        lb.set_pricing(2, 10.0, 20.0, None).await;
+        
+        health_checker.register_provider(1).await;
+        health_checker.register_provider(2).await;
+        health_checker.set_status(1, HealthStatus::Healthy).await;
+        health_checker.set_status(2, HealthStatus::Healthy).await;
+        metrics.register_provider(1).await;
+        metrics.register_provider(2).await;
+        
+        // Initially should select the cheap one
+        let selected = lb.select_provider(&[1, 2]).await;
+        assert_eq!(selected, Some(1));
+        
+        // Simulate provider 1 using up quota
+        metrics.record_request_end(1, Duration::from_millis(100), true, Some(150)).await;
+        
+        // Now should select the expensive one
+        let selected = lb.select_provider(&[1, 2]).await;
+        assert_eq!(selected, Some(2));
+        
+        // If both are excluded or unavailable, fall back correctly
+        // (Scenario: all over quota, should pick cheapest)
+        lb.set_pricing(2, 5.0, 10.0, Some(50)).await;
+        metrics.record_request_end(2, Duration::from_millis(100), true, Some(60)).await;
+        
+        let selected = lb.select_provider(&[1, 2]).await;
+        assert_eq!(selected, Some(1)); // Both over quota, 1 is cheaper (1.0 vs 5.0)
+    }
 }
 

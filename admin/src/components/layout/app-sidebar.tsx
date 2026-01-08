@@ -5,8 +5,8 @@ import {
     Server,
     Settings,
     Key,
-    Activity,
-    FileText,
+    BarChart3,
+    Zap,
     HelpCircle,
     MessageSquare,
     Library,
@@ -50,8 +50,8 @@ function getNavigation() {
         {
             title: t('nav.monitoring'),
             items: [
-                { name: t('nav.metrics'), href: "/monitoring", icon: Activity },
-                { name: t('nav.trace'), href: "/logs", icon: FileText },
+                { name: t('nav.metrics'), href: "/analytics", icon: BarChart3 },
+                { name: t('nav.trace'), href: "/logs", icon: Zap },
             ],
         },
     ]

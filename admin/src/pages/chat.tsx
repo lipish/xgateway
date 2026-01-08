@@ -345,16 +345,16 @@ export function ChatPage() {
           </div>
         }
       />
-      <div className="flex-1 flex overflow-hidden min-h-0 max-w-[1400px] mx-auto w-full">
-        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-          <div className={`flex-1 grid gap-4 overflow-hidden min-h-0 ${panels.length === 1 ? 'grid-cols-1' : panels.length === 2 ? 'grid-cols-2' : panels.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+      <div className="flex-1 flex overflow-hidden min-h-0 h-full max-w-[1400px] mx-auto w-full">
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0 h-full">
+          <div className={`flex-1 grid gap-4 overflow-hidden min-h-0 h-full ${panels.length === 1 ? 'grid-cols-1' : panels.length === 2 ? 'grid-cols-2' : panels.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
             {panels.map(panel => (
               <div key={panel.id} className={cn(
                 "flex h-full min-h-0",
                 panels.length === 1 ? "max-w-[50%] mx-auto w-full" : "",
                 panel.maximized && "fixed inset-0 z-50 bg-background p-4"
               )}>
-                <Card className="flex flex-col w-full h-full overflow-hidden p-0 gap-0">
+                <Card className="flex flex-col w-full h-full overflow-hidden p-0 gap-0 relative">
                   {/* Card Header */}
                   <div className="px-4 py-3 flex items-center justify-between gap-4 shrink-0 flex-nowrap border-b border-transparent bg-card">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -403,8 +403,8 @@ export function ChatPage() {
                       )}
                     </div>
                   </div>
-                  <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-0">
-                    <div className="flex-1 min-h-0 overflow-y-auto space-y-6 text-sm p-6 pb-4 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                  <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-0 relative">
+                    <div className="flex-1 min-h-0 overflow-y-auto space-y-6 text-sm p-6 pb-24 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                       {panel.messages.length === 0 && (
                         <div className="flex-1 flex flex-col items-center justify-center text-center p-8 animate-in fade-in zoom-in duration-300">
                           <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center mb-6 border border-primary/10">
@@ -476,7 +476,7 @@ export function ChatPage() {
                       )}
                       <div ref={(el) => { messagesEndRefs.current[panel.id] = el }} />
                     </div>
-                    <div className="p-4 border-t bg-card shrink-0">
+                    <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-card/95 backdrop-blur-sm">
                       <div className="relative flex items-center gap-3 px-4 py-2 rounded-3xl bg-muted/30 border border-border/30">
                         <button className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted/50 transition-colors">
                           <Image className="w-5 h-5 text-muted-foreground" strokeWidth={1.2} />

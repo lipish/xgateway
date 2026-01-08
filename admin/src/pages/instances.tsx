@@ -49,6 +49,9 @@ export function ProvidersPage() {
     endpoint: "",
     secretId: "",
     secretKey: "",
+    inputPrice: "",
+    outputPrice: "",
+    quotaLimit: "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -63,6 +66,9 @@ export function ProvidersPage() {
     endpoint: "",
     secretId: "",
     secretKey: "",
+    inputPrice: "",
+    outputPrice: "",
+    quotaLimit: "",
   });
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
@@ -203,6 +209,9 @@ export function ProvidersPage() {
       endpoint: "",
       secretId: "",
       secretKey: "",
+      inputPrice: "",
+      outputPrice: "",
+      quotaLimit: "",
     });
     setAddDialogOpen(true);
   };
@@ -210,12 +219,46 @@ export function ProvidersPage() {
   const handleProviderTypeChange = (type: string) => {
     const defaults = getProviderTypeConfig(type);
     if (defaults) {
+      const firstModel = defaults.models[0];
       setAddForm({
         ...addForm,
         providerType: type,
-        model: defaults.models[0]?.id || "",
+        model: firstModel?.id || "",
         baseUrl: defaults.base_url,
+        inputPrice: firstModel?.input_price?.toString() || "",
+        outputPrice: firstModel?.output_price?.toString() || "",
       });
+    }
+  };
+
+  const handleModelChange = (modelId: string) => {
+    const config = getProviderTypeConfig(addForm.providerType);
+    const modelInfo = config?.models.find((m) => m.id === modelId);
+    if (modelInfo) {
+      setAddForm({
+        ...addForm,
+        model: modelId,
+        inputPrice: modelInfo.input_price?.toString() || "",
+        outputPrice: modelInfo.output_price?.toString() || "",
+      });
+    } else {
+      setAddForm({ ...addForm, model: modelId });
+    }
+  };
+
+  const handleEditModelChange = (modelId: string) => {
+    if (!editingProvider) return;
+    const config = getProviderTypeConfig(editingProvider.provider_type);
+    const modelInfo = config?.models.find((m) => m.id === modelId);
+    if (modelInfo) {
+      setEditForm({
+        ...editForm,
+        model: modelId,
+        inputPrice: modelInfo.input_price?.toString() || "",
+        outputPrice: modelInfo.output_price?.toString() || "",
+      });
+    } else {
+      setEditForm({ ...editForm, model: modelId });
     }
   };
 
@@ -249,6 +292,9 @@ export function ProvidersPage() {
           api_key: addForm.apiKey,
           model: addForm.model,
           base_url: addForm.baseUrl,
+          input_price: parseFloat(addForm.inputPrice) || 0,
+          output_price: parseFloat(addForm.outputPrice) || 0,
+          quota_limit: addForm.quotaLimit ? parseInt(addForm.quotaLimit) : null,
         }),
         enabled: true,
         priority: parseInt(addForm.priority) || 10,
@@ -324,6 +370,9 @@ export function ProvidersPage() {
       endpoint: provider.endpoint || "",
       secretId: maskApiKey(provider.secret_id || ""),
       secretKey: maskApiKey(provider.secret_key || ""),
+      inputPrice: config.input_price?.toString() || "",
+      outputPrice: config.output_price?.toString() || "",
+      quotaLimit: config.quota_limit?.toString() || "",
     });
     setEditDialogOpen(true);
   };
@@ -343,6 +392,9 @@ export function ProvidersPage() {
           api_key: isMasked(editForm.apiKey) ? originalConfig.api_key : editForm.apiKey,
           model: editForm.model,
           base_url: editForm.baseUrl,
+          input_price: parseFloat(editForm.inputPrice) || 0,
+          output_price: parseFloat(editForm.outputPrice) || 0,
+          quota_limit: editForm.quotaLimit ? parseInt(editForm.quotaLimit) : null,
         }),
         priority: parseInt(editForm.priority) || 10,
       };
@@ -449,6 +501,7 @@ export function ProvidersPage() {
         form={addForm}
         onFormChange={setAddForm}
         onProviderTypeChange={handleProviderTypeChange}
+        onModelChange={handleModelChange}
         onSubmit={submitAddProvider}
         adding={adding}
         error={addError}
@@ -462,6 +515,7 @@ export function ProvidersPage() {
         providerTypeConfig={editingProvider ? getProviderTypeConfig(editingProvider.provider_type) : undefined}
         form={editForm}
         onFormChange={setEditForm}
+        onModelChange={handleEditModelChange}
         onSubmit={saveEdit}
         saving={saving}
         error={editError}

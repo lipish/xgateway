@@ -11,8 +11,10 @@ export function DashboardLayout() {
       <AppSidebar />
       <SidebarInset className="h-svh overflow-hidden">
         <SiteHeader />
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <Outlet />
+        <main className="flex-1 flex flex-col min-h-0 overflow-hidden bg-muted/40">
+          <div className="flex-1 flex flex-col min-h-0 p-4 lg:p-6">
+            <Outlet />
+          </div>
         </main>
       </SidebarInset>
       <Toaster position="top-center" richColors />

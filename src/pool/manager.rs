@@ -90,6 +90,9 @@ impl PoolManager {
             priority: provider.priority,
             weight: 1,
             enabled: provider.enabled,
+            input_price: config.get("input_price").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            output_price: config.get("output_price").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            quota_limit: config.get("quota_limit").and_then(|v| v.as_u64()),
         };
 
         self.pool.add_provider(provider.id, provider.name.clone(), instance_config).await;

@@ -189,102 +189,136 @@ export function ApiKeysPage() {
             setError(null)
           }
         }}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>{t('apiKeys.create')}</DialogTitle>
-              <DialogDescription>
-                {createdKey ? t('apiKeys.saveKeyHint') : t('apiKeys.listDesc')}
-              </DialogDescription>
-            </DialogHeader>
+          <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden border">
+            <div className="p-6 space-y-5">
+              <DialogHeader className="space-y-1.5 mb-0">
+                <DialogTitle className="text-xl font-semibold tracking-tight">
+                  {t('apiKeys.create')}
+                </DialogTitle>
+                <DialogDescription className="text-purple-600 font-medium pb-2">
+                  {createdKey ? t('apiKeys.saveKeyHint') : t('apiKeys.listDesc')}
+                </DialogDescription>
+              </DialogHeader>
 
-            {createdKey ? (
-              <div className="space-y-4 py-4">
-                <div className="rounded-md bg-muted p-3 flex items-center gap-2 group">
-                  <code className="text-sm font-mono break-all flex-1">{createdKey}</code>
-                  <Button variant="ghost" size="icon" className="shrink-0" onClick={() => copyToClipboard(createdKey)}>
-                    {copySuccess ? <span className="text-[10px] text-primary">Copied!</span> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
-                <div className="p-3 bg-destructive/5 border border-destructive/20 rounded-md">
-                  <p className="text-xs text-destructive font-medium flex items-center gap-2">
-                    <Shield className="h-3 w-3" /> {t('apiKeys.saveKeyHint')}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">{t('apiKeys.name')}</Label>
-                  <Input id="name" value={newKeyData.name} onChange={e => setNewKeyData({ ...newKeyData, name: e.target.value })} placeholder="e.g. My App" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label>{t('apiKeys.qps')}</Label>
-                    <Input type="number" value={newKeyData.qps_limit} onChange={e => setNewKeyData({ ...newKeyData, qps_limit: parseFloat(e.target.value) })} />
+              {createdKey ? (
+                <div className="space-y-4 py-2">
+                  <div className="rounded-md bg-muted p-3 flex items-center gap-2 group border">
+                    <code className="text-sm font-mono break-all flex-1">{createdKey}</code>
+                    <Button variant="ghost" size="icon" className="shrink-0" onClick={() => copyToClipboard(createdKey)}>
+                      {copySuccess ? <span className="text-[10px] text-primary">Copied!</span> : <Copy className="h-4 w-4" />}
+                    </Button>
                   </div>
-                  <div className="grid gap-2">
-                    <Label>{t('apiKeys.concurrency')}</Label>
-                    <Input type="number" value={newKeyData.concurrency_limit} onChange={e => setNewKeyData({ ...newKeyData, concurrency_limit: parseInt(e.target.value) })} />
+                  <div className="p-3 bg-destructive/5 border border-destructive/20 rounded-md">
+                    <p className="text-xs text-destructive font-medium flex items-center gap-2">
+                      <Shield className="h-3 w-3" /> {t('apiKeys.saveKeyHint')}
+                    </p>
                   </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label>{t('apiKeys.scope')}</Label>
-                  <Select
-                    value={newKeyData.scope}
-                    onChange={(value) => setNewKeyData({ ...newKeyData, scope: value, provider_ids: value === 'global' ? [] : newKeyData.provider_ids })}
-                    options={[
-                      { value: 'global', label: t('apiKeys.global') },
-                      { value: 'instance', label: t('apiKeys.instance') }
-                    ]}
-                  />
-                </div>
-                {newKeyData.scope === 'instance' && (
-                  <div className="grid gap-2">
-                    <Label>{t('apiKeys.selectInstance')}</Label>
-                    <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-1">
-                      {providers.map(provider => (
-                        <label key={provider.id} className="flex items-center gap-2 p-2 hover:bg-accent rounded cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={newKeyData.provider_ids.includes(provider.id)}
-                            onChange={(e) => {
-                              const newProviderIds = e.target.checked
-                                ? [...newKeyData.provider_ids, provider.id]
-                                : newKeyData.provider_ids.filter(id => id !== provider.id)
-                              setNewKeyData({ ...newKeyData, provider_ids: newProviderIds })
-                            }}
-                            className="h-4 w-4"
-                          />
-                          <span className="text-sm">{provider.name}</span>
-                        </label>
-                      ))}
+              ) : (
+                <div className="grid gap-5 py-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-sm font-medium">{t('apiKeys.name')} <span className="text-destructive">*</span></Label>
+                    <Input
+                      id="name"
+                      value={newKeyData.name}
+                      onChange={e => setNewKeyData({ ...newKeyData, name: e.target.value })}
+                      placeholder="e.g. My App"
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">{t('apiKeys.qps')}</Label>
+                      <Input
+                        type="number"
+                        value={newKeyData.qps_limit}
+                        onChange={e => setNewKeyData({ ...newKeyData, qps_limit: parseFloat(e.target.value) })}
+                        className="h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">{t('apiKeys.concurrency')}</Label>
+                      <Input
+                        type="number"
+                        value={newKeyData.concurrency_limit}
+                        onChange={e => setNewKeyData({ ...newKeyData, concurrency_limit: parseInt(e.target.value) })}
+                        className="h-10"
+                      />
                     </div>
                   </div>
-                )}
-                {error && (
-                  <p className="text-sm text-destructive mt-2">{error}</p>
-                )}
-              </div>
-            )}
 
-            <DialogFooter>
-              {createdKey ? (
-                <Button onClick={() => {
-                  setCreatedKey(null)
-                  setNewKeyData({
-                    name: "",
-                    scope: "global",
-                    provider_ids: [],
-                    qps_limit: 10,
-                    concurrency_limit: 5
-                  })
-                  setError(null)
-                  setShowCreateDialog(false)
-                }}>{t('common.confirm')}</Button>
-              ) : (
-                <Button onClick={handleCreate}>{t('common.save')}</Button>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">{t('apiKeys.scope')}</Label>
+                    <Select
+                      value={newKeyData.scope}
+                      onChange={(value) => setNewKeyData({ ...newKeyData, scope: value, provider_ids: value === 'global' ? [] : newKeyData.provider_ids })}
+                      options={[
+                        { value: 'global', label: t('apiKeys.global') },
+                        { value: 'instance', label: t('apiKeys.instance') }
+                      ]}
+                      triggerClassName="h-10"
+                    />
+                  </div>
+
+                  {newKeyData.scope === 'instance' && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">{t('apiKeys.selectInstance')}</Label>
+                      <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-1 bg-background">
+                        {providers.map(provider => (
+                          <label key={provider.id} className="flex items-center gap-2 p-2 hover:bg-accent rounded-md cursor-pointer transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={newKeyData.provider_ids.includes(provider.id)}
+                              onChange={(e) => {
+                                const newProviderIds = e.target.checked
+                                  ? [...newKeyData.provider_ids, provider.id]
+                                  : newKeyData.provider_ids.filter(id => id !== provider.id)
+                                setNewKeyData({ ...newKeyData, provider_ids: newProviderIds })
+                              }}
+                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <span className="text-sm font-medium">{provider.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {error && (
+                    <p className="text-sm text-destructive mt-1 font-medium">{error}</p>
+                  )}
+                </div>
               )}
-            </DialogFooter>
+
+              <DialogFooter className="gap-2 mt-2">
+                {createdKey ? (
+                  <Button onClick={() => {
+                    setCreatedKey(null)
+                    setNewKeyData({
+                      name: "",
+                      scope: "global",
+                      provider_ids: [],
+                      qps_limit: 10,
+                      concurrency_limit: 5
+                    })
+                    setError(null)
+                    setShowCreateDialog(false)
+                  }} className="h-10 px-10">{t('common.confirm')}</Button>
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={() => setShowCreateDialog(false)} className="h-10 px-10">
+                      {t('common.cancel')}
+                    </Button>
+                    <Button
+                      onClick={handleCreate}
+                      className="h-10 px-10 bg-purple-600 hover:bg-purple-700 text-white border-0"
+                    >
+                      {t('common.save')}
+                    </Button>
+                  </>
+                )}
+              </DialogFooter>
+            </div>
           </DialogContent>
         </Dialog>
 
