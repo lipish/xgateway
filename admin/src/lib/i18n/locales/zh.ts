@@ -2,7 +2,7 @@ export const zh = {
   nav: {
     main: '主菜单',
     dashboard: '仪表盘',
-    providers: '服务商目录',
+    providers: '服务实例',
     modelTypes: '服务商目录',
     chat: '对话测试',
     logs: '日志',

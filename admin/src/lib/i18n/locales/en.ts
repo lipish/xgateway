@@ -2,7 +2,7 @@ export const en = {
   nav: {
     main: 'Main Menu',
     dashboard: 'Dashboard',
-    providers: 'Provider Catalog',
+    providers: 'Service Instance',
     modelTypes: 'Provider Catalog',
     chat: 'Chat Test',
     logs: 'Logs',
