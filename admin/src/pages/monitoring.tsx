@@ -75,9 +75,9 @@ export function MonitoringPage() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'healthy': return <CheckCircle className="h-4 w-4 text-primary" />
-      case 'degraded': return <AlertTriangle className="h-4 w-4 text-amber-500" />
-      case 'unhealthy': return <XCircle className="h-4 w-4 text-destructive" />
+      case 'healthy': return <CheckCircle className="h-4 w-4 text-muted-foreground" />
+      case 'degraded': return <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+      case 'unhealthy': return <XCircle className="h-4 w-4 text-muted-foreground" />
       default: return <Activity className="h-4 w-4 text-muted-foreground" />
     }
   }
@@ -85,22 +85,10 @@ export function MonitoringPage() {
   return (
     <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
       <PageHeader
-        title={t('nav.monitoring')}
+        title="Metrics"
         subtitle={t('dashboard.description')}
         onRefresh={fetchMonitoringData}
         loading={loading}
-        action={
-          <div className="flex gap-2">
-            <Button
-              variant={autoRefresh ? "secondary" : "outline"}
-              size="sm"
-              onClick={() => setAutoRefresh(!autoRefresh)}
-            >
-              <Activity className={cn("mr-2 h-4 w-4", autoRefresh && "animate-pulse")} />
-              {autoRefresh ? t('monitoring.stopAutoRefresh') : t('monitoring.autoRefresh')}
-            </Button>
-          </div>
-        }
       />
       <div className="flex-1 space-y-4 max-w-[1400px] mx-auto w-full">
 
@@ -113,23 +101,23 @@ export function MonitoringPage() {
 
         {/* Pool Overview */}
         <div className="grid gap-4 md:grid-cols-4">
-          <Card className="hover:border-primary/40 transition-colors">
+          <Card className="transition-colors">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t('monitoring.healthyProviders')}</CardTitle>
               <Heart className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
               {loading ? <Skeleton className="h-8 w-20" /> : (
-                <div className="text-2xl font-bold text-primary">
+                <div className="text-2xl font-bold">
                   {poolStatus?.healthy_providers ?? '--'} <span className="text-sm font-normal text-muted-foreground">/ {poolStatus?.total_providers ?? '--'}</span>
                 </div>
               )}
             </CardContent>
           </Card>
-          <Card className="hover:border-primary/40 transition-colors">
+          <Card className="transition-colors">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t('monitoring.loadBalanceStrategy')}</CardTitle>
-              <Gauge className="h-4 w-4 text-muted-foreground" />
+              <Gauge className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
               {loading ? <Skeleton className="h-8 w-32" /> : (
@@ -137,10 +125,10 @@ export function MonitoringPage() {
               )}
             </CardContent>
           </Card>
-          <Card className="hover:border-primary/40 transition-colors">
+          <Card className="transition-colors">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t('monitoring.todayRequests')}</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
+              <Activity className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
               {loading ? <Skeleton className="h-8 w-24" /> : (
@@ -148,10 +136,10 @@ export function MonitoringPage() {
               )}
             </CardContent>
           </Card>
-          <Card className="hover:border-primary/40 transition-colors">
+          <Card className="transition-colors">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t('monitoring.avgLatency')}</CardTitle>
-              <Shield className="h-4 w-4 text-muted-foreground" />
+              <Shield className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
               {loading ? <Skeleton className="h-8 w-28" /> : (
@@ -167,27 +155,6 @@ export function MonitoringPage() {
             <div className="space-y-1">
               <CardTitle>{t('monitoring.providerHealthStatus')}</CardTitle>
               <CardDescription>{t('monitoring.providerHealthDesc')}</CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={fetchMonitoringData}
-                disabled={loading}
-                className="h-8 w-8"
-                title={t('common.refresh')}
-              >
-                <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setAutoRefresh(!autoRefresh)}
-                className={cn("h-8 w-8", autoRefresh && "bg-primary/10 text-primary hover:bg-primary/20")}
-                title={autoRefresh ? t('monitoring.stopAutoRefresh') : t('monitoring.autoRefresh')}
-              >
-                <Activity className={cn("h-4 w-4", autoRefresh && "animate-pulse")} />
-              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -205,7 +172,7 @@ export function MonitoringPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {providerHealth.map((provider) => (
-                  <Card key={provider.id} className="overflow-hidden border-muted/60 hover:border-primary/40 transition-colors">
+                  <Card key={provider.id} className="overflow-hidden border-muted/60 transition-colors">
                     <CardHeader className="pb-3 bg-muted/30">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -214,10 +181,7 @@ export function MonitoringPage() {
                         </div>
                         <Badge
                           variant="outline"
-                          className={cn(
-                            "border-0",
-                            provider.circuit_state === 'closed' ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"
-                          )}
+                          className="border-0 bg-muted text-muted-foreground"
                         >
                           {provider.circuit_state === 'closed' ? t('monitoring.circuitClosed') :
                             provider.circuit_state === 'open' ? t('monitoring.circuitOpen') :
@@ -232,11 +196,11 @@ export function MonitoringPage() {
                         <div className="flex items-center gap-2">
                           <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
                             <div
-                              className={cn("h-full rounded-full", provider.success_rate >= 95 ? "bg-primary" : provider.success_rate >= 80 ? "bg-amber-500" : "bg-destructive")}
+                              className="h-full rounded-full bg-foreground/20"
                               style={{ width: `${provider.success_rate}%` }}
                             />
                           </div>
-                          <span className={cn("font-medium", provider.success_rate >= 95 ? "text-primary" : provider.success_rate >= 80 ? "text-amber-500" : "text-destructive")}>
+                          <span className="font-medium">
                             {provider.success_rate.toFixed(1)}%
                           </span>
                         </div>
