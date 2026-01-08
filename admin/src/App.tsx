@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { DashboardPage } from "@/pages/dashboard"
-import { ProvidersPage } from "@/pages/instances"
+import { ProvidersPage } from "@/pages/models"
 import { AnalyticsPage } from "@/pages/analytics"
 import { LogsPage } from "@/pages/logs"
 import { SettingsPage } from "@/pages/settings"
@@ -31,7 +31,7 @@ function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route index element={<DashboardPage />} />
-        <Route path="instances" element={<ProvidersPage />} />
+        <Route path="models" element={<ProvidersPage />} />
         <Route path="providers" element={<ModelTypesPage />} />
         <Route path="chat" element={<ChatPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />

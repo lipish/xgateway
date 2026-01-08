@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Select } from "@/components/ui/select"
 import { Search, Download, Clock, Server } from "lucide-react"
 
 interface RequestLog {
@@ -87,39 +88,34 @@ export function LogsPage() {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
-      <PageHeader
-        title={t('logs.title')}
-        subtitle={t('logs.description')}
-        action={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={exportLogs}>
-              <Download className="mr-2 h-4 w-4" />
-              {t('logs.export')}
-            </Button>
-          </div>
-        }
-      />
       <div className="flex-1 max-w-[1400px] mx-auto w-full overflow-hidden">
         <div className="flex items-center gap-2 mb-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input placeholder={t('logs.search')} className="pl-9" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
           </div>
-          <select
-            className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+          <Select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">{t('logs.allStatus')}</option>
-            <option value="success">{t('common.success')}</option>
-            <option value="error">{t('common.error')}</option>
-            <option value="timeout">{t('logs.timeout')}</option>
-          </select>
+            onChange={(value) => setStatusFilter(value)}
+            options={[
+              { value: "all", label: t('logs.allStatus') },
+              { value: "success", label: t('common.success') },
+              { value: "error", label: t('common.error') },
+              { value: "timeout", label: t('logs.timeout') },
+            ]}
+            className="w-[120px]"
+          />
+          <div className="flex items-center gap-2 ml-auto">
+            <Button variant="outline" size="sm" onClick={exportLogs}>
+              <Download className="mr-2 h-4 w-4" />
+              {t('logs.export')}
+            </Button>
+          </div>
         </div>
 
         <div className="flex gap-6 h-[calc(100%-60px)]">
           {/* Left: Log List */}
-          <div className="flex-1 bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col">
+          <div className="flex-1 bg-card rounded-xl border overflow-hidden flex flex-col">
             <div className="flex-1 overflow-auto scrollbar-hide">
               {loading ? (
                 <div className="text-center py-4">{t('common.loading')}</div>
@@ -157,7 +153,7 @@ export function LogsPage() {
           </div>
 
           {/* Right: Log Detail */}
-          <div className="w-[400px] bg-white rounded-xl shadow-sm border flex flex-col overflow-hidden">
+          <div className="w-[400px] bg-card rounded-xl border flex flex-col overflow-hidden">
             {selectedLog ? (
               <>
                 <div className="p-4 border-b">

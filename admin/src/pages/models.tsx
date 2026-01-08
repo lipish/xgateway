@@ -439,7 +439,7 @@ export function ProvidersPage() {
     <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
       <div className="flex-1 space-y-6 max-w-[1400px] mx-auto w-full">
         <PageHeader
-          title={t('nav.providers')}
+          title={t('nav.models')}
           subtitle={t('providers.description')}
           action={
             isAdmin ? (

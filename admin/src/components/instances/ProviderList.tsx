@@ -33,7 +33,7 @@ export function ProviderList({
   onToggleProvider,
 }: ProviderListProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border p-6 flex flex-col w-[65%]">
+    <div className="bg-card rounded-xl border p-6 flex flex-col w-[65%]">
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-3">
           <div className="relative">
