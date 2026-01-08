@@ -17,68 +17,81 @@ import { PerformancePanel } from "@/components/dashboard/performance-panel"
 import { InsightsPanel } from "@/components/dashboard/insights-panel"
 import { RecentErrorsPanel } from "@/components/dashboard/recent-errors-panel"
 
-interface AnalyticsData {
-  total_requests: number
-  success_rate: number
-  avg_latency_ms: number
+interface LogEntry {
+  id: number
+  provider_id: number
+  provider_name: string
+  model: string
+  status: string
+  latency_ms: number
   tokens_used: number
-  requests_today: number
-  failed_requests: number
-  top_models: Array<{
-    model: string
-    requests: number
-    tokens: number
-  }>
-  recent_errors: Array<{
-    timestamp: string
-    provider: string
-    model: string
-    error_type: string
-    error_message: string
-  }>
-}
-
-// TEMPORARY: Using mock data until backend API is ready
-const mockData: AnalyticsData = {
-  total_requests: 15847,
-  success_rate: 96.2,
-  avg_latency_ms: 245,
-  tokens_used: 1847293,
-  requests_today: 1247,
-  failed_requests: 4,
-  top_models: [
-    { model: "gpt-4o", requests: 3833, tokens: 198000 },
-    { model: "gemini-pro", requests: 8887, tokens: 272000 },
-    { model: "claude-3-sonnet", requests: 1017, tokens: 443000 },
-    { model: "gpt-4-turbo", requests: 1046, tokens: 112000 },
-  ],
-  recent_errors: [
-    {
-      timestamp: new Date(Date.now() - 2 * 60000).toISOString(),
-      provider: "OpenAI",
-      model: "gpt-4-turbo",
-      error_type: "Rate Limit",
-      error_message: "Rate limit exceeded"
-    },
-    {
-      timestamp: new Date(Date.now() - 15 * 60000).toISOString(),
-      provider: "Anthropic",
-      model: "claude-3-sonnet",
-      error_type: "Timeout",
-      error_message: "Connection timeout"
-    }
-  ]
+  error_message: string | null
+  request_type: string
+  request_content: string
+  response_content: string | null
+  created_at: string
 }
 
 export function AnalyticsPage() {
   const [loading, setLoading] = useState(true)
-  const [data, setData] = useState<AnalyticsData | null>(mockData)
+  const [logs, setLogs] = useState<LogEntry[]>([])
   const [error, setError] = useState<string | null>(null)
 
+  // Calculate analytics from logs
+  const calculateAnalytics = () => {
+    const totalRequests = logs.length
+    const successRequests = logs.filter(log => log.status === 'success').length
+    const failedRequests = logs.filter(log => log.status === 'error').length
+    const successRate = totalRequests > 0 ? parseFloat(((successRequests / totalRequests) * 100).toFixed(1)) : 0
+    
+    // Calculate average latency excluding timeout errors (60+ seconds)
+    const successLogs = logs.filter(log => log.status === 'success')
+    const validLatencyLogs = successLogs.filter(log => log.latency_ms < 60000) // Exclude 60+ second timeouts
+    const avgLatency = validLatencyLogs.length > 0 
+      ? parseFloat((validLatencyLogs.reduce((sum, log) => sum + log.latency_ms, 0) / validLatencyLogs.length).toFixed(1)) 
+      : 0
+    
+    const tokensUsed = logs.reduce((sum, log) => sum + log.tokens_used, 0)
+    
+    // Calculate requests today (last 24 hours)
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const requestsToday = logs.filter(log => new Date(log.created_at) > yesterday).length
+
+    return {
+      totalRequests,
+      successRate,
+      avgLatency,
+      tokensUsed,
+      requestsToday,
+      failedRequests
+    }
+  }
+
+  const analytics = calculateAnalytics()
+
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setLoading(false), 800)
-    return () => clearTimeout(timer)
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        // Fetch logs data
+        const logsResult = await apiGet("/api/logs") as any
+        if (logsResult.success) {
+          setLogs(logsResult.data || [])
+        } else {
+          setError(logsResult.message || "Failed to load logs")
+        }
+        
+        setLoading(false)
+      } catch (err) {
+        console.error("Error fetching logs:", err)
+        setError("Network error occurred")
+        setLoading(false)
+      }
+    }
+    
+    loadData()
   }, [])
 
   // TEMPORARY: Comment out actual API call
@@ -136,7 +149,7 @@ export function AnalyticsPage() {
             <h3 className="text-lg font-semibold text-destructive mb-2">Failed to Load Data</h3>
             <p className="text-muted-foreground mb-4">{error}</p>
             <button 
-              onClick={fetchAnalyticsData}
+              onClick={() => window.location.reload()}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             >
               Retry
@@ -147,25 +160,10 @@ export function AnalyticsPage() {
     )
   }
 
-  if (!data) {
-    return (
-      <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
-        <PageHeader />
-        <div className="flex-1 max-w-[1400px] mx-auto w-full">
-          <div className="rounded-xl border bg-muted/50 p-8 text-center">
-            <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">No Data Available</h3>
-            <p className="text-muted-foreground">Analytics data will appear here once requests are made</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   const stats = [
     {
       title: "TOTAL REQUESTS",
-      value: data.total_requests.toLocaleString(),
+      value: analytics.totalRequests.toLocaleString(),
       icon: Activity,
       trend: {
         value: "+12%",
@@ -175,7 +173,7 @@ export function AnalyticsPage() {
     },
     {
       title: "SUCCESS RATE",
-      value: `${data.success_rate.toFixed(1)}%`,
+      value: `${analytics.successRate.toFixed(1)}%`,
       icon: TrendingUp,
       trend: {
         value: "+2%",
@@ -185,7 +183,7 @@ export function AnalyticsPage() {
     },
     {
       title: "AVG LATENCY",
-      value: `${Math.round(data.avg_latency_ms)}ms`,
+      value: `${Math.round(analytics.avgLatency)}ms`,
       icon: Clock,
       trend: {
         value: "-5%",
@@ -195,7 +193,7 @@ export function AnalyticsPage() {
     },
     {
       title: "TOKENS USED",
-      value: data.tokens_used.toLocaleString(),
+      value: analytics.tokensUsed.toLocaleString(),
       icon: Zap,
       trend: {
         value: "+18%",
@@ -212,22 +210,22 @@ export function AnalyticsPage() {
           {/* Stats Cards */}
           <DashboardStats stats={stats} />
 
-          {/* Charts */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            <AnalyticsChart />
-            <PerformancePanel 
-              successRate={data.success_rate}
-              requestsToday={data.requests_today}
-              tokensUsed={data.tokens_used}
-              failedRequests={data.failed_requests}
-            />
-          </div>
+{/* Charts */}
+           <div className="grid gap-6 lg:grid-cols-2">
+             <AnalyticsChart logs={logs} />
+             <PerformancePanel 
+               successRate={analytics.successRate}
+               requestsToday={analytics.requestsToday}
+               tokensUsed={analytics.tokensUsed}
+               failedRequests={analytics.failedRequests}
+             />
+           </div>
 
-          {/* Bottom Panels */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            <InsightsPanel topModels={data.top_models} />
-            <RecentErrorsPanel recentErrors={data.recent_errors} />
-          </div>
+{/* Bottom Panels */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              <InsightsPanel logs={logs} />
+              <RecentErrorsPanel recentErrors={logs.filter(log => log.status === 'error')} />
+            </div>
         </div>
       </div>
     </div>

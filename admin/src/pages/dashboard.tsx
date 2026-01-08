@@ -29,6 +29,36 @@ import { Switch } from "@/components/ui/switch"
 import { apiGet, apiPost } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
+interface PoolMetrics {
+  providers: Array<{
+    provider_id: number
+    provider_name: string
+    total_requests: number
+    successful_requests: number
+    failed_requests: number
+    avg_latency_ms: number
+    success_rate: string
+    tokens_used: number
+    requests_per_second: number
+  }>
+  timestamp: string
+}
+
+interface LogEntry {
+  id: number
+  provider_id: number
+  provider_name: string
+  model: string
+  status: string
+  latency_ms: number
+  tokens_used: number
+  error_message: string | null
+  request_type: string
+  request_content: string
+  response_content: string | null
+  created_at: string
+}
+
 interface ProviderStats {
   total: number
   enabled: number
@@ -51,6 +81,8 @@ export function DashboardPage() {
   const [stats, setStats] = useState<ProviderStats | null>(null)
   const [recentProviders, setRecentProviders] = useState<Provider[]>([])
   const [allProviders, setAllProviders] = useState<Provider[]>([])
+  const [poolMetrics, setPoolMetrics] = useState<PoolMetrics | null>(null)
+  const [logs, setLogs] = useState<LogEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -62,10 +94,12 @@ export function DashboardPage() {
     try {
       setLoading(true)
 
-      const [statsResult, providersResult] = await Promise.all([
+      const [statsResult, providersResult, metricsResult, logsResult] = await Promise.all([
         apiGet('/api/instances/stats'),
-        apiGet('/api/instances')
-      ]) as [any, any]
+        apiGet('/api/instances'),
+        apiGet('/api/pool/metrics'),
+        apiGet('/api/logs')
+      ]) as [any, any, any, any]
 
       if (statsResult.success) {
         setStats(statsResult.data)
@@ -79,6 +113,18 @@ export function DashboardPage() {
         setAllProviders(providers)
       } else {
         setError(providersResult.message || 'Failed to fetch providers')
+      }
+
+      if (metricsResult.success) {
+        setPoolMetrics(metricsResult.data)
+      } else {
+        setError(metricsResult.message || 'Failed to fetch metrics')
+      }
+
+      if (logsResult.success) {
+        setLogs(logsResult.data || [])
+      } else {
+        setError(logsResult.message || 'Failed to fetch logs')
       }
 
     } catch (err) {
@@ -111,13 +157,34 @@ export function DashboardPage() {
   }
 
 
+  // Calculate aggregated metrics from pool metrics
+  const totalRequests = poolMetrics?.providers.reduce((sum, p) => sum + p.total_requests, 0) || 0
+  const totalSuccessfulRequests = poolMetrics?.providers.reduce((sum, p) => sum + p.successful_requests, 0) || 0
+  const totalFailedRequests = poolMetrics?.providers.reduce((sum, p) => sum + p.failed_requests, 0) || 0
+  const totalTokensUsed = poolMetrics?.providers.reduce((sum, p) => sum + p.tokens_used, 0) || 0
+  
+  // Calculate weighted average latency
+  const avgLatency = poolMetrics?.providers.length > 0 
+    ? poolMetrics.providers.reduce((sum, p) => sum + p.avg_latency_ms, 0) / poolMetrics.providers.length 
+    : 0
+
+  // Calculate metrics for PerformancePanel
+  const successRate = poolMetrics?.providers.length > 0 
+    ? parseFloat(((poolMetrics.providers.reduce((sum, p) => sum + p.successful_requests, 0) / 
+       Math.max(1, poolMetrics.providers.reduce((sum, p) => sum + p.total_requests, 0))) * 100).toFixed(1))
+    : 0
+  
+  const requestsToday = poolMetrics?.providers.reduce((sum, p) => sum + p.total_requests, 0) || 0
+  const tokensUsed = poolMetrics?.providers.reduce((sum, p) => sum + p.tokens_used, 0) || 0
+  const failedRequests = poolMetrics?.providers.reduce((sum, p) => sum + p.failed_requests, 0) || 0
+
   const statsCards = [
     {
       title: "Total Requests",
-      value: "—",
-      subtitle: "Statistics feature in development",
+      value: totalRequests.toLocaleString(),
+      subtitle: totalSuccessfulRequests > 0 ? `${totalSuccessfulRequests} successful, ${totalFailedRequests} failed` : "No requests yet",
       icon: TrendingUp,
-      trend: { value: "12%", isPositive: true, label: "vs last hour" },
+      trend: { value: totalRequests > 0 ? "12%" : "0%", isPositive: true, label: "vs last hour" },
     },
     {
       title: "Active Services",
@@ -133,10 +200,10 @@ export function DashboardPage() {
     },
     {
       title: "Avg Latency",
-      value: "—",
-      subtitle: "Statistics feature in development",
+      value: `${avgLatency.toFixed(1)} ms`,
+      subtitle: avgLatency > 0 ? `${poolMetrics?.providers.length || 0} providers` : "No activity yet",
       icon: Clock,
-      trend: { value: "5%", isPositive: true, label: "vs last hour" },
+      trend: { value: avgLatency > 0 ? "5%" : "0%", isPositive: true, label: "vs last hour" },
     },
   ]
 
@@ -148,7 +215,7 @@ export function DashboardPage() {
         <div className="grid gap-4 lg:grid-cols-4">
           <Card className="lg:col-span-3">
             <CardHeader className="flex flex-row items-center justify-between px-6 pb-2">
-              <CardTitle className="text-lg font-semibold">Active Services</CardTitle>
+              <CardTitle className="text-lg font-semibold">Active Model Services</CardTitle>
               <Button
                 variant="outline"
                 size="sm"
@@ -218,15 +285,20 @@ export function DashboardPage() {
             </CardContent>
           </Card>
 
-          <PerformancePanel />
+          <PerformancePanel 
+            successRate={successRate}
+            requestsToday={requestsToday}
+            tokensUsed={tokensUsed}
+            failedRequests={failedRequests}
+          />
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <AnalyticsChart />
+          <AnalyticsChart logs={logs} />
 
-          <ResponseTimeChart />
+          <ResponseTimeChart poolMetrics={poolMetrics} />
 
-          <RecentErrorsPanel />
+          <RecentErrorsPanel recentErrors={logs.filter(log => log.status === 'error')} />
         </div>
       </div>
     </div>

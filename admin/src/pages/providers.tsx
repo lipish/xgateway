@@ -23,7 +23,7 @@ export function ModelTypesPage() {
   const [sortBy, setSortBy] = useState<"name" | "models">("name")
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false)
   const [editingModel, setEditingModel] = useState<{ typeId: string; model: ModelInfo | null } | null>(null)
-  const [modelForm, setModelForm] = useState<ModelInfo>({ id: "", name: "" })
+  const [modelForm, setModelForm] = useState<ModelInfo>({ id: "", name: "", description: "", supports_tools: false, context_length: 128000, input_price: undefined, output_price: undefined })
   const [saving, setSaving] = useState(false)
   const [showAddProvider, setShowAddProvider] = useState(false)
   const [showEditProvider, setShowEditProvider] = useState(false)
@@ -59,9 +59,83 @@ export function ModelTypesPage() {
     fetchProviderTypes()
   }, [])
 
+  // Auto-calculate prices when dialog opens and provider data is available
+  useEffect(() => {
+    if (editingModel && editingModel.model === null) {
+      // This is an "Add Model" operation
+      const selectedProvider = providerTypes.find(pt => pt.id === editingModel.typeId)
+      const existingModels = selectedProvider?.models || []
+      
+      if (existingModels.length > 0) {
+        // Calculate prices only if we don't already have them or if provider data changed
+        if (modelForm.input_price === undefined || modelForm.output_price === undefined) {
+          const { input_price: defaultInputPrice, output_price: defaultOutputPrice } = calculateDefaultPrices(existingModels)
+          
+          setModelForm(prev => ({
+            ...prev,
+            input_price: defaultInputPrice,
+            output_price: defaultOutputPrice
+          }))
+        }
+      }
+    }
+  }, [editingModel, providerTypes, modelForm.input_price, modelForm.output_price])
+
   const openAddModel = (typeId: string) => {
     setEditingModel({ typeId, model: null })
-    setModelForm({ id: "", name: "", description: "", supports_tools: false, context_length: 128000, input_price: undefined, output_price: undefined })
+    
+    // Reset form fields except prices (prices will be auto-calculated in useEffect)
+    setModelForm({ 
+      id: "", 
+      name: "", 
+      description: "", 
+      supports_tools: false, 
+      context_length: 128000, 
+      input_price: undefined,
+      output_price: undefined
+    })
+  }
+
+  const calculateDefaultPrices = (models: ModelInfo[]) => {
+    if (models.length === 0) {
+      return { input_price: undefined, output_price: undefined }
+    }
+    
+    // Filter out undefined and zero prices to get only paid models
+    const paidInputPrices = models.filter(m => m.input_price !== undefined && m.input_price > 0)
+    const paidOutputPrices = models.filter(m => m.output_price !== undefined && m.output_price > 0)
+    
+    let averageInputPrice = undefined
+    let averageOutputPrice = undefined
+    
+    if (paidInputPrices.length > 0) {
+      averageInputPrice = paidInputPrices.reduce((sum, m) => sum + (m.input_price || 0), 0) / paidInputPrices.length
+    }
+    
+    if (paidOutputPrices.length > 0) {
+      averageOutputPrice = paidOutputPrices.reduce((sum, m) => sum + (m.output_price || 0), 0) / paidOutputPrices.length
+    }
+    
+    // If no paid models found, try to use any non-zero prices (including 0.0 for free models)
+    if (averageInputPrice === undefined) {
+      const validInputPrices = models.filter(m => m.input_price !== undefined)
+      if (validInputPrices.length > 0) {
+        averageInputPrice = validInputPrices.reduce((sum, m) => sum + (m.input_price || 0), 0) / validInputPrices.length
+      }
+    }
+    
+    if (averageOutputPrice === undefined) {
+      const validOutputPrices = models.filter(m => m.output_price !== undefined)
+      if (validOutputPrices.length > 0) {
+        averageOutputPrice = validOutputPrices.reduce((sum, m) => sum + (m.output_price || 0), 0) / validOutputPrices.length
+      }
+    }
+    
+    // Round to 2 decimal places
+    const defaultInputPrice = averageInputPrice !== undefined ? Math.round(averageInputPrice * 100) / 100 : undefined
+    const defaultOutputPrice = averageOutputPrice !== undefined ? Math.round(averageOutputPrice * 100) / 100 : undefined
+    
+    return { input_price: defaultInputPrice, output_price: defaultOutputPrice }
   }
 
   const openEditModel = (typeId: string, model: ModelInfo) => {

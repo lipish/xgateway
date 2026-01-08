@@ -3,21 +3,52 @@ import { BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { FC, SVGProps } from "react"
 
-interface ModelUsage {
+interface LogEntry {
+  id: number
+  provider_id: number
+  provider_name: string
   model: string
-  requests: number
-  tokens: number
+  status: string
+  latency_ms: number
+  tokens_used: number
+  error_message: string | null
+  request_type: string
+  request_content: string
+  response_content: string | null
+  created_at: string
 }
 
 interface InsightsPanelProps {
-  topModels?: ModelUsage[]
+  logs?: LogEntry[]
 }
 
-export function InsightsPanel({ topModels = [] }: InsightsPanelProps) {
-  const insights = topModels.slice(0, 4).map((model, index) => ({
+export function InsightsPanel({ logs = [] }: InsightsPanelProps) {
+  // Group logs by model and calculate metrics
+  const modelStats = logs.reduce((acc, log) => {
+    const modelName = log.model || 'unknown'
+    if (!acc[modelName]) {
+      acc[modelName] = {
+        model: modelName,
+        requests: 0,
+        tokens: 0
+      }
+    }
+    acc[modelName].requests++
+    acc[modelName].tokens += log.tokens_used
+    return acc
+  }, {} as Record<string, { model: string; requests: number; tokens: number }>)
+
+  // Convert to array and sort by requests
+  const topModels = Object.values(modelStats)
+    .sort((a, b) => b.requests - a.requests)
+    .slice(0, 4)
+
+  const totalTokens = topModels.reduce((sum, model) => sum + model.tokens, 0)
+
+  const insights = topModels.map((model, index) => ({
     label: model.model,
     value: `${model.requests} requests`,
-    percentage: ((model.tokens / (topModels.reduce((sum, m) => sum + m.tokens, 0) || 1)) * 100).toFixed(1) + '%'
+    percentage: totalTokens > 0 ? `${((model.tokens / totalTokens) * 100).toFixed(1)}%` : '0%'
   }))
 
   return (

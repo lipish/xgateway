@@ -231,53 +231,60 @@ export function AddProviderDialog({
               />
             </div>
 
-            {/* Row 6: Pricing & Quota */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="add-inputPrice" className="text-sm font-medium">
-                  {t('providers.input')} (¥/1M)
-                </Label>
-                <Input
-                  id="add-inputPrice"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={form.inputPrice}
-                  onChange={(e) =>
-                    onFormChange({ ...form, inputPrice: e.target.value })
-                  }
-                  className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
+            {/* Row 6: Quota & Pricing Section */}
+
+            <div className="border border-muted rounded-lg p-4 bg-muted/30">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                <span className="text-sm font-semibold text-foreground">Quota & Pricing</span>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="add-outputPrice" className="text-sm font-medium">
-                  {t('providers.output')} (¥/1M)
-                </Label>
-                <Input
-                  id="add-outputPrice"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={form.outputPrice}
-                  onChange={(e) =>
-                    onFormChange({ ...form, outputPrice: e.target.value })
-                  }
-                  className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="add-quotaLimit" className="text-sm font-medium">
-                  {t('providers.quotaLimit')}
-                </Label>
-                <Input
-                  id="add-quotaLimit"
-                  placeholder={t('common.noLimit') || "无限制"}
-                  value={form.quotaLimit}
-                  onChange={(e) =>
-                    onFormChange({ ...form, quotaLimit: e.target.value })
-                  }
-                  className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="add-inputPrice" className="text-sm font-medium text-muted-foreground">
+                    {t('providers.input')} (¥/1M)
+                  </Label>
+                  <Input
+                    id="add-inputPrice"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={form.inputPrice}
+                    onChange={(e) =>
+                      onFormChange({ ...form, inputPrice: e.target.value })
+                    }
+                    className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="add-outputPrice" className="text-sm font-medium text-muted-foreground">
+                    {t('providers.output')} (¥/1M)
+                  </Label>
+                  <Input
+                    id="add-outputPrice"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={form.outputPrice}
+                    onChange={(e) =>
+                      onFormChange({ ...form, outputPrice: e.target.value })
+                    }
+                    className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="add-quotaLimit" className="text-sm font-medium text-muted-foreground">
+                    {t('providers.quotaLimit')}
+                  </Label>
+                  <Input
+                    id="add-quotaLimit"
+                    placeholder={t('common.noLimit') || "无限制"}
+                    value={form.quotaLimit}
+                    onChange={(e) =>
+                      onFormChange({ ...form, quotaLimit: e.target.value })
+                    }
+                    className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                </div>
               </div>
             </div>
           </div>

@@ -70,6 +70,54 @@ export function ProvidersPage() {
     outputPrice: "",
     quotaLimit: "",
   });
+
+  // Function to calculate default prices from provider type
+  const calculateDefaultPrices = (providerType: string) => {
+    const config = getProviderTypeConfig(providerType);
+    
+    if (!config || !config.models || config.models.length === 0) {
+      return { inputPrice: "", outputPrice: "" };
+    }
+
+    // Filter out undefined and zero prices to get only paid models
+    const paidInputPrices = config.models.filter(m => m.input_price !== undefined && m.input_price > 0);
+    const paidOutputPrices = config.models.filter(m => m.output_price !== undefined && m.output_price > 0);
+
+    let averageInputPrice = undefined;
+    let averageOutputPrice = undefined;
+
+    if (paidInputPrices.length > 0) {
+      averageInputPrice = paidInputPrices.reduce((sum, m) => sum + (m.input_price || 0), 0) / paidInputPrices.length;
+    }
+
+    if (paidOutputPrices.length > 0) {
+      averageOutputPrice = paidOutputPrices.reduce((sum, m) => sum + (m.output_price || 0), 0) / paidOutputPrices.length;
+    }
+
+    // If no paid models found, try to use any non-zero prices (including 0.0 for free models)
+    if (averageInputPrice === undefined) {
+      const validInputPrices = config.models.filter(m => m.input_price !== undefined);
+      if (validInputPrices.length > 0) {
+        averageInputPrice = validInputPrices.reduce((sum, m) => sum + (m.input_price || 0), 0) / validInputPrices.length;
+      }
+    }
+
+    if (averageOutputPrice === undefined) {
+      const validOutputPrices = config.models.filter(m => m.output_price !== undefined);
+      if (validOutputPrices.length > 0) {
+        averageOutputPrice = validOutputPrices.reduce((sum, m) => sum + (m.output_price || 0), 0) / validOutputPrices.length;
+      }
+    }
+
+    // Round to 2 decimal places
+    const defaultInputPrice = averageInputPrice !== undefined ? Math.round(averageInputPrice * 100) / 100 : 0;
+    const defaultOutputPrice = averageOutputPrice !== undefined ? Math.round(averageOutputPrice * 100) / 100 : 0;
+
+    return {
+      inputPrice: defaultInputPrice.toString(),
+      outputPrice: defaultOutputPrice.toString()
+    };
+  };
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
@@ -199,6 +247,10 @@ export function ProvidersPage() {
   const openAddDialog = () => {
     const defaultType = providerTypes[0]?.id || "openai";
     const defaults = getProviderTypeConfig(defaultType);
+    
+    // Calculate default prices for the selected provider type
+    const defaultPrices = calculateDefaultPrices(defaultType);
+    
     setAddForm({
       name: "",
       providerType: defaultType,
@@ -209,8 +261,8 @@ export function ProvidersPage() {
       endpoint: "",
       secretId: "",
       secretKey: "",
-      inputPrice: "",
-      outputPrice: "",
+      inputPrice: defaultPrices.inputPrice,
+      outputPrice: defaultPrices.outputPrice,
       quotaLimit: "",
     });
     setAddDialogOpen(true);
@@ -220,13 +272,16 @@ export function ProvidersPage() {
     const defaults = getProviderTypeConfig(type);
     if (defaults) {
       const firstModel = defaults.models[0];
+      // Calculate average prices for this provider type
+      const defaultPrices = calculateDefaultPrices(type);
+      
       setAddForm({
         ...addForm,
         providerType: type,
         model: firstModel?.id || "",
         baseUrl: defaults.base_url,
-        inputPrice: firstModel?.input_price?.toString() || "",
-        outputPrice: firstModel?.output_price?.toString() || "",
+        inputPrice: defaultPrices.inputPrice,
+        outputPrice: defaultPrices.outputPrice,
       });
     }
   };

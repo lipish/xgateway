@@ -28,6 +28,8 @@ export function ModelDialog({
   onSave,
   saving
 }: ModelDialogProps) {
+  console.log('ModelDialog render:', { open, modelForm: { id: modelForm.id, name: modelForm.name, input_price: modelForm.input_price, output_price: modelForm.output_price } })
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden border">
