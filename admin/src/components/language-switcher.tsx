@@ -1,4 +1,4 @@
-import { useI18n, type Language } from "@/lib/i18n"
+import { useI18n, type Language, t } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Languages } from "lucide-react"
 import {
@@ -12,8 +12,8 @@ export function LanguageSwitcher() {
   const { language, setLanguage } = useI18n()
 
   const languages: { code: Language; name: string }[] = [
-    { code: 'zh', name: '中文' },
-    { code: 'en', name: 'English' },
+    { code: 'zh', name: t('common.chinese') || '中文' },
+    { code: 'en', name: t('common.english') || 'English' },
   ]
 
   return (

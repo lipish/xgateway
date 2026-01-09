@@ -11,7 +11,7 @@ mod conversations;
 mod messages;
 
 // Request log operations module
-mod request_logs;
+pub mod request_logs;
 
 // User operations module
 pub mod users;

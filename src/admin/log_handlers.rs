@@ -1,6 +1,7 @@
 use axum::Json;
 use serde::Deserialize;
 use crate::db::{DatabasePool, RequestLog};
+use crate::db::operations::request_logs::{HourlyRequestCount, ProviderLatency, TodayStats, PerformanceStats};
 use super::ApiResponse;
 
 #[derive(Debug, Deserialize)]
@@ -29,6 +30,78 @@ pub async fn get_logs_api(
             success: false,
             data: None,
             message: format!("Failed to retrieve logs: {}", e),
+        }),
+    }
+}
+
+/// Get hourly request counts API
+pub async fn get_hourly_requests_api(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+) -> Json<ApiResponse<Vec<HourlyRequestCount>>> {
+    match db_pool.get_hourly_request_counts().await {
+        Ok(counts) => Json(ApiResponse {
+            success: true,
+            data: Some(counts),
+            message: "Hourly request counts retrieved".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to retrieve hourly request counts: {}", e),
+        }),
+    }
+}
+
+/// Get provider latencies API
+pub async fn get_provider_latencies_api(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+) -> Json<ApiResponse<Vec<ProviderLatency>>> {
+    match db_pool.get_provider_latencies().await {
+        Ok(latencies) => Json(ApiResponse {
+            success: true,
+            data: Some(latencies),
+            message: "Provider latencies retrieved".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to retrieve provider latencies: {}", e),
+        }),
+    }
+}
+
+/// Get today's stats API
+pub async fn get_today_stats_api(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+) -> Json<ApiResponse<TodayStats>> {
+    match db_pool.get_today_stats().await {
+        Ok(stats) => Json(ApiResponse {
+            success: true,
+            data: Some(stats),
+            message: "Today's stats retrieved".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to retrieve today's stats: {}", e),
+        }),
+    }
+}
+
+/// Get performance stats API
+pub async fn get_performance_stats_api(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+) -> Json<ApiResponse<PerformanceStats>> {
+    match db_pool.get_performance_stats().await {
+        Ok(stats) => Json(ApiResponse {
+            success: true,
+            data: Some(stats),
+            message: "Performance stats retrieved".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to retrieve performance stats: {}", e),
         }),
     }
 }

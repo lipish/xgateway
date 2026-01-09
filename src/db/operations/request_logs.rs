@@ -1,6 +1,35 @@
 use sqlx::Row;
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use crate::db::{DatabasePool, RequestLog, NewRequestLog};
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct HourlyRequestCount {
+    pub hour: String,
+    pub requests: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ProviderLatency {
+    pub provider_name: String,
+    pub avg_latency_ms: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TodayStats {
+    pub total_requests: i64,
+    pub avg_latency_ms: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PerformanceStats {
+    pub success_rate: f64,
+    pub requests_today: i64,
+    pub tokens_used: i64,
+    pub failed_requests: i64,
+    pub avg_response_time: f64,
+    pub qps: f64,
+}
 
 impl DatabasePool {
     // Request Log operations
@@ -102,6 +131,218 @@ impl DatabasePool {
                        error_message, request_type, request_content, response_content, created_at
                        FROM request_logs WHERE id = $1"#
                 ).bind(id).fetch_optional(pool).await?)
+            }
+        }
+    }
+
+    /// Get hourly request counts for the last 24 hours
+    pub async fn get_hourly_request_counts(&self) -> Result<Vec<HourlyRequestCount>> {
+        match self {
+            Self::Sqlite(pool) => {
+                let rows = sqlx::query(
+                    r#"
+                    SELECT 
+                        strftime('%H:00', created_at) as hour,
+                        COUNT(*) as requests
+                    FROM request_logs 
+                    WHERE created_at >= datetime('now', '-24 hours')
+                    GROUP BY strftime('%H:00', created_at)
+                    ORDER BY hour
+                    "#
+                ).fetch_all(pool).await?;
+
+                let mut counts = Vec::new();
+                for row in rows {
+                    counts.push(HourlyRequestCount {
+                        hour: row.get("hour"),
+                        requests: row.get("requests"),
+                    });
+                }
+                Ok(counts)
+            }
+            Self::Postgres(pool) => {
+                let rows = sqlx::query(
+                    r#"
+                    SELECT 
+                        TO_CHAR(created_at, 'HH24:00') as hour,
+                        COUNT(*) as requests
+                    FROM request_logs 
+                    WHERE created_at >= NOW() - INTERVAL '24 hours'
+                    GROUP BY TO_CHAR(created_at, 'HH24:00')
+                    ORDER BY hour
+                    "#
+                ).fetch_all(pool).await?;
+
+                let mut counts = Vec::new();
+                for row in rows {
+                    counts.push(HourlyRequestCount {
+                        hour: row.get("hour"),
+                        requests: row.get("requests"),
+                    });
+                }
+                Ok(counts)
+            }
+        }
+    }
+
+    /// Get average latency by provider
+    /// Note: This only shows providers with successful requests in the last 24 hours
+    /// Providers without requests won't appear in the latency distribution
+    pub async fn get_provider_latencies(&self) -> Result<Vec<ProviderLatency>> {
+        match self {
+            Self::Sqlite(pool) => {
+                let rows = sqlx::query(
+                    r#"
+                    SELECT 
+                        provider_name,
+                        AVG(latency_ms) as avg_latency_ms
+                    FROM request_logs 
+                    WHERE status = 'success' AND created_at >= datetime('now', '-24 hours')
+                    GROUP BY provider_name
+                    ORDER BY avg_latency_ms DESC
+                    LIMIT 10
+                    "#
+                ).fetch_all(pool).await?;
+
+                let mut latencies = Vec::new();
+                for row in rows {
+                    latencies.push(ProviderLatency {
+                        provider_name: row.get("provider_name"),
+                        avg_latency_ms: row.get("avg_latency_ms"),
+                    });
+                }
+                Ok(latencies)
+            }
+            Self::Postgres(pool) => {
+                let rows = sqlx::query(
+                    r#"
+                    SELECT 
+                        provider_name,
+                        AVG(latency_ms) as avg_latency_ms
+                    FROM request_logs 
+                    WHERE status = 'success' AND created_at >= NOW() - INTERVAL '24 hours'
+                    GROUP BY provider_name
+                    ORDER BY avg_latency_ms DESC
+                    LIMIT 10
+                    "#
+                ).fetch_all(pool).await?;
+
+                let mut latencies = Vec::new();
+                for row in rows {
+                    latencies.push(ProviderLatency {
+                        provider_name: row.get("provider_name"),
+                        avg_latency_ms: row.get("avg_latency_ms"),
+                    });
+                }
+                Ok(latencies)
+            }
+        }
+    }
+
+    /// Get today's total requests and average latency (last 24 hours)
+    pub async fn get_today_stats(&self) -> Result<TodayStats> {
+        match self {
+            Self::Sqlite(pool) => {
+                let row = sqlx::query(
+                    r#"
+                    SELECT 
+                        COUNT(*) as total_requests,
+                        AVG(CASE WHEN status = 'success' THEN latency_ms END) as avg_latency_ms
+                    FROM request_logs 
+                    WHERE created_at >= datetime('now', '-24 hours')
+                    "#
+                ).fetch_one(pool).await?;
+
+                Ok(TodayStats {
+                    total_requests: row.get("total_requests"),
+                    avg_latency_ms: row.get::<Option<f64>, _>("avg_latency_ms").unwrap_or(0.0),
+                })
+            }
+            Self::Postgres(pool) => {
+                let row = sqlx::query(
+                    r#"
+                    SELECT 
+                        COUNT(*) as total_requests,
+                        AVG(CASE WHEN status = 'success' THEN latency_ms END) as avg_latency_ms
+                    FROM request_logs 
+                    WHERE created_at >= NOW() - INTERVAL '24 hours'
+                    "#
+                ).fetch_one(pool).await?;
+
+                Ok(TodayStats {
+                    total_requests: row.get("total_requests"),
+                    avg_latency_ms: row.get::<Option<f64>, _>("avg_latency_ms").unwrap_or(0.0),
+                })
+            }
+        }
+    }
+
+    /// Get performance stats for the last 24 hours
+    pub async fn get_performance_stats(&self) -> Result<PerformanceStats> {
+        match self {
+            Self::Sqlite(pool) => {
+                let row = sqlx::query(
+                    r#"
+                    SELECT 
+                        COUNT(*) as total_requests,
+                        SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful_requests,
+                        SUM(CASE WHEN status != 'success' THEN 1 ELSE 0 END) as failed_requests,
+                        SUM(CASE WHEN status = 'success' THEN tokens_used ELSE 0 END) as tokens_used,
+                        AVG(CASE WHEN status = 'success' THEN latency_ms ELSE NULL END) as avg_response_time,
+                        CASE 
+                            WHEN COUNT(*) > 0 THEN (SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) * 100.0 / COUNT(*))
+                            ELSE 0.0 
+                        END as success_rate,
+                        CASE 
+                            WHEN COUNT(*) > 0 AND (julianday('now') - julianday(MIN(created_at))) * 24 * 3600 > 0 
+                            THEN COUNT(*) / ((julianday('now') - julianday(MIN(created_at))) * 24 * 3600)
+                            ELSE 0.0 
+                        END as qps
+                    FROM request_logs 
+                    WHERE created_at >= datetime('now', '-24 hours')
+                    "#
+                ).fetch_one(pool).await?;
+
+                Ok(PerformanceStats {
+                    success_rate: row.get("success_rate"),
+                    requests_today: row.get("total_requests"),
+                    tokens_used: row.get::<Option<i64>, _>("tokens_used").unwrap_or(0),
+                    failed_requests: row.get("failed_requests"),
+                    avg_response_time: row.get::<Option<f64>, _>("avg_response_time").unwrap_or(0.0),
+                    qps: row.get::<Option<f64>, _>("qps").unwrap_or(0.0),
+                })
+            }
+            Self::Postgres(pool) => {
+                let row = sqlx::query(
+                    r#"
+                    SELECT 
+                        COUNT(*) as total_requests,
+                        SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful_requests,
+                        SUM(CASE WHEN status != 'success' THEN 1 ELSE 0 END) as failed_requests,
+                        SUM(CASE WHEN status = 'success' THEN tokens_used ELSE 0 END) as tokens_used,
+                        AVG(CASE WHEN status = 'success' THEN latency_ms ELSE NULL END) as avg_response_time,
+                        CASE 
+                            WHEN COUNT(*) > 0 THEN (SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) * 100.0 / COUNT(*))
+                            ELSE 0.0 
+                        END as success_rate,
+                        CASE 
+                            WHEN COUNT(*) > 0 AND EXTRACT(EPOCH FROM (NOW() - MIN(created_at))) > 0 
+                            THEN COUNT(*) / EXTRACT(EPOCH FROM (NOW() - MIN(created_at)))
+                            ELSE 0.0 
+                        END as qps
+                    FROM request_logs 
+                    WHERE created_at >= NOW() - INTERVAL '24 hours'
+                    "#
+                ).fetch_one(pool).await?;
+
+                Ok(PerformanceStats {
+                    success_rate: row.get("success_rate"),
+                    requests_today: row.get("total_requests"),
+                    tokens_used: row.get::<Option<i64>, _>("tokens_used").unwrap_or(0),
+                    failed_requests: row.get("failed_requests"),
+                    avg_response_time: row.get::<Option<f64>, _>("avg_response_time").unwrap_or(0.0),
+                    qps: row.get::<Option<f64>, _>("qps").unwrap_or(0.0),
+                })
             }
         }
     }

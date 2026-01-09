@@ -235,6 +235,21 @@ impl PoolManager {
                 Err(e) => {
                     self.pool.record_failure(provider.id, Some(&e.to_string())).await;
                     tracing::warn!("Provider {} unhealthy: {}", provider.name, e);
+                    
+                    // Record health check failure to request logs
+                    let error_log = crate::db::NewRequestLog {
+                        provider_id: Some(provider.id),
+                        provider_name: provider.name.clone(),
+                        model: "health_check".to_string(),
+                        status: "error".to_string(),
+                        latency_ms: 0,
+                        tokens_used: 0,
+                        error_message: Some(format!("Health check failed: {}", e)),
+                        request_type: "health_check".to_string(),
+                        request_content: None,
+                        response_content: None,
+                    };
+                    let _ = self.db_pool.create_request_log(error_log).await;
                 }
             }
         }

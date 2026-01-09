@@ -92,11 +92,11 @@ export function AnalyticsPage() {
       if (result.success) {
         setData(result.data)
       } else {
-        setError(result.message || "Failed to load analytics data")
+        setError(result.message || t('common.error'))
       }
     } catch (err) {
       console.error("Error fetching analytics:", err)
-      setError("Network error occurred")
+      setError(t('common.networkError'))
     } finally {
       setLoading(false)
     }
@@ -133,13 +133,13 @@ export function AnalyticsPage() {
         <div className="flex-1 max-w-[1400px] mx-auto w-full">
           <div className="rounded-xl border bg-destructive/5 p-8 text-center">
             <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-destructive mb-2">Failed to Load Data</h3>
+            <h3 className="text-lg font-semibold text-destructive mb-2">{t('common.error')}</h3>
             <p className="text-muted-foreground mb-4">{error}</p>
-            <button 
-              onClick={fetchAnalyticsData}
+            <button
+              onClick={() => window.location.reload()}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             >
-              Retry
+              {t('common.retry')}
             </button>
           </div>
         </div>
@@ -154,7 +154,7 @@ export function AnalyticsPage() {
         <div className="flex-1 max-w-[1400px] mx-auto w-full">
           <div className="rounded-xl border bg-muted/50 p-8 text-center">
             <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">No Data Available</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">{t('monitoring.noProviderData')}</h3>
             <p className="text-muted-foreground">Analytics data will appear here once requests are made</p>
           </div>
         </div>
@@ -164,7 +164,7 @@ export function AnalyticsPage() {
 
   const stats = [
     {
-      title: "TOTAL REQUESTS",
+      title: t("monitoring.totalRequests"),
       value: data.total_requests.toLocaleString(),
       icon: Activity,
       trend: {
@@ -174,7 +174,7 @@ export function AnalyticsPage() {
       }
     },
     {
-      title: "SUCCESS RATE",
+      title: t("monitoring.successRate"),
       value: `${data.success_rate.toFixed(1)}%`,
       icon: TrendingUp,
       trend: {
@@ -184,7 +184,7 @@ export function AnalyticsPage() {
       }
     },
     {
-      title: "AVG LATENCY",
+      title: t("monitoring.avgLatency"),
       value: `${Math.round(data.avg_latency_ms)}ms`,
       icon: Clock,
       trend: {
@@ -215,10 +215,10 @@ export function AnalyticsPage() {
           {/* Charts */}
           <div className="grid gap-6 lg:grid-cols-2">
             <AnalyticsChart />
-            <PerformancePanel 
+            <PerformancePanel
               successRate={data.success_rate}
-              requestsToday={data.requests_today}
-              tokensUsed={data.tokens_used}
+              totalRequests={data.requests_today}
+              totalTokens={data.tokens_used}
               failedRequests={data.failed_requests}
             />
           </div>

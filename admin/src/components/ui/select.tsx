@@ -2,6 +2,7 @@ import * as React from "react"
 import { useState, useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { ChevronDown, Check } from "lucide-react"
+import { t } from "@/lib/i18n"
 
 interface SelectOption {
   value: string
@@ -19,7 +20,7 @@ interface SelectProps {
   id?: string
 }
 
-const Select = ({ value, onChange, options, placeholder = "请选择...", className, triggerClassName, icon, id }: SelectProps) => {
+const Select = ({ value, onChange, options, placeholder = t('common.selectPlaceholder') || "Please select...", className, triggerClassName, icon, id }: SelectProps) => {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 

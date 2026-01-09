@@ -268,7 +268,7 @@ export function EditProviderDialog({
                 </Label>
                 <Input
                   id="edit-quotaLimit"
-                  placeholder={t('common.noLimit') || "无限制"}
+                  placeholder={t('common.noLimit')}
                   value={form.quotaLimit}
                   onChange={(e) =>
                     onFormChange({ ...form, quotaLimit: e.target.value })

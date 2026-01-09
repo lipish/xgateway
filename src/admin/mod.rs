@@ -64,6 +64,10 @@ pub fn create_admin_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -
         .route("/api/pool/settings", get(pool_handlers::get_pool_settings_api).post(pool_handlers::save_pool_settings_api))
         // Logs API
         .route("/api/logs", get(log_handlers::get_logs_api))
+        .route("/api/logs/hourly", get(log_handlers::get_hourly_requests_api))
+        .route("/api/logs/latencies", get(log_handlers::get_provider_latencies_api))
+        .route("/api/logs/today", get(log_handlers::get_today_stats_api))
+        .route("/api/logs/performance", get(log_handlers::get_performance_stats_api))
         // API Keys management
         .route("/api/api-keys", get(api_key_handlers::list_api_keys_api).post(api_key_handlers::create_api_key_api))
         .route("/api/api-keys/:id", delete(api_key_handlers::delete_api_key_api))

@@ -42,7 +42,7 @@ export function LogsPage() {
       if (data.success) {
         const logsData = data.data || []
         setLogs(logsData)
-        // 默认选中第一条日志
+        // Default select the first log
         if (logsData.length > 0 && !selectedLog) {
           setSelectedLog(logsData[0])
         }
