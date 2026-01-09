@@ -150,7 +150,7 @@ export const zh = {
     close: '关闭',
     error: '错误',
     networkError: '网络错误',
-    selectProviderPlaceholder: '选择 Provider',
+    selectProviderPlaceholder: '选择模型服务',
     startChat: '开始对话',
     maximize: '最大化',
   },

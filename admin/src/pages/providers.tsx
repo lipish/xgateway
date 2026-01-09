@@ -4,7 +4,6 @@ import { t } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Loader2, Plus, Search, ArrowUpDown } from "lucide-react"
-import { PageHeader } from "@/components/layout/page-header"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 
 import type { ProviderType, ModelInfo } from "@/components/providers/types"
@@ -225,18 +224,16 @@ export function ModelTypesPage() {
   })
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
-      <PageHeader
-        title={t('providers.title')}
-        subtitle={t('providers.description')}
-        action={
+    <div className="flex-1 min-h-0 h-full flex flex-col page-transition overflow-y-auto px-6 pb-6 pt-4 scrollbar-hide">
+      <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">
+        <div className="flex items-center justify-end mb-3">
           <Button size="sm" onClick={() => setShowAddProvider(true)} className="bg-primary hover:bg-primary/90">
             <Plus className="mr-2 h-4 w-4" />
             {t('providers.addProvider')}
           </Button>
-        }
-      />
-      <div className="flex-1 max-w-[1400px] mx-auto w-full">
+        </div>
+
+        <div className="flex-1 min-h-0 h-full">
         {error && (
           <div className="mb-6 p-4 rounded-lg bg-destructive/5 text-destructive border border-destructive/20 flex items-center justify-between">
             <span className="text-sm font-medium">{error}</span>
@@ -393,6 +390,7 @@ export function ModelTypesPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        </div>
       </div>
     </div>
   )

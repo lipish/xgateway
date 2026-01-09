@@ -8,7 +8,6 @@ import { Plus, Trash2, Copy, Key, Shield, Globe, Zap } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { PageHeader } from "@/components/layout/page-header"
 import { cn } from "@/lib/utils"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Select } from "@/components/ui/select"
@@ -147,11 +146,9 @@ export function ApiKeysPage() {
   }
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
-      <PageHeader
-        title={t('nav.apiKeys')}
-        subtitle={t('apiKeys.description')}
-        action={
+    <div className="flex-1 min-h-0 h-full flex flex-col page-transition p-6 scrollbar-hide">
+      <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">
+        <div className="flex items-center justify-end mb-3">
           <Button
             size="sm"
             onClick={() => {
@@ -171,9 +168,9 @@ export function ApiKeysPage() {
             <Plus className="mr-2 h-4 w-4" />
             {t('apiKeys.create')}
           </Button>
-        }
-      />
-      <div className="flex-1 space-y-4 max-w-[1400px] mx-auto w-full">
+        </div>
+
+        <div className="flex-1 min-h-0 flex flex-col gap-4 h-full">
 
         <Dialog key={dialogKey} open={showCreateDialog} onOpenChange={(open) => {
           setShowCreateDialog(open)
@@ -323,8 +320,8 @@ export function ApiKeysPage() {
         </Dialog>
 
 
-        <Card>
-          <CardContent className="pt-6">
+<Card className="flex-1 h-full flex flex-col">
+          <CardContent className="flex-1 h-full overflow-y-auto p-6">
             {loading ? (
               <div className="flex flex-col gap-4">
                 {[1, 2, 3].map(i => (
@@ -332,89 +329,70 @@ export function ApiKeysPage() {
                 ))}
               </div>
             ) : apiKeys.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
-                <Key className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                <p>{t('apiKeys.noKeys')}</p>
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center text-muted-foreground">
+                  <p className="text-lg font-medium mb-2">{t('apiKeys.noKeys')}</p>
+                  <p className="text-sm">Create your first API key to get started.</p>
+                </div>
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t('apiKeys.name')}</TableHead>
-                    <TableHead>{t('apiKeys.key')}</TableHead>
                     <TableHead>{t('apiKeys.scope')}</TableHead>
-                    <TableHead>{t('apiKeys.qps')}</TableHead>
-                    <TableHead>{t('apiKeys.concurrency')}</TableHead>
+                    <TableHead>{t('apiKeys.provider')}</TableHead>
+                    <TableHead>{t('apiKeys.usage')}</TableHead>
                     <TableHead>{t('apiKeys.status')}</TableHead>
-                    <TableHead>{t('apiKeys.createdAt')}</TableHead>
+                    <TableHead>{t('apiKeys.created')}</TableHead>
                     <TableHead className="text-right">{t('apiKeys.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {apiKeys.map((key) => (
                     <TableRow key={key.id}>
-                      <TableCell className="font-medium">{key.name}</TableCell>
-                      <TableCell>
-                        <code className="bg-muted px-2 py-1 rounded text-xs font-mono">
-                          ****{key.key_hash.substring(key.key_hash.length - 4)}
-                        </code>
+                      <TableCell className="font-medium">
+                        {key.name}
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <Badge variant="outline" className="gap-1 font-normal w-fit">
-                            {key.scope === 'global' ? <Globe className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
-                            {key.scope === 'global' ? t('apiKeys.global') : t('apiKeys.instance')}
-                          </Badge>
-                          {key.scope === 'instance' && key.provider_ids && key.provider_ids.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {key.provider_ids.map(providerId => {
-                                const provider = providers.find(p => p.id === providerId)
-                                return provider ? (
-                                  <Badge key={providerId} variant="secondary" className="text-xs">
-                                    {provider.name}
-                                  </Badge>
-                                ) : null
-                              })}
-                            </div>
-                          )}
+                        <Badge variant="secondary">{key.scope}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {key.provider_id ? 
+                          providers.find(p => p.id === key.provider_id)?.name || 'Unknown' :
+                          key.provider_ids?.length ? 
+                            `${key.provider_ids.length} providers` : 
+                            'Global'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1 text-xs">
+                          <div className="flex justify-between">
+                            <span>{t('apiKeys.qps') || 'QPS'}:</span>
+                            <span className="font-medium">{key.qps_limit}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>{t('apiKeys.concurrency') || 'Concurrency'}:</span>
+                            <span className="font-medium">{key.concurrency_limit}</span>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          <Zap className="h-3.5 w-3.5 text-amber-500" />
-                          <span className="text-sm font-medium">{key.qps_limit}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm font-medium">{key.concurrency_limit}</span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={cn(
-                            "cursor-pointer",
-                            key.status === 'active' ? "bg-primary/10 text-primary border-0" : "bg-muted text-muted-foreground border-0"
-                          )}
-                          onClick={() => toggleApiKeyStatus(key.id)}
-                          title={t('common.toggleStatus')}
-                        >
-                          {key.status}
+                        <Badge variant={key.status === 'active' ? "default" : "secondary"}>
+                          {key.status === 'active' ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
+                      <TableCell className="text-xs text-muted-foreground">
                         {new Date(key.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => setApiKeyToDelete(key.id)}
-                            title={t('common.delete')}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setApiKeyToDelete(key.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -440,6 +418,7 @@ export function ApiKeysPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        </div>
       </div>
     </div>
   )

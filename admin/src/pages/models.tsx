@@ -4,7 +4,6 @@ import { apiGet, apiPost } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/layout/page-header";
 import { Loader2, Plus } from "lucide-react";
 import {
   AlertDialog,
@@ -436,62 +435,72 @@ export function ProvidersPage() {
   );
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
-      <div className="flex-1 space-y-6 max-w-[1400px] mx-auto w-full">
-        <PageHeader
-          title={t('nav.models')}
-          subtitle={t('providers.description')}
-          action={
-            isAdmin ? (
-              <Button size="sm" onClick={openAddDialog} className="bg-primary hover:bg-primary/90">
-                <Plus className="mr-2 h-4 w-4" />
-                {t('providers.addProvider')}
-              </Button>
-            ) : undefined
-          }
-        />
+    <div className="flex-1 min-h-0 h-full flex flex-col page-transition p-6 scrollbar-hide">
+      <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">
+        <div className="flex items-center justify-end mb-3">
+          {isAdmin ? (
+            <Button size="sm" onClick={openAddDialog} className="bg-primary hover:bg-primary/90">
+              <Plus className="mr-2 h-4 w-4" />
+              {t('providers.addProvider')}
+            </Button>
+          ) : null}
+        </div>
+
+        <div className="flex-1 min-h-0 flex flex-col h-full">
         {loading && (
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
+          <Card className="flex-1 h-full flex flex-col">
+            <CardContent className="flex-1 flex items-center justify-center p-6">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </CardContent>
           </Card>
         )}
 
         {error && (
-          <Card>
-            <CardContent className="p-6">
+          <Card className="flex-1 h-full flex flex-col">
+            <CardContent className="flex-1 flex items-center justify-center p-6">
               <div className="text-center text-destructive">{error}</div>
             </CardContent>
           </Card>
         )}
 
         {!loading && !error && (
-          <div className="flex gap-6 flex-1 min-h-0">
-            <ProviderList
-              providers={filteredProviders}
-              selectedProvider={selectedProvider}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              onSelectProvider={setSelectedProvider}
-              onToggleProvider={toggleProvider}
-            />
+          <>
+            {filteredProviders.length === 0 ? (
+              <Card className="flex-1 h-full flex flex-col">
+                <CardContent className="flex-1 flex items-center justify-center p-6">
+                  <div className="text-center text-muted-foreground">
+                    <p className="text-lg font-medium mb-2">No providers found</p>
+                    <p className="text-sm">Get started by adding your first AI provider.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="flex gap-6 flex-1 min-h-0">
+                <ProviderList
+                  providers={filteredProviders}
+                  selectedProvider={selectedProvider}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  onSelectProvider={setSelectedProvider}
+                  onToggleProvider={toggleProvider}
+                />
 
-            <ProviderDetail
-              provider={selectedProvider}
-              providerTypeConfig={selectedProvider ? getProviderTypeConfig(selectedProvider.provider_type) : undefined}
-              onEdit={openEditDialog}
-              onDelete={deleteProvider}
-              onTest={testProvider}
-              onNavigateToChat={(id) => navigate(`/chat?provider=${id}`)}
-              testingId={testingId}
-              testResult={testResult}
-              isAdmin={isAdmin}
-            />
-          </div>
+                <ProviderDetail
+                  provider={selectedProvider}
+                  providerTypeConfig={selectedProvider ? getProviderTypeConfig(selectedProvider.provider_type) : undefined}
+                  onEdit={openEditDialog}
+                  onDelete={deleteProvider}
+                  onTest={testProvider}
+                  onNavigateToChat={(id) => navigate(`/chat?provider=${id}`)}
+                  testingId={testingId}
+                  testResult={testResult}
+                  isAdmin={isAdmin}
+                />
+              </div>
+            )}
+          </>
         )}
+        </div>
       </div>
 
       <AddProviderDialog

@@ -2,7 +2,6 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { PageHeader } from "@/components/layout/page-header"
 import { t } from "@/lib/i18n"
 import { Plus, Trash2, RefreshCw, User as UserIcon, Server, UserPlus } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -200,61 +199,68 @@ export function UsersPage() {
 
 
     return (
-        <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
-            <div className="flex-1 space-y-6 max-w-[1400px] mx-auto w-full">
-                <PageHeader
-                    title={t('users.title')}
-                    subtitle={t('users.description')}
-                    action={
-                        <Button size="sm" onClick={() => setShowCreateDialog(true)} className="bg-primary hover:bg-primary/90">
-                            <UserPlus className="mr-2 h-4 w-4" />
-                            {t('users.addUser')}
-                        </Button>
-                    }
-                />
+        <div className="flex-1 min-h-0 h-full flex flex-col page-transition p-6 scrollbar-hide">
+            <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">
+                <div className="flex items-center justify-end mb-3">
+                    <Button size="sm" onClick={() => setShowCreateDialog(true)} className="bg-primary hover:bg-primary/90">
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        {t('users.addUser')}
+                    </Button>
+                </div>
 
+                <div className="flex-1 min-h-0 flex flex-col h-full">
+                
                 {!loading && users.length > 0 && (
                     <div className="flex gap-6 flex-1 min-h-0">
                         {/* User List */}
-                        <Card className="w-96 flex flex-col overflow-hidden">
-                            <CardContent className="p-4 flex-1 overflow-y-auto">
-                                <div className="space-y-2">
-                                    {users.map((user) => (
-                                        <div
-                                            key={user.id}
-                                            className={cn(
-                                                "p-3 rounded-lg border cursor-pointer transition-all hover:border-primary/50",
-                                                selectedUser?.id === user.id ? "border-primary bg-primary/5" : "border-border"
-                                            )}
-                                            onClick={() => {
-                                                setSelectedUser(user)
-                                                fetchUserInstances(user.id)
-                                            }}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                                                    <UserIcon className="h-5 w-5 text-muted-foreground" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="font-medium truncate">{user.username}</div>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <Badge variant="secondary" className="text-xs font-normal">{user.role_id}</Badge>
-                                                        <Badge
-                                                            className={cn(
-                                                                "text-xs",
-                                                                user.status === 'active' ? "bg-emerald-500/10 text-emerald-600 border-0" : "bg-muted text-muted-foreground border-0"
-                                                            )}
-                                                        >
-                                                            {user.status}
-                                                        </Badge>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
+<Card className="w-96 flex flex-col overflow-hidden">
+                             <CardContent className="p-4 flex-1 overflow-y-auto">
+                                 {users.length === 0 ? (
+                                     <div className="flex-1 flex items-center justify-center py-12">
+                                         <div className="text-center text-muted-foreground">
+                                             <UserIcon className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                                             <p className="text-sm">{t('users.noUsers')}</p>
+                                         </div>
+                                     </div>
+                                 ) : (
+                                     <div className="space-y-2">
+                                         {users.map((user) => (
+                                             <div
+                                                 key={user.id}
+                                                 className={cn(
+                                                     "p-3 rounded-lg border cursor-pointer transition-all hover:border-primary/50",
+                                                     selectedUser?.id === user.id ? "border-primary bg-primary/5" : "border-border"
+                                                 )}
+                                                 onClick={() => {
+                                                     setSelectedUser(user)
+                                                     fetchUserInstances(user.id)
+                                                 }}
+                                             >
+                                                 <div className="flex items-center gap-3">
+                                                     <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                                                         <UserIcon className="h-5 w-5 text-muted-foreground" />
+                                                     </div>
+                                                     <div className="flex-1 min-w-0">
+                                                         <div className="font-medium truncate">{user.username}</div>
+                                                         <div className="flex items-center gap-2 mt-1">
+                                                             <Badge variant="secondary" className="text-xs font-normal">{user.role_id}</Badge>
+                                                             <Badge
+                                                                 className={cn(
+                                                                     "text-xs",
+                                                                     user.status === 'active' ? "bg-emerald-500/10 text-emerald-600 border-0" : "bg-muted text-muted-foreground border-0"
+                                                                 )}
+                                                             >
+                                                                 {user.status}
+                                                             </Badge>
+                                                         </div>
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                         ))}
+                                     </div>
+                                 )}
+                             </CardContent>
+                         </Card>
 
                         {/* User Detail */}
                         <Card className="flex-1 flex flex-col overflow-hidden">
@@ -363,25 +369,28 @@ export function UsersPage() {
                 )}
 
                 {loading && (
-                    <Card>
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-center">
-                                <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
-                            </div>
+                    <div className="flex-1 min-h-0">
+                    <Card className="flex-1 h-full flex flex-col">
+                        <CardContent className="flex-1 flex items-center justify-center p-6">
+                            <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
                         </CardContent>
                     </Card>
+                    </div>
                 )}
 
                 {!loading && users.length === 0 && (
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="text-center py-12 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
-                                <UserIcon className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                                <p>{t('users.noUsers')}</p>
+                    <div className="flex-1 min-h-0">
+                    <Card className="flex-1 h-full flex flex-col">
+                        <CardContent className="flex-1 flex items-center justify-center p-6">
+                            <div className="text-center text-muted-foreground">
+                                <p className="text-lg font-medium mb-2">{t('users.noUsers')}</p>
+                                <p className="text-sm">Create your first user to get started.</p>
                             </div>
                         </CardContent>
                     </Card>
+                    </div>
                 )}
+                </div>
 
                 <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
                     <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden border">
@@ -561,6 +570,6 @@ export function UsersPage() {
                     </DialogContent>
                 </Dialog>
             </div>
-        </div >
+        </div>
     )
 }

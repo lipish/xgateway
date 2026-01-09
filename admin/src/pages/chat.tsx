@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
 import { apiGet, apiPost } from "@/lib/api"
-import { PageHeader } from "@/components/layout/page-header"
 import { t } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
@@ -229,11 +228,9 @@ export function ChatPage() {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col page-transition overflow-hidden p-6">
-      <PageHeader
-        title={t('chat.title')}
-        subtitle={`${t('chat.subtitle')} ${panels.length} ${t('chat.windows')}`}
-        action={
-          <div className="flex gap-2">
+      <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0">
+        <div className="flex items-start justify-end gap-3 mb-3">
+          <div className="flex gap-2 shrink-0">
             <ChatHistoryDropdown
               open={historyOpen}
               onOpenChange={setHistoryOpen}
@@ -246,27 +243,28 @@ export function ChatPage() {
               {t('chat.addChatWindow')}
             </Button>
           </div>
-        }
-      />
-      <div className="flex-1 flex overflow-hidden min-h-0 h-full max-w-[1400px] mx-auto w-full">
-        <div className="flex-1 flex flex-col overflow-hidden min-h-0 h-full">
-          <div className={`flex-1 grid gap-4 overflow-hidden min-h-0 h-full ${gridCols}`}>
-            {panels.map(panel => (
-              <ChatPanelCard
-                key={panel.id}
-                panel={panel}
-                providers={providers}
-                panelCount={panels.length}
-                onProviderChange={(providerId) => updatePanel(panel.id, { providerId })}
-                onMaximizeToggle={() => updatePanel(panel.id, { maximized: !panel.maximized })}
-                onRemove={() => removePanel(panel.id)}
-                onInputChange={(input) => updatePanel(panel.id, { input })}
-                onSend={() => sendMessage(panel.id)}
-                onKeyDown={(e) => handleKeyDown(panel.id, e)}
-                inputRef={(el) => { inputRefs.current[panel.id] = el }}
-                messagesEndRef={(el) => { messagesEndRefs.current[panel.id] = el }}
-              />
-            ))}
+        </div>
+
+        <div className="flex-1 flex overflow-hidden min-h-0 h-full w-full">
+          <div className="flex-1 flex flex-col overflow-hidden min-h-0 h-full">
+            <div className={`flex-1 grid gap-4 overflow-hidden min-h-0 h-full ${gridCols}`}>
+              {panels.map(panel => (
+                <ChatPanelCard
+                  key={panel.id}
+                  panel={panel}
+                  providers={providers}
+                  panelCount={panels.length}
+                  onProviderChange={(providerId) => updatePanel(panel.id, { providerId })}
+                  onMaximizeToggle={() => updatePanel(panel.id, { maximized: !panel.maximized })}
+                  onRemove={() => removePanel(panel.id)}
+                  onInputChange={(input) => updatePanel(panel.id, { input })}
+                  onSend={() => sendMessage(panel.id)}
+                  onKeyDown={(e) => handleKeyDown(panel.id, e)}
+                  inputRef={(el) => { inputRefs.current[panel.id] = el }}
+                  messagesEndRef={(el) => { messagesEndRefs.current[panel.id] = el }}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>
