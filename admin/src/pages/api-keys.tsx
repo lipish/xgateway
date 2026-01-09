@@ -37,6 +37,7 @@ export function ApiKeysPage() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
   const [providers, setProviders] = useState<Provider[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedApiKeyId, setSelectedApiKeyId] = useState<number | null>(null)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [dialogKey, setDialogKey] = useState(0)
   const [newKeyData, setNewKeyData] = useState({
@@ -55,6 +56,22 @@ export function ApiKeysPage() {
     fetchApiKeys()
     fetchProviders()
   }, [])
+
+  useEffect(() => {
+    if (!selectedApiKeyId && apiKeys.length > 0) {
+      setSelectedApiKeyId(apiKeys[0].id)
+    }
+  }, [apiKeys, selectedApiKeyId])
+
+  const selectedApiKey = apiKeys.find((k) => k.id === selectedApiKeyId) || null
+
+  const getBoundProviders = (key: ApiKey): Provider[] => {
+    const ids = [key.provider_id, ...(key.provider_ids || [])].filter((v): v is number => typeof v === 'number')
+    if (ids.length === 0) return []
+    return ids
+      .map((id) => providers.find((p) => p.id === id))
+      .filter((p): p is Provider => !!p)
+  }
 
   const fetchApiKeys = async () => {
     try {
@@ -320,87 +337,157 @@ export function ApiKeysPage() {
         </Dialog>
 
 
-<Card className="flex-1 h-full flex flex-col">
-          <CardContent className="flex-1 h-full overflow-y-auto p-6">
-            {loading ? (
-              <div className="flex flex-col gap-4">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="h-10 w-full bg-muted animate-pulse rounded" />
-                ))}
-              </div>
-            ) : apiKeys.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center text-muted-foreground">
-                  <p className="text-lg font-medium mb-2">{t('apiKeys.noKeys')}</p>
-                  <p className="text-sm">Create your first API key to get started.</p>
-                </div>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('apiKeys.name')}</TableHead>
-                    <TableHead>{t('apiKeys.scope')}</TableHead>
-                    <TableHead>{t('apiKeys.provider')}</TableHead>
-                    <TableHead>{t('apiKeys.usage')}</TableHead>
-                    <TableHead>{t('apiKeys.status')}</TableHead>
-                    <TableHead>{t('apiKeys.created')}</TableHead>
-                    <TableHead className="text-right">{t('apiKeys.actions')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {apiKeys.map((key) => (
-                    <TableRow key={key.id}>
-                      <TableCell className="font-medium">
-                        {key.name}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{key.scope}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {key.provider_id ? 
-                          providers.find(p => p.id === key.provider_id)?.name || 'Unknown' :
-                          key.provider_ids?.length ? 
-                            `${key.provider_ids.length} providers` : 
-                            'Global'
-                        }
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1 text-xs">
-                          <div className="flex justify-between">
-                            <span>{t('apiKeys.qps') || 'QPS'}:</span>
-                            <span className="font-medium">{key.qps_limit}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>{t('apiKeys.concurrency') || 'Concurrency'}:</span>
-                            <span className="font-medium">{key.concurrency_limit}</span>
-                          </div>
+          <div className="flex gap-6 flex-1 min-h-0">
+            <Card className="w-[520px] shrink-0 h-full flex flex-col">
+              <CardContent className="flex-1 h-full overflow-y-auto p-6">
+                {loading ? (
+                  <div className="flex flex-col gap-4">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="h-10 w-full bg-muted animate-pulse rounded" />
+                    ))}
+                  </div>
+                ) : apiKeys.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center text-muted-foreground">
+                      <p className="text-lg font-medium mb-2">{t('apiKeys.noKeys')}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t('apiKeys.name')}</TableHead>
+                        <TableHead>{t('apiKeys.scope')}</TableHead>
+                        <TableHead>{t('apiKeys.provider')}</TableHead>
+                        <TableHead>{t('apiKeys.created')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {apiKeys.map((key) => {
+                        const boundProviders = getBoundProviders(key)
+                        const providerSummary = key.scope === 'global'
+                          ? t('apiKeys.global')
+                          : boundProviders.length > 0
+                            ? `${boundProviders.length}`
+                            : '0'
+
+                        return (
+                          <TableRow
+                            key={key.id}
+                            className={cn(
+                              'cursor-pointer',
+                              selectedApiKeyId === key.id && 'bg-muted/60'
+                            )}
+                            onClick={() => setSelectedApiKeyId(key.id)}
+                          >
+                            <TableCell className="font-medium">{key.name}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">{key.scope}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              {key.scope === 'global' ? (
+                                <Badge variant="secondary">{t('apiKeys.global')}</Badge>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">{providerSummary}</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {new Date(key.created_at).toLocaleDateString()}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="flex-1 h-full flex flex-col min-w-0">
+              <CardContent className="flex-1 h-full overflow-y-auto p-6">
+                {!selectedApiKey ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <span>{t('apiKeys.list')}</span>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="text-lg font-semibold truncate">{selectedApiKey.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          <span className="mr-2">{t('apiKeys.scope')}:</span>
+                          <Badge variant="secondary">{selectedApiKey.scope}</Badge>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={key.status === 'active' ? "default" : "secondary"}>
-                          {key.status === 'active' ? 'Active' : 'Inactive'}
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant={selectedApiKey.status === 'active' ? 'default' : 'secondary'}>
+                          {selectedApiKey.status === 'active' ? t('apiKeys.enabled') : t('apiKeys.disabled')}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {new Date(key.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleApiKeyStatus(selectedApiKey.id)}
+                        >
+                          {selectedApiKey.status === 'active' ? t('apiKeys.disable') : t('apiKeys.enable')}
+                        </Button>
                         <Button
                           variant="ghost"
-                          size="sm"
-                          onClick={() => setApiKeyToDelete(key.id)}
+                          size="icon"
+                          onClick={() => setApiKeyToDelete(selectedApiKey.id)}
+                          className="text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="rounded-md border p-4">
+                        <div className="text-sm text-muted-foreground">{t('apiKeys.usage')}</div>
+                        <div className="mt-2 space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span>{t('apiKeys.qps')}:</span>
+                            <span className="font-medium">{selectedApiKey.qps_limit}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>{t('apiKeys.concurrency')}:</span>
+                            <span className="font-medium">{selectedApiKey.concurrency_limit}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-md border p-4">
+                        <div className="text-sm text-muted-foreground">{t('apiKeys.created')}</div>
+                        <div className="mt-2 text-sm">
+                          {new Date(selectedApiKey.created_at).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-md border p-4">
+                      <div className="text-sm text-muted-foreground">{t('apiKeys.provider')}</div>
+                      <div className="mt-2">
+                        {selectedApiKey.scope === 'global' ? (
+                          <Badge variant="secondary">{t('apiKeys.global')}</Badge>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {getBoundProviders(selectedApiKey).length === 0 ? (
+                              <span className="text-sm text-muted-foreground">-</span>
+                            ) : (
+                              getBoundProviders(selectedApiKey).map((p) => (
+                                <Badge key={p.id} variant="secondary">{p.name}</Badge>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
         <AlertDialog open={!!apiKeyToDelete} onOpenChange={(open) => !open && setApiKeyToDelete(null)}>
           <AlertDialogContent>

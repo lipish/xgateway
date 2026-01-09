@@ -198,18 +198,19 @@ export function ProvidersPage() {
   const openAddDialog = () => {
     const defaultType = providerTypes[0]?.id || "openai";
     const defaults = getProviderTypeConfig(defaultType);
+    const firstModel = defaults?.models?.[0];
     setAddForm({
       name: "",
       providerType: defaultType,
       apiKey: "",
-      model: defaults?.models[0]?.id || "",
+      model: firstModel?.id || "",
       baseUrl: defaults?.base_url || "",
       priority: "10",
       endpoint: "",
       secretId: "",
       secretKey: "",
-      inputPrice: "",
-      outputPrice: "",
+      inputPrice: firstModel?.input_price?.toString() || "",
+      outputPrice: firstModel?.output_price?.toString() || "",
       quotaLimit: "",
     });
     setAddDialogOpen(true);
@@ -352,23 +353,18 @@ export function ProvidersPage() {
     }
   };
 
-  const maskApiKey = (key: string): string => {
-    if (!key || key.length <= 8) return key;
-    return `${key.slice(0, 4)}${'*'.repeat(key.length - 8)}${key.slice(-4)}`;
-  };
-
   const openEditDialog = (provider: Provider) => {
     setEditingProvider(provider);
     const config = JSON.parse(provider.config || "{}");
     setEditForm({
       name: provider.name,
-      apiKey: maskApiKey(config.api_key || ""),
+      apiKey: config.api_key || "",
       model: config.model || "",
       baseUrl: config.base_url || "",
       priority: provider.priority.toString(),
       endpoint: provider.endpoint || "",
-      secretId: maskApiKey(provider.secret_id || ""),
-      secretKey: maskApiKey(provider.secret_key || ""),
+      secretId: provider.secret_id || "",
+      secretKey: provider.secret_key || "",
       inputPrice: config.input_price?.toString() || "",
       outputPrice: config.output_price?.toString() || "",
       quotaLimit: config.quota_limit?.toString() || "",

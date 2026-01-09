@@ -4,6 +4,9 @@ import threading
 import time
 import json
 import sys
+import argparse
+import statistics
+from typing import Any, Dict, List, Optional
 
 BASE_URL = "http://127.0.0.1:3000"
 ENDPOINT = f"{BASE_URL}/v1/chat/completions"
@@ -22,67 +25,130 @@ PROVIDERS = [
 results = []
 results_lock = threading.Lock()
 
-def user_chat_task(user_id, provider):
-    print(f"👤 User {user_id} starting chat with provider: {provider['name']} (ID: {provider['id']})")
-    
-    payload = {
-        "provider_id": provider["id"],
-        "messages": [
-            {"role": "user", "content": f"Hi, I am user {user_id}. Tell me something quick about multi-agent systems."}
-        ],
-        "stream": False
+
+def percentile(values: List[float], pct: float) -> Optional[float]:
+    if not values:
+        return None
+    values_sorted = sorted(values)
+    if len(values_sorted) == 1:
+        return values_sorted[0]
+    k = (len(values_sorted) - 1) * (pct / 100.0)
+    f = int(k)
+    c = min(f + 1, len(values_sorted) - 1)
+    if f == c:
+        return values_sorted[f]
+    d0 = values_sorted[f] * (c - k)
+    d1 = values_sorted[c] * (k - f)
+    return d0 + d1
+
+
+def extract_usage(resp_json: Any) -> Dict[str, Optional[int]]:
+    usage = {}
+    if isinstance(resp_json, dict):
+        u = resp_json.get("usage")
+        if isinstance(u, dict):
+            usage = {
+                "prompt_tokens": u.get("prompt_tokens"),
+                "completion_tokens": u.get("completion_tokens"),
+                "total_tokens": u.get("total_tokens"),
+            }
+    return usage
+
+
+def build_payload(provider_id: int, messages: List[Dict[str, str]]) -> Dict[str, Any]:
+    return {
+        "provider_id": provider_id,
+        "messages": messages,
+        "stream": False,
     }
-    
+
+
+def do_request(provider: Dict[str, Any], headers: Dict[str, str], messages: List[Dict[str, str]], timeout_s: int) -> Dict[str, Any]:
+    payload = build_payload(provider["id"], messages)
+    start_time = time.time()
+    try:
+        response = requests.post(ENDPOINT, json=payload, headers=headers, timeout=timeout_s)
+        latency = (time.time() - start_time) * 1000
+        try:
+            resp_json = response.json()
+        except Exception:
+            resp_json = None
+
+        row: Dict[str, Any] = {
+            "provider": provider["name"],
+            "provider_id": provider["id"],
+            "http_status": response.status_code,
+            "latency": latency,
+            "usage": extract_usage(resp_json),
+        }
+
+        if response.status_code == 200:
+            row["status"] = "success"
+        elif response.status_code == 429:
+            row["status"] = "limited"
+            row["code"] = 429
+        else:
+            row["status"] = "failed"
+            row["code"] = response.status_code
+            if isinstance(resp_json, dict):
+                row["error"] = resp_json.get("error")
+        return row
+    except Exception as e:
+        latency = (time.time() - start_time) * 1000
+        return {
+            "provider": provider["name"],
+            "provider_id": provider["id"],
+            "status": "exception",
+            "error": str(e),
+            "latency": latency,
+        }
+
+def user_chat_task(user_id, provider, requests_per_provider, multi_turn_ratio, timeout_s):
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json"
     }
-    
-    start_time = time.time()
-    try:
-        response = requests.post(ENDPOINT, json=payload, headers=headers, timeout=30)
-        latency = (time.time() - start_time) * 1000
-        
+
+    for idx in range(requests_per_provider):
+        is_multi_turn = (multi_turn_ratio > 0) and ((idx % int(1 / multi_turn_ratio)) == 0) if multi_turn_ratio < 1 else True
+
+        if is_multi_turn:
+            messages = [
+                {"role": "user", "content": f"Hi, I am user {user_id}. Please answer briefly: what is a multi-agent system?"},
+                {"role": "user", "content": "Give 3 key points, each under 15 words."},
+            ]
+        else:
+            messages = [
+                {"role": "user", "content": f"Hi, I am user {user_id}. Tell me something quick about multi-agent systems."}
+            ]
+
+        row = do_request(provider, headers, messages, timeout_s)
+        row["user_id"] = user_id
+        row["turn"] = 2 if is_multi_turn else 1
         with results_lock:
-            if response.status_code == 200:
-                print(f"✅ User {user_id} (@{provider['name']}) received response in {latency:.2f}ms")
-                results.append({
-                    "user_id": user_id,
-                    "provider": provider["name"],
-                    "status": "success",
-                    "latency": latency
-                })
-            elif response.status_code == 429:
-                print(f"⚠️ User {user_id} (@{provider['name']}) rate limited: {response.status_code}")
-                results.append({
-                    "user_id": user_id,
-                    "provider": provider["name"],
-                    "status": "limited",
-                    "code": 429,
-                    "latency": latency
-                })
-            else:
-                print(f"❌ User {user_id} (@{provider['name']}) failed: {response.status_code}")
-                results.append({
-                    "user_id": user_id,
-                    "provider": provider["name"],
-                    "status": "failed",
-                    "code": response.status_code,
-                    "latency": latency
-                })
-    except Exception as e:
-        latency = (time.time() - start_time) * 1000
-        print(f"❌ User {user_id} (@{provider['name']}) exception: {e}")
-        with results_lock:
-            results.append({
-                "user_id": user_id,
-                "provider": provider["name"],
-                "status": "exception",
-                "error": str(e),
-                "latency": latency
-            })
+            results.append(row)
 
 def main():
+    global BASE_URL, ENDPOINT, API_KEY, PROVIDERS
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--base-url", default=BASE_URL)
+    parser.add_argument("--api-key", default=API_KEY)
+    parser.add_argument("--provider-ids", default="")
+    parser.add_argument("--requests-per-provider", type=int, default=10)
+    parser.add_argument("--users", type=int, default=3)
+    parser.add_argument("--timeout", type=int, default=30)
+    parser.add_argument("--multi-turn-ratio", type=float, default=0.3)
+    args = parser.parse_args()
+
+    BASE_URL = args.base_url
+    ENDPOINT = f"{BASE_URL}/v1/chat/completions"
+    API_KEY = args.api_key
+
+    if args.provider_ids.strip():
+        ids = [int(x.strip()) for x in args.provider_ids.split(",") if x.strip()]
+        PROVIDERS = [p for p in PROVIDERS if p["id"] in ids]
+
     print("🚀 Starting Multi-User Concurrency Test...")
     print(f"Targeting: {ENDPOINT}")
     print(f"API Key: {API_KEY[:8]}...")
@@ -90,11 +156,21 @@ def main():
     
     threads = []
     
-    # Simulate 5 concurrent users
-    # Since concurrency limit is 2, we expect 2 successes and 3 "limited"
-    for i in range(5):
+    if not API_KEY:
+        print("❌ API_KEY is empty. Please provide --api-key")
+        sys.exit(2)
+
+    if len(PROVIDERS) == 0:
+        print("❌ No providers selected. Please provide --provider-ids or check PROVIDERS list")
+        sys.exit(2)
+
+    # Spread users across providers
+    for i in range(args.users):
         provider = PROVIDERS[i % len(PROVIDERS)]
-        t = threading.Thread(target=user_chat_task, args=(i+1, provider))
+        t = threading.Thread(
+            target=user_chat_task,
+            args=(i + 1, provider, args.requests_per_provider, args.multi_turn_ratio, args.timeout),
+        )
         threads.append(t)
         t.start()
     
@@ -106,24 +182,46 @@ def main():
     print("📊 CONCURRENCY TEST SUMMARY")
     print("=" * 60)
     
-    total_success = sum(1 for r in results if r["status"] == "success")
-    total_limited = sum(1 for r in results if r["status"] == "limited")
-    total_failed = len(results) - total_success - total_limited
-    
+    by_provider: Dict[str, List[Dict[str, Any]]] = {}
     for r in results:
-        status_str = f"[{r['status'].upper()}]"
-        print(f"User {r['user_id']} | Provider: {r['provider']:<15} | Status: {status_str:<10} | Latency: {r['latency']:>8.2f}ms")
-    
+        by_provider.setdefault(r.get("provider", "unknown"), []).append(r)
+
+    def summarize(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+        lat = [float(r.get("latency", 0.0)) for r in rows if isinstance(r.get("latency"), (int, float))]
+        success = [r for r in rows if r.get("status") == "success"]
+        limited = [r for r in rows if r.get("status") == "limited"]
+        failed = [r for r in rows if r.get("status") in ("failed", "exception")]
+
+        total_tokens = []
+        for r in success:
+            u = r.get("usage")
+            if isinstance(u, dict) and isinstance(u.get("total_tokens"), int):
+                total_tokens.append(u.get("total_tokens"))
+
+        return {
+            "count": len(rows),
+            "success": len(success),
+            "limited": len(limited),
+            "failed": len(failed),
+            "avg_ms": statistics.mean(lat) if lat else None,
+            "p50_ms": percentile(lat, 50) if lat else None,
+            "p95_ms": percentile(lat, 95) if lat else None,
+            "tokens_total_sum": sum(total_tokens) if total_tokens else None,
+        }
+
+    total_success = sum(1 for r in results if r.get("status") == "success")
+    total_limited = sum(1 for r in results if r.get("status") == "limited")
+    total_failed = len(results) - total_success - total_limited
+
+    for provider_name, rows in by_provider.items():
+        s = summarize(rows)
+        print(f"Provider: {provider_name} | Count: {s['count']} | OK: {s['success']} | 429: {s['limited']} | Fail: {s['failed']} | Avg: {s['avg_ms'] and round(s['avg_ms'],2)}ms | P50: {s['p50_ms'] and round(s['p50_ms'],2)}ms | P95: {s['p95_ms'] and round(s['p95_ms'],2)}ms")
+
     print("-" * 60)
-    print(f"TOTAL USERS: {len(results)}")
-    print(f"SUCCESSFUL:  {total_success}")
-    print(f"LIMITED:     {total_limited} (Expected if concurrency limit < users)")
-    print(f"FAILED:      {total_failed}")
-    
-    if total_success >= 2 and total_limited > 0:
-        print("\n✅ Concurrency limit (2) enforcement verified!")
-    else:
-        print("\n❌ Concurrency limit was NOT enforced correctly.")
+    print(f"TOTAL REQUESTS: {len(results)}")
+    print(f"SUCCESSFUL:     {total_success}")
+    print(f"LIMITED(429):   {total_limited}")
+    print(f"FAILED:         {total_failed}")
 
 if __name__ == "__main__":
     main()

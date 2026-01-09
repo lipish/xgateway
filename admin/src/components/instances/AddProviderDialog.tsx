@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -41,6 +42,12 @@ interface AddProviderDialogProps {
   getProviderTypeConfig: (typeId: string) => ProviderTypeConfig | undefined
 }
 
+function maskKey(key: string): string {
+  if (!key) return key
+  if (key.length <= 8) return key
+  return `${key.slice(0, 4)}${'*'.repeat(key.length - 8)}${key.slice(-4)}`
+}
+
 export function AddProviderDialog({
   open,
   onOpenChange,
@@ -54,6 +61,10 @@ export function AddProviderDialog({
   error,
   getProviderTypeConfig,
 }: AddProviderDialogProps) {
+  const [showRawApiKey, setShowRawApiKey] = useState(false)
+  const [showRawSecretId, setShowRawSecretId] = useState(false)
+  const [showRawSecretKey, setShowRawSecretKey] = useState(false)
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden border">
@@ -156,11 +167,21 @@ export function AddProviderDialog({
                   </Label>
                   <Input
                     id="add-secretId"
-                    type="password"
-                    value={form.secretId}
+                    type="text"
+                    value={showRawSecretId ? form.secretId : maskKey(form.secretId)}
+                    onPaste={(e) => {
+                      const pasted = e.clipboardData.getData('text')
+                      if (pasted) {
+                        e.preventDefault()
+                        onFormChange({ ...form, secretId: pasted })
+                      }
+                    }}
+                    onFocus={() => setShowRawSecretId(true)}
+                    onBlur={() => setShowRawSecretId(false)}
                     onChange={(e) =>
                       onFormChange({ ...form, secretId: e.target.value })
                     }
+                    autoComplete="off"
                     className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   />
                 </div>
@@ -170,11 +191,21 @@ export function AddProviderDialog({
                   </Label>
                   <Input
                     id="add-secretKey"
-                    type="password"
-                    value={form.secretKey}
+                    type="text"
+                    value={showRawSecretKey ? form.secretKey : maskKey(form.secretKey)}
+                    onPaste={(e) => {
+                      const pasted = e.clipboardData.getData('text')
+                      if (pasted) {
+                        e.preventDefault()
+                        onFormChange({ ...form, secretKey: pasted })
+                      }
+                    }}
+                    onFocus={() => setShowRawSecretKey(true)}
+                    onBlur={() => setShowRawSecretKey(false)}
                     onChange={(e) =>
                       onFormChange({ ...form, secretKey: e.target.value })
                     }
+                    autoComplete="off"
                     className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   />
                 </div>
@@ -186,12 +217,22 @@ export function AddProviderDialog({
                 </Label>
                 <Input
                   id="add-apiKey"
-                  type="password"
+                  type="text"
                   placeholder="sk-..."
-                  value={form.apiKey}
+                  value={showRawApiKey ? form.apiKey : maskKey(form.apiKey)}
+                  onPaste={(e) => {
+                    const pasted = e.clipboardData.getData('text')
+                    if (pasted) {
+                      e.preventDefault()
+                      onFormChange({ ...form, apiKey: pasted })
+                    }
+                  }}
+                  onFocus={() => setShowRawApiKey(true)}
+                  onBlur={() => setShowRawApiKey(false)}
                   onChange={(e) =>
                     onFormChange({ ...form, apiKey: e.target.value })
                   }
+                  autoComplete="off"
                   className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
@@ -232,52 +273,55 @@ export function AddProviderDialog({
             </div>
 
             {/* Row 6: Pricing & Quota */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="add-inputPrice" className="text-sm font-medium">
-                  {t('providers.input')} (¥/1M)
-                </Label>
-                <Input
-                  id="add-inputPrice"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={form.inputPrice}
-                  onChange={(e) =>
-                    onFormChange({ ...form, inputPrice: e.target.value })
-                  }
-                  className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="add-outputPrice" className="text-sm font-medium">
-                  {t('providers.output')} (¥/1M)
-                </Label>
-                <Input
-                  id="add-outputPrice"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={form.outputPrice}
-                  onChange={(e) =>
-                    onFormChange({ ...form, outputPrice: e.target.value })
-                  }
-                  className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="add-quotaLimit" className="text-sm font-medium">
-                  {t('providers.quotaLimit')}
-                </Label>
-                <Input
-                  id="add-quotaLimit"
-                  placeholder={t('common.noLimit')}
-                  value={form.quotaLimit}
-                  onChange={(e) =>
-                    onFormChange({ ...form, quotaLimit: e.target.value })
-                  }
-                  className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
+            <div className="rounded-md border border-input bg-muted/30 p-4 space-y-3">
+              <div className="text-sm font-medium">Token</div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="add-inputPrice" className="text-sm font-medium">
+                    {t('providers.input')} (¥/1M)
+                  </Label>
+                  <Input
+                    id="add-inputPrice"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={form.inputPrice}
+                    onChange={(e) =>
+                      onFormChange({ ...form, inputPrice: e.target.value })
+                    }
+                    className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="add-outputPrice" className="text-sm font-medium">
+                    {t('providers.output')} (¥/1M)
+                  </Label>
+                  <Input
+                    id="add-outputPrice"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={form.outputPrice}
+                    onChange={(e) =>
+                      onFormChange({ ...form, outputPrice: e.target.value })
+                    }
+                    className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="add-quotaLimit" className="text-sm font-medium">
+                    {t('providers.quotaLimit')}
+                  </Label>
+                  <Input
+                    id="add-quotaLimit"
+                    placeholder={t('common.noLimit')}
+                    value={form.quotaLimit}
+                    onChange={(e) =>
+                      onFormChange({ ...form, quotaLimit: e.target.value })
+                    }
+                    className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                </div>
               </div>
             </div>
           </div>

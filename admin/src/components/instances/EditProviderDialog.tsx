@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,6 +14,12 @@ import {
 import { Loader2 } from "lucide-react"
 import { t } from "@/lib/i18n"
 import type { ProviderTypeConfig } from "./types"
+
+function maskKey(key: string): string {
+  if (!key) return key
+  if (key.length <= 8) return key
+  return `${key.slice(0, 4)}${'*'.repeat(key.length - 8)}${key.slice(-4)}`
+}
 
 interface EditProviderDialogProps {
   open: boolean
@@ -51,6 +58,10 @@ export function EditProviderDialog({
   saving,
   error,
 }: EditProviderDialogProps) {
+  const [showRawApiKey, setShowRawApiKey] = useState(false)
+  const [showRawSecretId, setShowRawSecretId] = useState(false)
+  const [showRawSecretKey, setShowRawSecretKey] = useState(false)
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden border">
@@ -136,12 +147,22 @@ export function EditProviderDialog({
                   </Label>
                   <Input
                     id="edit-secretId"
-                    type="password"
-                    value={form.secretId}
+                    type="text"
+                    value={showRawSecretId ? form.secretId : maskKey(form.secretId)}
                     placeholder="Leave masked to keep current"
+                    onPaste={(e) => {
+                      const pasted = e.clipboardData.getData('text')
+                      if (pasted) {
+                        e.preventDefault()
+                        onFormChange({ ...form, secretId: pasted })
+                      }
+                    }}
+                    onFocus={() => setShowRawSecretId(true)}
+                    onBlur={() => setShowRawSecretId(false)}
                     onChange={(e) =>
                       onFormChange({ ...form, secretId: e.target.value })
                     }
+                    autoComplete="off"
                     className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   />
                 </div>
@@ -151,12 +172,22 @@ export function EditProviderDialog({
                   </Label>
                   <Input
                     id="edit-secretKey"
-                    type="password"
-                    value={form.secretKey}
+                    type="text"
+                    value={showRawSecretKey ? form.secretKey : maskKey(form.secretKey)}
                     placeholder="Leave masked to keep current"
+                    onPaste={(e) => {
+                      const pasted = e.clipboardData.getData('text')
+                      if (pasted) {
+                        e.preventDefault()
+                        onFormChange({ ...form, secretKey: pasted })
+                      }
+                    }}
+                    onFocus={() => setShowRawSecretKey(true)}
+                    onBlur={() => setShowRawSecretKey(false)}
                     onChange={(e) =>
                       onFormChange({ ...form, secretKey: e.target.value })
                     }
+                    autoComplete="off"
                     className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   />
                 </div>
@@ -168,12 +199,22 @@ export function EditProviderDialog({
                 </Label>
                 <Input
                   id="edit-apiKey"
-                  type="password"
-                  value={form.apiKey}
+                  type="text"
+                  value={showRawApiKey ? form.apiKey : maskKey(form.apiKey)}
                   placeholder="Enter new API key or leave masked to keep current"
+                  onPaste={(e) => {
+                    const pasted = e.clipboardData.getData('text')
+                    if (pasted) {
+                      e.preventDefault()
+                      onFormChange({ ...form, apiKey: pasted })
+                    }
+                  }}
+                  onFocus={() => setShowRawApiKey(true)}
+                  onBlur={() => setShowRawApiKey(false)}
                   onChange={(e) =>
                     onFormChange({ ...form, apiKey: e.target.value })
                   }
+                  autoComplete="off"
                   className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
@@ -229,52 +270,55 @@ export function EditProviderDialog({
             </div>
 
             {/* Row 5: Pricing & Quota */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-inputPrice" className="text-sm font-medium">
-                  {t('providers.input')} (¥/1M)
-                </Label>
-                <Input
-                  id="edit-inputPrice"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={form.inputPrice}
-                  onChange={(e) =>
-                    onFormChange({ ...form, inputPrice: e.target.value })
-                  }
-                  className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-outputPrice" className="text-sm font-medium">
-                  {t('providers.output')} (¥/1M)
-                </Label>
-                <Input
-                  id="edit-outputPrice"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={form.outputPrice}
-                  onChange={(e) =>
-                    onFormChange({ ...form, outputPrice: e.target.value })
-                  }
-                  className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-quotaLimit" className="text-sm font-medium">
-                  {t('providers.quotaLimit')}
-                </Label>
-                <Input
-                  id="edit-quotaLimit"
-                  placeholder={t('common.noLimit')}
-                  value={form.quotaLimit}
-                  onChange={(e) =>
-                    onFormChange({ ...form, quotaLimit: e.target.value })
-                  }
-                  className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
+            <div className="rounded-md border border-input bg-muted/30 p-4 space-y-3">
+              <div className="text-sm font-medium">Token</div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-inputPrice" className="text-sm font-medium">
+                    {t('providers.input')} (¥/1M)
+                  </Label>
+                  <Input
+                    id="edit-inputPrice"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={form.inputPrice}
+                    onChange={(e) =>
+                      onFormChange({ ...form, inputPrice: e.target.value })
+                    }
+                    className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-outputPrice" className="text-sm font-medium">
+                    {t('providers.output')} (¥/1M)
+                  </Label>
+                  <Input
+                    id="edit-outputPrice"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={form.outputPrice}
+                    onChange={(e) =>
+                      onFormChange({ ...form, outputPrice: e.target.value })
+                    }
+                    className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-quotaLimit" className="text-sm font-medium">
+                    {t('providers.quotaLimit')}
+                  </Label>
+                  <Input
+                    id="edit-quotaLimit"
+                    placeholder={t('common.noLimit')}
+                    value={form.quotaLimit}
+                    onChange={(e) =>
+                      onFormChange({ ...form, quotaLimit: e.target.value })
+                    }
+                    className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                </div>
               </div>
             </div>
           </div>
