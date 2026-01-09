@@ -165,7 +165,7 @@ export function DashboardPage() {
       value: todayStats ? todayStats.total_requests.toLocaleString() : "0",
       subtitle: t("dashboard.todayRequestsDesc"),
       icon: TrendingUp,
-      trend: { value: "12%", isPositive: true, label: "vs last hour" },
+      trend: { value: "12%", isPositive: true, label: t("dashboard.vsLastHour") },
     },
     {
       title: t("dashboard.enabledProviders"),
@@ -176,7 +176,7 @@ export function DashboardPage() {
     {
       title: t("dashboard.totalProviders"),
       value: stats?.total.toString() || "0",
-      subtitle: t("providers.total") + " " + t("providers.unit"),
+      subtitle: t("providers.total"),
       icon: Layers,
     },
     {
@@ -184,7 +184,7 @@ export function DashboardPage() {
       value: todayStats && todayStats.avg_latency_ms > 0 ? `${Math.round(todayStats.avg_latency_ms)}ms` : "—",
       subtitle: t("dashboard.avgLatencyDesc"),
       icon: Clock,
-      trend: { value: "5%", isPositive: true, label: "vs last hour" },
+      trend: { value: "5%", isPositive: true, label: t("dashboard.vsLastHour") },
     },
   ]
 

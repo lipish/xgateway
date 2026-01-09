@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { AlertTriangle, XCircle, Clock } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { AlertTriangle, XCircle, Clock, ArrowRight } from "lucide-react"
 import { t } from "@/lib/i18n"
 
 interface ErrorLog {
@@ -40,10 +41,21 @@ export function RecentErrorsPanel({ recentErrors = [] }: RecentErrorsPanelProps)
   }
 
   return (
-    <Card className="rounded-xl border bg-card h-96">
-      <CardHeader className="px-6 pb-2">
-        <CardTitle className="text-lg font-semibold">{t('common.recentErrors.title')}</CardTitle>
-        <p className="text-xs text-muted-foreground">{t('common.recentErrors.description')}</p>
+    <Card className="rounded-xl border bg-card h-80">
+      <CardHeader className="flex flex-row items-center justify-between px-6 pb-2">
+        <div>
+          <CardTitle className="text-lg font-semibold">{t('common.recentErrors.title')}</CardTitle>
+          <p className="text-xs text-muted-foreground">{t('common.recentErrors.description')}</p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.location.href = '/logs'}
+          className="text-xs"
+        >
+          <ArrowRight className="mr-1 h-3 w-3" />
+          {t('dashboard.viewAll')}
+        </Button>
       </CardHeader>
       <CardContent className="px-6 pb-2">
         <div className="space-y-1">
@@ -52,7 +64,7 @@ export function RecentErrorsPanel({ recentErrors = [] }: RecentErrorsPanelProps)
               <div className="text-sm">{t('common.recentErrors.noRecentErrors')}</div>
             </div>
           ) : (
-            recentErrors.slice(0, 5).map((error, index) => {
+            recentErrors.slice(0, 2).map((error, index) => {
               const Icon = getErrorIcon(error.error_type)
               const type = getErrorType(error.error_type)
 
@@ -80,12 +92,12 @@ export function RecentErrorsPanel({ recentErrors = [] }: RecentErrorsPanelProps)
               )
             })
           )}
-          <div className="flex items-center justify-between pt-1.5 border-t">
-            <div className="text-xs text-muted-foreground">{t('common.recentErrors.totalErrors')}</div>
-            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-              {recentErrors.length}
-            </Badge>
-          </div>
+        </div>
+        <div className="flex items-center justify-between pt-1.5 border-t mt-1">
+          <div className="text-xs text-muted-foreground">{t('common.recentErrors.totalErrors')}</div>
+          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+            {recentErrors.length}
+          </Badge>
         </div>
       </CardContent>
     </Card>

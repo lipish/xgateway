@@ -32,7 +32,7 @@ export function AnalyticsChart() {
 
   if (loading) {
     return (
-      <Card className="rounded-xl border bg-card h-96">
+      <Card className="rounded-xl border bg-card h-80">
         <CardHeader className="px-6 pb-2">
           <CardTitle className="text-lg font-semibold">{t('common.requestVolume.title')}</CardTitle>
           <p className="text-xs text-muted-foreground">{t('common.requestVolume.description')}</p>
@@ -47,14 +47,14 @@ export function AnalyticsChart() {
   const maxValue = data.length > 0 ? Math.max(...data.map(d => d.requests)) : 1
 
   return (
-    <Card className="rounded-xl border bg-card h-96">
+    <Card className="rounded-xl border bg-card h-80">
       <CardHeader className="px-6 pb-2">
         <CardTitle className="text-lg font-semibold">{t('common.requestVolume.title')}</CardTitle>
         <p className="text-xs text-muted-foreground">{t('common.requestVolume.description')}</p>
       </CardHeader>
       <CardContent className="px-6 pb-2">
         <div className="space-y-1">
-          <div className="flex items-end justify-between gap-1 h-36">
+          <div className="flex items-end justify-between gap-1 h-28">
             {data.map((item, index) => {
               const height = data.length > 0 ? (item.requests / maxValue) * 100 : 0
               return (

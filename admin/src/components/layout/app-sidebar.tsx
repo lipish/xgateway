@@ -51,7 +51,7 @@ function getNavigation() {
             title: t('nav.monitoring'),
             items: [
                 { name: t('nav.analytics'), href: "/analytics", icon: BarChart3 },
-                { name: t('nav.trace'), href: "/logs", icon: Zap },
+                { name: t('nav.logs'), href: "/logs", icon: Zap },
             ],
         },
     ]

@@ -64,7 +64,7 @@ export function ResponseTimeChart() {
   const maxLatency = services.length > 0 ? Math.max(...services.map(s => s.avg_latency_ms)) : 1
 
   return (
-    <Card className="rounded-xl border bg-card h-96">
+    <Card className="rounded-xl border bg-card h-80">
       <CardHeader className="px-6 pb-2">
         <CardTitle className="text-lg font-semibold">{t('common.latencyDistribution.title')}</CardTitle>
         <p className="text-xs text-muted-foreground">{t('common.latencyDistribution.description')}</p>

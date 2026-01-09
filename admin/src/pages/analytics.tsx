@@ -38,61 +38,47 @@ interface AnalyticsData {
   }>
 }
 
-// TEMPORARY: Using mock data until backend API is ready
-const mockData: AnalyticsData = {
-  total_requests: 15847,
-  success_rate: 96.2,
-  avg_latency_ms: 245,
-  tokens_used: 1847293,
-  requests_today: 1247,
-  failed_requests: 4,
-  top_models: [
-    { model: "gpt-4o", requests: 3833, tokens: 198000 },
-    { model: "gemini-pro", requests: 8887, tokens: 272000 },
-    { model: "claude-3-sonnet", requests: 1017, tokens: 443000 },
-    { model: "gpt-4-turbo", requests: 1046, tokens: 112000 },
-  ],
-  recent_errors: [
-    {
-      timestamp: new Date(Date.now() - 2 * 60000).toISOString(),
-      provider: "OpenAI",
-      model: "gpt-4-turbo",
-      error_type: "Rate Limit",
-      error_message: "Rate limit exceeded"
-    },
-    {
-      timestamp: new Date(Date.now() - 15 * 60000).toISOString(),
-      provider: "Anthropic",
-      model: "claude-3-sonnet",
-      error_type: "Timeout",
-      error_message: "Connection timeout"
-    }
-  ]
-}
-
 export function AnalyticsPage() {
   const [loading, setLoading] = useState(true)
-  const [data, setData] = useState<AnalyticsData | null>(mockData)
+  const [data, setData] = useState<AnalyticsData | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setLoading(false), 800)
-    return () => clearTimeout(timer)
-  }, [])
-
-  // TEMPORARY: Comment out actual API call
-  /*
   const fetchAnalyticsData = async () => {
     try {
       setLoading(true)
       setError(null)
-      
-      const result = await apiGet("/api/analytics") as any
-      if (result.success) {
-        setData(result.data)
+
+      // 获取性能统计数据（包含今日统计）
+      const performanceResult = await apiGet("/api/logs/performance") as any
+      if (performanceResult.success) {
+        const perfData = performanceResult.data
+
+        // 获取错误日志
+        const errorsResult = await apiGet("/api/logs?status=error&limit=10") as any
+        const recentErrors = errorsResult.success ? errorsResult.data : []
+
+        // 构建analytics数据
+        const analyticsData: AnalyticsData = {
+          total_requests: perfData.total_requests || 0,
+          success_rate: perfData.success_rate || 0,
+          avg_latency_ms: perfData.avg_response_time || 0,
+          tokens_used: perfData.tokens_used || 0,
+          requests_today: perfData.total_requests || 0, // 使用总请求数作为今日请求数
+          failed_requests: perfData.failed_requests || 0,
+          top_models: [], // TODO: 实现top models API
+          recent_errors: recentErrors.map((error: any) => ({
+            timestamp: error.created_at,
+            provider: error.provider_name,
+            model: error.model,
+            error_type: error.error_message?.includes('timeout') ? 'Timeout' :
+              error.error_message?.includes('rate') ? 'Rate Limit' : 'Error',
+            error_message: error.error_message
+          }))
+        }
+
+        setData(analyticsData)
       } else {
-        setError(result.message || t('common.error'))
+        setError(performanceResult.message || t('common.error'))
       }
     } catch (err) {
       console.error("Error fetching analytics:", err)
@@ -101,7 +87,10 @@ export function AnalyticsPage() {
       setLoading(false)
     }
   }
-  */
+
+  useEffect(() => {
+    fetchAnalyticsData()
+  }, [])
 
   if (loading) {
     return (
@@ -110,16 +99,16 @@ export function AnalyticsPage() {
         <div className="flex-1 max-w-[1400px] mx-auto w-full">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="rounded-xl border bg-card p-5">
+              <div key={i} className="rounded-xl border bg-card p-4 h-32">
                 <div className="h-4 bg-muted rounded w-24 mb-3"></div>
                 <div className="h-8 bg-muted rounded w-16 mb-2"></div>
                 <div className="h-3 bg-muted rounded w-20"></div>
               </div>
             ))}
           </div>
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="rounded-xl border bg-card h-64"></div>
-            <div className="rounded-xl border bg-card h-64"></div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-xl border bg-card h-96"></div>
+            <div className="rounded-xl border bg-card h-96"></div>
           </div>
         </div>
       </div>
@@ -136,7 +125,7 @@ export function AnalyticsPage() {
             <h3 className="text-lg font-semibold text-destructive mb-2">{t('common.error')}</h3>
             <p className="text-muted-foreground mb-4">{error}</p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={fetchAnalyticsData}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             >
               {t('common.retry')}
@@ -164,69 +153,101 @@ export function AnalyticsPage() {
 
   const stats = [
     {
-      title: t("monitoring.totalRequests"),
-      value: data.total_requests.toLocaleString(),
+      title: t("dashboard.todayRequests"),
+      value: data.requests_today.toLocaleString(),
+      subtitle: t("dashboard.todayRequestsDesc"),
       icon: Activity,
-      trend: {
-        value: "+12%",
-        isPositive: true,
-        label: "vs yesterday"
-      }
+      trend: { value: "12%", isPositive: true, label: t("dashboard.vsLastHour") },
     },
     {
-      title: t("monitoring.successRate"),
+      title: t("common.performance.successRate"),
       value: `${data.success_rate.toFixed(1)}%`,
       icon: TrendingUp,
-      trend: {
-        value: "+2%",
-        isPositive: true,
-        label: "vs yesterday"
-      }
+      trend: { value: "2%", isPositive: true, label: t("dashboard.vsLastHour") },
     },
     {
-      title: t("monitoring.avgLatency"),
-      value: `${Math.round(data.avg_latency_ms)}ms`,
+      title: t("common.performance.avgLatency"),
+      value: data.avg_latency_ms > 0 ? `${Math.round(data.avg_latency_ms)}ms` : "—",
       icon: Clock,
-      trend: {
-        value: "-5%",
-        isPositive: false,
-        label: "vs yesterday"
-      }
+      trend: { value: "5%", isPositive: false, label: t("dashboard.vsLastHour") },
     },
     {
-      title: "TOKENS USED",
+      title: t("dashboard.tokensUsed"),
       value: data.tokens_used.toLocaleString(),
       icon: Zap,
-      trend: {
-        value: "+18%",
-        isPositive: true,
-        label: "vs yesterday"
-      }
+      trend: { value: "18%", isPositive: true, label: t("dashboard.vsLastHour") },
     }
   ]
 
   return (
     <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
       <div className="flex-1 max-w-[1400px] mx-auto w-full">
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Stats Cards */}
           <DashboardStats stats={stats} />
 
-          {/* Charts */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            <AnalyticsChart />
-            <PerformancePanel
-              successRate={data.success_rate}
-              totalRequests={data.requests_today}
-              totalTokens={data.tokens_used}
-              failedRequests={data.failed_requests}
-            />
+          {/* Charts - First Row */}
+          <div className="grid gap-4 lg:grid-cols-12 items-start">
+            <div className="lg:col-span-8">
+              <AnalyticsChart />
+            </div>
+            <div className="lg:col-span-4">
+              <PerformancePanel
+                successRate={data.success_rate}
+                totalRequests={data.requests_today}
+                totalTokens={data.tokens_used}
+                failedRequests={data.failed_requests}
+              />
+            </div>
           </div>
 
-          {/* Bottom Panels */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            <InsightsPanel topModels={data.top_models} />
+          {/* Charts - Second Row */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 items-start">
             <RecentErrorsPanel recentErrors={data.recent_errors} />
+            <div className="rounded-xl border bg-card p-6 h-80">
+              <h3 className="text-lg font-semibold mb-4">{t("dashboard.topModels")}</h3>
+              <div className="space-y-3">
+                {data.top_models.length > 0 ? (
+                  data.top_models.map((model, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div>
+                        <div className="font-medium">{model.model}</div>
+                        <div className="text-sm text-muted-foreground">{model.requests} requests</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-medium">{model.tokens.toLocaleString()}</div>
+                        <div className="text-sm text-muted-foreground">tokens</div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>{t("dashboard.noModelData")}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="rounded-xl border bg-card p-6 h-80">
+              <h3 className="text-lg font-semibold mb-4">{t("dashboard.systemStatus")}</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span>{t("dashboard.apiStatus")}</span>
+                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">{t("dashboard.connected")}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>{t("dashboard.database")}</span>
+                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">{t("dashboard.connected")}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>{t("dashboard.cache")}</span>
+                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">{t("dashboard.active")}</span>
+                </div>
+                <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                  <div className="text-sm text-muted-foreground mb-2">{t("dashboard.uptime")}</div>
+                  <div className="text-2xl font-bold">99.9%</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

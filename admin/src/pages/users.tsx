@@ -214,7 +214,7 @@ export function UsersPage() {
                 />
 
                 {!loading && users.length > 0 && (
-                    <div className="flex gap-6 h-[calc(100vh-12rem)]">
+                    <div className="flex gap-6 flex-1 min-h-0">
                         {/* User List */}
                         <Card className="w-96 flex flex-col overflow-hidden">
                             <CardContent className="p-4 flex-1 overflow-y-auto">

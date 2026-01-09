@@ -469,7 +469,7 @@ export function ProvidersPage() {
         )}
 
         {!loading && !error && (
-          <div className="flex gap-6 h-[calc(100vh-8rem)]">
+          <div className="flex gap-6 flex-1 min-h-0">
             <ProviderList
               providers={filteredProviders}
               selectedProvider={selectedProvider}
