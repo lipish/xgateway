@@ -8,12 +8,11 @@
 -- Seed Tencent provider type with latest models from Tencent Hunyuan API
 -- Based on https://cloud.tencent.com/document/product/1729/104753
 
-INSERT OR REPLACE INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order, docs_url)
+INSERT INTO provider_types (id, label, base_url, models, enabled, sort_order, docs_url)
 VALUES (
     'tencent',
     'Tencent Hunyuan',
     'https://hunyuan.tencentcloudapi.com',
-    'hunyuan-2.0-instruct-20251111',
     '[
         {
             "id": "hunyuan-2.0-thinking-20251109",
@@ -149,4 +148,11 @@ VALUES (
     true,
     16,
     'https://cloud.tencent.com/document/product/1729/104753'
-);
+)
+ON CONFLICT (id) DO UPDATE SET
+    label = EXCLUDED.label,
+    base_url = EXCLUDED.base_url,
+    models = EXCLUDED.models,
+    enabled = EXCLUDED.enabled,
+    sort_order = EXCLUDED.sort_order,
+    docs_url = EXCLUDED.docs_url;

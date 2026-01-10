@@ -8,12 +8,11 @@
 -- Seed Volcengine provider type with latest models
 -- https://www.volcengine.com/docs/82379/1330310
 
-INSERT OR REPLACE INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order, docs_url)
+INSERT INTO provider_types (id, label, base_url, models, enabled, sort_order, docs_url)
 VALUES (
     'volcengine',
     'Volcengine',
     'https://ark.cn-beijing.volces.com/api/v3',
-    'doubao-seed-1-8-251215',
     '[
         {
             "id": "doubao-seed-1-8-251215",
@@ -118,4 +117,11 @@ VALUES (
     true,
     11,
     'https://www.volcengine.com/docs/82379/1330310'
-);
+)
+ON CONFLICT (id) DO UPDATE SET
+    label = EXCLUDED.label,
+    base_url = EXCLUDED.base_url,
+    models = EXCLUDED.models,
+    enabled = EXCLUDED.enabled,
+    sort_order = EXCLUDED.sort_order,
+    docs_url = EXCLUDED.docs_url;

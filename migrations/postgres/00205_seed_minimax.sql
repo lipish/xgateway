@@ -8,12 +8,11 @@
 -- Seed Minimax provider type with latest models from Minimax API
 -- Based on https://platform.minimax.io/docs/guides/models-intro
 
-INSERT OR REPLACE INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order, docs_url)
+INSERT INTO provider_types (id, label, base_url, models, enabled, sort_order, docs_url)
 VALUES (
     'minimax',
     'MiniMax',
     'https://api.minimax.io/v1',
-    'MiniMax-M2.1',
     '[
         {
             "id": "MiniMax-M2.1",
@@ -118,4 +117,11 @@ VALUES (
     true,
     15,
     'https://platform.minimax.io/docs/guides/models-intro'
-);
+)
+ON CONFLICT (id) DO UPDATE SET
+    label = EXCLUDED.label,
+    base_url = EXCLUDED.base_url,
+    models = EXCLUDED.models,
+    enabled = EXCLUDED.enabled,
+    sort_order = EXCLUDED.sort_order,
+    docs_url = EXCLUDED.docs_url;

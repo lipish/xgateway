@@ -8,12 +8,11 @@
 -- Seed DeepSeek provider type with models and pricing info
 -- https://api-docs.deepseek.com/zh-cn/quick_start/pricing
 
-INSERT OR REPLACE INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order, docs_url)
+INSERT INTO provider_types (id, label, base_url, models, enabled, sort_order, docs_url)
 VALUES (
     'deepseek',
     'DeepSeek',
     'https://api.deepseek.com/v1',
-    'deepseek-chat',
     '[
         {
             "id": "deepseek-chat",
@@ -37,4 +36,11 @@ VALUES (
     true,
     10,
     'https://api-docs.deepseek.com/zh-cn/quick_start/pricing'
-);
+)
+ON CONFLICT (id) DO UPDATE SET
+    label = EXCLUDED.label,
+    base_url = EXCLUDED.base_url,
+    models = EXCLUDED.models,
+    enabled = EXCLUDED.enabled,
+    sort_order = EXCLUDED.sort_order,
+    docs_url = EXCLUDED.docs_url;
