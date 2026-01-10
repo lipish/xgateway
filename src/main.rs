@@ -18,7 +18,7 @@ use tracing::{info, error, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use cli::{Args, list_applications, show_application_info};
 use engine::instance::init_instance_id;
-use db::{try_database, test_in_memory_database};
+use db::try_database;
 use pool::PoolManager;
 use router::build_multi_mode_app;
 use std::sync::Arc;
@@ -46,15 +46,6 @@ async fn main() -> Result<()> {
 async fn run_multi_mode(args: Args) -> Result<()> {
     info!("Multi-provider mode: Using database and web interface");
 
-    match test_in_memory_database().await {
-        Ok(_) => info!("In-memory database test passed - SQLite library works"),
-        Err(e) => {
-            error!("In-memory database test failed: {}", e);
-            error!("This indicates a SQLite library installation issue");
-            std::process::exit(1);
-        }
-    }
-
     let db_pool = match try_database().await {
         Ok(pool) => {
             info!("Database initialized successfully");
@@ -62,11 +53,7 @@ async fn run_multi_mode(args: Args) -> Result<()> {
         }
         Err(e) => {
             error!("Database initialization failed: {}", e);
-            error!("Please ensure:");
-            error!(" 1. Database file permissions are correct");
-            error!(" 2. Database directory exists and is writable");
-            error!(" 3. No migration file conflicts");
-            error!(" 4. Or delete data/llm_link.db to start fresh");
+            error!("Please ensure DATABASE_URL is set to a postgres/postgresql URL and the server is reachable");
             std::process::exit(1);
         }
     };

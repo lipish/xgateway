@@ -120,7 +120,7 @@ The system is designed to support multiple active providers simultaneously using
 - **Hot Reloading**: Supports updating provider configs without restarting the service.
 - **Failover**: (Planned) Circuit breakers and automatic failover to backup providers.
 
-### Database Schema (SQLite/PostgreSQL)
+### Database Schema (PostgreSQL)
 
 Core tables for provider persistence:
 

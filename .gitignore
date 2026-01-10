@@ -1,6 +1,3 @@
-# llm_link.db
-llm_link.db
-
 # shadcn
 shadcn
 
@@ -25,9 +22,6 @@ model-overrides.yaml
 
 #Keys
 keys.yaml
-
-# Local model overrides (per-user, may contain private endpoint IDs)
-model-overrides.yaml
 
 # Mac files
 .DS_Store
@@ -62,9 +56,6 @@ python/.venv/
 *.bak
 *.backup
 *~
-
-# Database
-data/llm_link.db
 
 # Logs
 *.log

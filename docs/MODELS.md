@@ -132,7 +132,7 @@ This document serves as the **Single Source of Truth** for supported LLM provide
 When updating provider models:
 
 1. **Verify Source**: Check the "Marketplace / Docs" link in the table above.
-2. **Update Database**: creating a new migration file in `migrations/sqlite/` and `migrations/postgres/`.
+2. **Update Database**: creating a new migration file in `migrations/postgres/`.
    - Naming format: `NNN_seed_<provider_name>.sql`
 3. **Template**:
    ```sql

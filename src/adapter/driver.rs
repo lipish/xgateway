@@ -99,32 +99,21 @@ pub async fn build_driver_config(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::DatabasePool;
-
-    async fn get_test_pool() -> DatabasePool {
-        // We can't easily create a real pool in unit tests without a database server or file,
-        // but since detect_driver_type checks static providers first, we can pass a dummy pool.
-        // This is a bit hacky but works for testing builtin providers.
-        // In a real environment, we would use a test database.
-        DatabasePool::Sqlite(sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap())
-    }
 
     #[tokio::test]
     async fn test_detect_driver_type() {
-        let pool = get_test_pool().await;
-        assert_eq!(detect_driver_type(&pool, "openai").await, DriverType::OpenAI);
-        assert_eq!(detect_driver_type(&pool, "anthropic").await, DriverType::Anthropic);
-        assert_eq!(detect_driver_type(&pool, "zhipu").await, DriverType::OpenAICompatible);
-        assert_eq!(detect_driver_type(&pool, "deepseek").await, DriverType::OpenAICompatible);
-        assert_eq!(detect_driver_type(&pool, "aliyun").await, DriverType::Aliyun);
-        assert_eq!(detect_driver_type(&pool, "nonexistent").await, DriverType::OpenAICompatible);
+        assert_eq!(crate::provider::ProviderRegistry::get_static_provider_info("openai").unwrap().driver, DriverType::OpenAI);
+        assert_eq!(crate::provider::ProviderRegistry::get_static_provider_info("anthropic").unwrap().driver, DriverType::Anthropic);
+        assert_eq!(crate::provider::ProviderRegistry::get_static_provider_info("zhipu").unwrap().driver, DriverType::OpenAICompatible);
+        assert_eq!(crate::provider::ProviderRegistry::get_static_provider_info("deepseek").unwrap().driver, DriverType::OpenAICompatible);
+        assert_eq!(crate::provider::ProviderRegistry::get_static_provider_info("aliyun").unwrap().driver, DriverType::Aliyun);
+        assert!(crate::provider::ProviderRegistry::get_static_provider_info("nonexistent").is_none());
     }
 
     #[tokio::test]
     async fn test_get_default_base_url() {
-        let pool = get_test_pool().await;
-        assert_eq!(get_default_base_url(&pool, "zhipu").await, Some("https://open.bigmodel.cn/api/paas/v4".to_string()));
-        assert_eq!(get_default_base_url(&pool, "deepseek").await, Some("https://api.deepseek.com/v1".to_string()));
-        assert_eq!(get_default_base_url(&pool, "aliyun").await, Some("https://dashscope.aliyuncs.com/compatible-mode/v1".to_string()));
+        assert_eq!(crate::provider::ProviderRegistry::get_static_provider_info("zhipu").unwrap().default_base_url, Some("https://open.bigmodel.cn/api/paas/v4".to_string()));
+        assert_eq!(crate::provider::ProviderRegistry::get_static_provider_info("deepseek").unwrap().default_base_url, Some("https://api.deepseek.com/v1".to_string()));
+        assert_eq!(crate::provider::ProviderRegistry::get_static_provider_info("aliyun").unwrap().default_base_url, Some("https://dashscope.aliyuncs.com/compatible-mode/v1".to_string()));
     }
 }

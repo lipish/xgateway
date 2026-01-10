@@ -1,7 +1,6 @@
 import argparse
 import json
 import os
-import sqlite3
 import sys
 import time
 
@@ -29,7 +28,6 @@ def main() -> int:
     parser.add_argument("--base-url", default=os.environ.get("LLM_LINK_BASE_URL", "http://127.0.0.1:3000"))
     parser.add_argument("--api-key", default=os.environ.get("LLM_LINK_API_KEY"))
     parser.add_argument("--provider-id", type=int, default=int(os.environ.get("LLM_LINK_PROVIDER_ID", "1")))
-    parser.add_argument("--db-path", default=os.environ.get("LLM_LINK_DB_PATH", "data/llm_link.db"))
     parser.add_argument("--sleep", type=float, default=0.4)
     args = parser.parse_args()
 
@@ -80,30 +78,34 @@ def main() -> int:
 
     time.sleep(args.sleep)
 
-    conn = sqlite3.connect(args.db_path)
-    try:
-        cur = conn.cursor()
-        cur.execute(
-            "select id, provider_id, length(response_content), substr(response_content, 1, 120) "
-            "from request_logs where provider_id = ? order by id desc limit 2",
-            (args.provider_id,),
-        )
-        rows = cur.fetchall()
-    finally:
-        conn.close()
-
-    if len(rows) < 2:
-        print(f"expected >=2 logs for provider_id={args.provider_id}, got {len(rows)}", file=sys.stderr)
+    rlogs = requests.get(
+        f"{args.base_url}/api/logs",
+        params={"limit": 10, "offset": 0},
+        timeout=30,
+    )
+    if rlogs.status_code != 200:
+        print(f"logs_http {rlogs.status_code} body={rlogs.text[:500]}", file=sys.stderr)
         return 1
 
-    bad = [r for r in rows if not r[2] or r[2] <= 0]
+    jlogs = rlogs.json()
+    if not (isinstance(jlogs, dict) and jlogs.get("success") and isinstance(jlogs.get("data"), list)):
+        print(f"invalid logs response: {jlogs}", file=sys.stderr)
+        return 1
+
+    items = [x for x in jlogs["data"] if isinstance(x, dict) and x.get("provider_id") == args.provider_id]
+    if len(items) < 2:
+        print(f"expected >=2 logs for provider_id={args.provider_id}, got {len(items)}", file=sys.stderr)
+        return 1
+
+    bad = [x for x in items[:2] if not (isinstance(x.get("response_content"), str) and x.get("response_content").strip())]
     if bad:
         print(f"response_content empty in logs: {bad}", file=sys.stderr)
         return 1
 
     print("ok")
-    for r in rows:
-        print(f"log_id={r[0]} provider_id={r[1]} resp_len={r[2]} resp_preview={r[3]}")
+    for x in items[:2]:
+        preview = (x.get("response_content") or "")[:120]
+        print(f"log_id={x.get('id')} provider_id={x.get('provider_id')} resp_len={len(x.get('response_content') or '')} resp_preview={preview}")
 
     return 0
 

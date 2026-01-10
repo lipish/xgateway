@@ -8,7 +8,6 @@ import argparse
 import statistics
 from typing import Any, Dict, List, Optional
 import os
-import sqlite3
 
 BASE_URL = "http://127.0.0.1:3000"
 ENDPOINT = f"{BASE_URL}/v1/chat/completions"
@@ -105,6 +104,7 @@ def do_request(provider: Dict[str, Any], headers: Dict[str, str], messages: List
             "latency": latency,
         }
 
+
 def user_chat_task(user_id, provider, requests_per_provider, multi_turn_ratio, timeout_s):
     headers = {
         "Authorization": f"Bearer {API_KEY}",
@@ -130,6 +130,7 @@ def user_chat_task(user_id, provider, requests_per_provider, multi_turn_ratio, t
         with results_lock:
             results.append(row)
 
+
 def main():
     global BASE_URL, ENDPOINT, API_KEY, PROVIDERS
 
@@ -137,7 +138,6 @@ def main():
     parser.add_argument("--base-url", default=BASE_URL)
     parser.add_argument("--api-key", default=API_KEY)
     parser.add_argument("--provider-ids", default="")
-    parser.add_argument("--db-path", default="data/llm_link.db")
     parser.add_argument("--requests-per-provider", type=int, default=10)
     parser.add_argument("--users", type=int, default=3)
     parser.add_argument("--timeout", type=int, default=30)
@@ -148,17 +148,19 @@ def main():
     ENDPOINT = f"{BASE_URL}/v1/chat/completions"
     API_KEY = args.api_key
 
-    # Try to load providers from sqlite DB for accurate names
+    # Try to load providers from admin API for accurate names
     try:
-        db_path = args.db_path
-        if db_path and os.path.exists(db_path):
-            conn = sqlite3.connect(db_path)
-            cur = conn.cursor()
-            cur.execute("select id, name from providers order by id")
-            rows = cur.fetchall()
-            conn.close()
-            if rows:
-                PROVIDERS = [{"id": int(r[0]), "name": str(r[1])} for r in rows]
+        r = requests.get(f"{BASE_URL}/api/instances", timeout=10)
+        if r.status_code == 200:
+            j = r.json()
+            if isinstance(j, dict) and j.get("success") and isinstance(j.get("data"), list):
+                rows = j.get("data")
+                providers = []
+                for item in rows:
+                    if isinstance(item, dict) and "id" in item and "name" in item:
+                        providers.append({"id": int(item["id"]), "name": str(item["name"])})
+                if providers:
+                    PROVIDERS = providers
     except Exception:
         # Fallback to static PROVIDERS
         pass
