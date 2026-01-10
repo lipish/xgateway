@@ -7,13 +7,15 @@ import sys
 import argparse
 import statistics
 from typing import Any, Dict, List, Optional
+import os
+import sqlite3
 
 BASE_URL = "http://127.0.0.1:3000"
 ENDPOINT = f"{BASE_URL}/v1/chat/completions"
 # Using the test API key
 API_KEY = ""
 
-# Providers found in the database
+# Fallback providers list (only used when DB cannot be read)
 PROVIDERS = [
     {"id": 1, "name": "deepseek"},
     {"id": 2, "name": "seed-1.6"},
@@ -135,6 +137,7 @@ def main():
     parser.add_argument("--base-url", default=BASE_URL)
     parser.add_argument("--api-key", default=API_KEY)
     parser.add_argument("--provider-ids", default="")
+    parser.add_argument("--db-path", default="data/llm_link.db")
     parser.add_argument("--requests-per-provider", type=int, default=10)
     parser.add_argument("--users", type=int, default=3)
     parser.add_argument("--timeout", type=int, default=30)
@@ -144,6 +147,21 @@ def main():
     BASE_URL = args.base_url
     ENDPOINT = f"{BASE_URL}/v1/chat/completions"
     API_KEY = args.api_key
+
+    # Try to load providers from sqlite DB for accurate names
+    try:
+        db_path = args.db_path
+        if db_path and os.path.exists(db_path):
+            conn = sqlite3.connect(db_path)
+            cur = conn.cursor()
+            cur.execute("select id, name from providers order by id")
+            rows = cur.fetchall()
+            conn.close()
+            if rows:
+                PROVIDERS = [{"id": int(r[0]), "name": str(r[1])} for r in rows]
+    except Exception:
+        # Fallback to static PROVIDERS
+        pass
 
     if args.provider_ids.strip():
         ids = [int(x.strip()) for x in args.provider_ids.split(",") if x.strip()]

@@ -114,13 +114,70 @@ pub fn extract_stream_content(chunk: &[u8], collected: &Arc<Mutex<String>>) {
 }
 
 pub fn extract_response_content(resp_body: &serde_json::Value) -> Option<String> {
-    resp_body.get("choices")
+    let choice0 = resp_body
+        .get("choices")
         .and_then(|c| c.as_array())
-        .and_then(|arr| arr.first())
+        .and_then(|arr| arr.first());
+
+    fn value_to_text(v: &serde_json::Value) -> Option<String> {
+        if let Some(s) = v.as_str() {
+            let s = s.trim();
+            return if s.is_empty() { None } else { Some(s.to_string()) };
+        }
+
+        // Some providers use rich content blocks: [{"type":"text","text":"..."}, ...]
+        if let Some(arr) = v.as_array() {
+            let parts: Vec<String> = arr
+                .iter()
+                .filter_map(|item| {
+                    item.get("text")
+                        .and_then(|t| t.as_str())
+                        .map(|s| s.trim().to_string())
+                        .filter(|s| !s.is_empty())
+                })
+                .collect();
+            if !parts.is_empty() {
+                return Some(parts.join("\n"));
+            }
+        }
+
+        // Sometimes content is an object with text
+        if let Some(obj) = v.as_object() {
+            if let Some(t) = obj.get("text").and_then(|t| t.as_str()) {
+                let t = t.trim();
+                return if t.is_empty() { None } else { Some(t.to_string()) };
+            }
+        }
+
+        None
+    }
+
+    // OpenAI compatible: choices[0].message.content
+    let content = choice0
         .and_then(|c| c.get("message"))
         .and_then(|m| m.get("content"))
-        .and_then(|c| c.as_str())
-        .map(|s| s.to_string())
+        .and_then(value_to_text)
+        .or_else(|| {
+            // Some providers: choices[0].delta.content (non-stream edge cases)
+            choice0
+                .and_then(|c| c.get("delta"))
+                .and_then(|d| d.get("content"))
+                .and_then(value_to_text)
+        })
+        .or_else(|| {
+            // Some SDKs: choices[0].text
+            choice0
+                .and_then(|c| c.get("text"))
+                .and_then(value_to_text)
+        })
+        .or_else(|| {
+            // Fallback: choices[0].content
+            choice0
+                .and_then(|c| c.get("content"))
+                .and_then(value_to_text)
+        });
+
+    content
 }
 
 pub fn extract_tokens_used(resp_body: &serde_json::Value) -> i64 {
