@@ -22,7 +22,7 @@ impl DatabasePool {
     pub async fn get_user_by_username(&self, username: &str) -> Result<Option<User>> {
         match self {
             Self::Postgres(pool) => {
-                Ok(sqlx::query_as::<_, User>("SELECT id, username, password_hash, role_id, status, created_at, updated_at FROM users WHERE username = $1")
+                Ok(sqlx::query_as::<_, User>("SELECT id, username, password_hash, role_id, status, (created_at AT TIME ZONE 'UTC') as created_at, (updated_at AT TIME ZONE 'UTC') as updated_at FROM users WHERE username = $1")
                     .bind(username)
                     .fetch_optional(pool)
                     .await?)
@@ -31,7 +31,7 @@ impl DatabasePool {
     }
 
     pub async fn list_users(&self) -> Result<Vec<User>> {
-        let query = "SELECT id, username, password_hash, role_id, status, created_at, updated_at FROM users ORDER BY created_at DESC";
+        let query = "SELECT id, username, password_hash, role_id, status, (created_at AT TIME ZONE 'UTC') as created_at, (updated_at AT TIME ZONE 'UTC') as updated_at FROM users ORDER BY created_at DESC";
         match self {
             Self::Postgres(pool) => Ok(sqlx::query_as::<_, User>(query).fetch_all(pool).await?),
         }

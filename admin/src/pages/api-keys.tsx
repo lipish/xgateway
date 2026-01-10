@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { t } from "@/lib/i18n"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Trash2, Copy, Shield, MoreHorizontal, Loader2 } from "lucide-react"
+import { Plus, Trash2, Copy, Shield, Loader2 } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Select } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+ 
 
 interface ApiKey {
   id: number
@@ -84,15 +84,22 @@ export function ApiKeysPage() {
     try {
       setLoading(true)
       const response = await fetch('/api/api-keys')
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          console.log('API Keys Response:', data.data)
-          setApiKeys(data.data || [])
-        }
+      if (!response.ok) {
+        setError(`Failed to fetch API keys: ${response.status} ${response.statusText}`)
+        setApiKeys([])
+        return
+      }
+      const data = await response.json()
+      if (data.success) {
+        console.log('API Keys Response:', data.data)
+        setApiKeys(data.data || [])
+      } else {
+        setError(data.message || t('apiKeys.fetchFailed'))
+        setApiKeys([])
       }
     } catch {
-      // Failed silently
+      setError(t('common.networkError'))
+      setApiKeys([])
     } finally {
       setLoading(false)
     }
@@ -101,14 +108,21 @@ export function ApiKeysPage() {
   const fetchProviders = async () => {
     try {
       const response = await fetch('/api/instances')
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          setProviders(data.data || [])
-        }
+      if (!response.ok) {
+        setError(`Failed to fetch instances: ${response.status} ${response.statusText}`)
+        setProviders([])
+        return
+      }
+      const data = await response.json()
+      if (data.success) {
+        setProviders(data.data || [])
+      } else {
+        setError(data.message || t('common.networkError'))
+        setProviders([])
       }
     } catch {
-      // Failed silently
+      setError(t('common.networkError'))
+      setProviders([])
     }
   }
 
@@ -347,8 +361,8 @@ export function ApiKeysPage() {
         </Dialog>
 
 
-          <div className="flex gap-6 flex-1 min-h-0">
-            <Card className="w-[520px] shrink-0 h-full flex flex-col">
+          <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
+            <Card className="w-full lg:w-[520px] shrink-0 h-full flex flex-col">
               <CardContent className="flex-1 h-full overflow-y-auto p-6">
                 {loading ? (
                   <div className="flex flex-col gap-4">
@@ -370,6 +384,7 @@ export function ApiKeysPage() {
                         <TableHead>{t('apiKeys.scope')}</TableHead>
                         <TableHead>{t('apiKeys.provider')}</TableHead>
                         <TableHead>{t('apiKeys.created')}</TableHead>
+                        <TableHead className="w-[80px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -403,6 +418,20 @@ export function ApiKeysPage() {
                             </TableCell>
                             <TableCell className="text-xs text-muted-foreground">
                               {new Date(key.created_at).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setApiKeyToDelete(key.id)
+                                }}
+                                aria-label={t('common.delete')}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         )
@@ -451,28 +480,6 @@ export function ApiKeysPage() {
                             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                           )}
                         </div>
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              disabled={statusUpdatingId === selectedApiKey.id}
-                              aria-label={t('apiKeys.actions')}
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onSelect={() => setApiKeyToDelete(selectedApiKey.id)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              {t('common.delete')}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
                       </div>
                     </div>
 

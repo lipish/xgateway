@@ -30,7 +30,7 @@ impl DatabasePool {
     }
 
     pub async fn get_api_key_by_hash(&self, key_hash: &str) -> Result<Option<ApiKey>> {
-        let pg_query = "SELECT id, owner_id, key_hash, name, scope, provider_id, provider_ids, qps_limit, concurrency_limit, status, expires_at, created_at, updated_at FROM api_keys WHERE key_hash = $1 AND status = 'active'";
+        let pg_query = "SELECT id, owner_id, key_hash, name, scope, provider_id, provider_ids, qps_limit, concurrency_limit, status, (expires_at AT TIME ZONE 'UTC') as expires_at, (created_at AT TIME ZONE 'UTC') as created_at, (updated_at AT TIME ZONE 'UTC') as updated_at FROM api_keys WHERE key_hash = $1 AND status = 'active'";
 
         match self {
             Self::Postgres(pool) => {
@@ -43,14 +43,14 @@ impl DatabasePool {
     }
 
     pub async fn list_api_keys(&self) -> Result<Vec<ApiKey>> {
-        let query = "SELECT id, owner_id, key_hash, name, scope, provider_id, provider_ids, qps_limit, concurrency_limit, status, expires_at, created_at, updated_at FROM api_keys ORDER BY created_at DESC";
+        let query = "SELECT id, owner_id, key_hash, name, scope, provider_id, provider_ids, qps_limit, concurrency_limit, status, (expires_at AT TIME ZONE 'UTC') as expires_at, (created_at AT TIME ZONE 'UTC') as created_at, (updated_at AT TIME ZONE 'UTC') as updated_at FROM api_keys ORDER BY created_at DESC";
         match self {
             Self::Postgres(pool) => Ok(sqlx::query_as::<_, ApiKey>(query).fetch_all(pool).await?),
         }
     }
 
     pub async fn get_api_key_by_id(&self, id: i32) -> Result<Option<ApiKey>> {
-        let pg_query = "SELECT id, owner_id, key_hash, name, scope, provider_id, provider_ids, qps_limit, concurrency_limit, status, expires_at, created_at, updated_at FROM api_keys WHERE id = $1";
+        let pg_query = "SELECT id, owner_id, key_hash, name, scope, provider_id, provider_ids, qps_limit, concurrency_limit, status, (expires_at AT TIME ZONE 'UTC') as expires_at, (created_at AT TIME ZONE 'UTC') as created_at, (updated_at AT TIME ZONE 'UTC') as updated_at FROM api_keys WHERE id = $1";
         match self {
             Self::Postgres(pool) => Ok(sqlx::query_as::<_, ApiKey>(pg_query).bind(id).fetch_optional(pool).await?),
         }

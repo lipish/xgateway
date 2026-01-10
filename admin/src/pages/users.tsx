@@ -48,18 +48,26 @@ export function UsersPage() {
         fetchProviders()
     }, [])
 
-    const fetchUsers = async () => {
+    const fetchUsers = async (): Promise<User[]> => {
         try {
             setLoading(true)
             const response = await fetch('/api/users')
-            if (response.ok) {
-                const data = await response.json()
-                if (data.success) {
-                    setUsers(data.data || [])
-                }
+            if (!response.ok) {
+                setError(`Failed to fetch users: ${response.status} ${response.statusText}`)
+                return []
             }
+            const data = await response.json()
+            if (!data.success) {
+                setError(data.message || 'Failed to fetch users')
+                return []
+            }
+            const list: User[] = data.data || []
+            setUsers(list)
+            return list
         } catch (err) {
             console.error('Failed to fetch users:', err)
+            setError(t('common.networkError'))
+            return []
         } finally {
             setLoading(false)
         }
@@ -68,28 +76,38 @@ export function UsersPage() {
     const fetchProviders = async () => {
         try {
             const response = await fetch('/api/instances')
-            if (response.ok) {
-                const data = await response.json()
-                if (data.success) {
-                    setProviders(data.data || [])
-                }
+            if (!response.ok) {
+                setError(`Failed to fetch providers: ${response.status} ${response.statusText}`)
+                return
             }
+            const data = await response.json()
+            if (!data.success) {
+                setError(data.message || 'Failed to fetch providers')
+                return
+            }
+            setProviders(data.data || [])
         } catch (err) {
             console.error('Failed to fetch providers:', err)
+            setError(t('common.networkError'))
         }
     }
 
     const fetchUserInstances = async (userId: number) => {
         try {
             const response = await fetch(`/api/users/${userId}/instances`)
-            if (response.ok) {
-                const data = await response.json()
-                if (data.success) {
-                    setUserInstances(data.data || [])
-                }
+            if (!response.ok) {
+                setError(`Failed to fetch user instances: ${response.status} ${response.statusText}`)
+                return
             }
+            const data = await response.json()
+            if (!data.success) {
+                setError(data.message || 'Failed to fetch user instances')
+                return
+            }
+            setUserInstances(data.data || [])
         } catch (err) {
             console.error('Failed to fetch user instances:', err)
+            setError(t('common.networkError'))
         }
     }
 
@@ -112,12 +130,14 @@ export function UsersPage() {
             if (data.success) {
                 setShowCreateDialog(false)
                 setNewUser({ username: '', password: '', role_id: 'user' })
-                await fetchUsers()
-                // Select the newly created user
-                if (data.data && data.data.id) {
-                    const newUser = users.find(u => u.id === data.data.id) || data.data
-                    setSelectedUser(newUser)
-                    fetchUserInstances(newUser.id)
+                const createdUserId: number | null = typeof data.data === 'number' ? data.data : null
+                const updatedUsers = await fetchUsers()
+                if (createdUserId != null) {
+                    const createdUser = updatedUsers.find(u => u.id === createdUserId) || null
+                    if (createdUser) {
+                        setSelectedUser(createdUser)
+                        fetchUserInstances(createdUser.id)
+                    }
                 }
             } else {
                 setError(data.message || 'Failed to create user')

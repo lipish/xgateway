@@ -21,6 +21,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 修复部分 Admin API 在 PostgreSQL 下的类型/聚合解码问题（例如 `/api/logs`、`/api/instances`、`/api/logs/performance`）。
 
+## [0.11.1] - 2026-01-10
+
+### 🐛 Fixed
+
+- 修复 `/api/api-keys`、`/api/users` 在 PostgreSQL 下因 `TIMESTAMP` 与 `TIMESTAMPTZ` 类型不匹配导致列表接口解码失败的问题。
+
+### 🎛️ Admin
+
+- API Keys 页面改为响应式布局（大屏左右分栏，小屏上下堆叠）。
+- API Keys 删除入口从右侧详情移到左侧列表行内。
+- 启用状态徽标（success badge）提升文字对比度。
+- 用户创建后刷新/选中逻辑修复（后端返回值为数字 id）。
+
 ## [0.6.0] - 2025-11-29
 
 ### 💥 Breaking Changes
