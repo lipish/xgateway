@@ -8,12 +8,11 @@
 -- Seed Zhipu provider type with latest models from Zhipu AI
 -- Based on https://docs.z.ai/guides/overview/pricing
 
-INSERT OR REPLACE INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order, docs_url)
+INSERT INTO provider_types (id, label, base_url, models, enabled, sort_order, docs_url)
 VALUES (
     'zhipu',
     'Zhipu AI',
     'https://open.bigmodel.cn/api/paas/v4',
-    'glm-4.7',
     '[
         {
             "id": "glm-4.7",
@@ -127,4 +126,11 @@ VALUES (
     true,
     17,
     'https://docs.z.ai/guides/overview/pricing'
-);
+)
+ON CONFLICT (id) DO UPDATE SET
+    label = EXCLUDED.label,
+    base_url = EXCLUDED.base_url,
+    models = EXCLUDED.models,
+    enabled = EXCLUDED.enabled,
+    sort_order = EXCLUDED.sort_order,
+    docs_url = EXCLUDED.docs_url;

@@ -8,12 +8,11 @@
 -- Seed Moonshot provider type with latest models from Moonshot AI
 -- Based on publicly available information about Moonshot AI models
 
-INSERT OR REPLACE INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order, docs_url)
+INSERT INTO provider_types (id, label, base_url, models, enabled, sort_order, docs_url)
 VALUES (
     'moonshot',
     'Moonshot AI',
     'https://api.moonshot.cn/v1',
-    'kimi-k2-turbo-preview',
     '[
         {
             "id": "kimi-k2-0905-preview",
@@ -100,4 +99,11 @@ VALUES (
     true,
     13,
     'https://platform.moonshot.cn/docs/pricing/chat'
-);
+)
+ON CONFLICT (id) DO UPDATE SET
+    label = EXCLUDED.label,
+    base_url = EXCLUDED.base_url,
+    models = EXCLUDED.models,
+    enabled = EXCLUDED.enabled,
+    sort_order = EXCLUDED.sort_order,
+    docs_url = EXCLUDED.docs_url;

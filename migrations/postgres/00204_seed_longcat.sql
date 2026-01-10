@@ -8,12 +8,11 @@
 -- Seed Longcat provider type with latest models from LongCat API
 -- Based on https://longcat.chat/platform/docs/zh/
 
-INSERT OR REPLACE INTO provider_types (id, label, base_url, default_model, models, enabled, sort_order, docs_url)
+INSERT INTO provider_types (id, label, base_url, models, enabled, sort_order, docs_url)
 VALUES (
     'longcat',
     'LongCat',
     'https://api.longcat.chat/openai/v1',
-    'LongCat-Flash-Chat',
     '[
         {
             "id": "LongCat-Flash-Chat",
@@ -37,4 +36,11 @@ VALUES (
     true,
     14,
     'https://longcat.chat/platform/docs/zh/'
-);
+)
+ON CONFLICT (id) DO UPDATE SET
+    label = EXCLUDED.label,
+    base_url = EXCLUDED.base_url,
+    models = EXCLUDED.models,
+    enabled = EXCLUDED.enabled,
+    sort_order = EXCLUDED.sort_order,
+    docs_url = EXCLUDED.docs_url;
