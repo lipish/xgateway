@@ -36,27 +36,14 @@ impl DatabasePool {
     
     pub async fn create_request_log(&self, log: NewRequestLog) -> Result<RequestLog> {
         match self {
-            Self::Sqlite(pool) => {
-                let result = sqlx::query(
-                    r#"INSERT INTO request_logs (provider_id, provider_name, model, status, latency_ms, tokens_used, error_message, request_type, request_content, response_content)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#
-                )
-                .bind(log.provider_id).bind(&log.provider_name).bind(&log.model).bind(&log.status)
-                .bind(log.latency_ms).bind(log.tokens_used).bind(&log.error_message).bind(&log.request_type)
-                .bind(&log.request_content).bind(&log.response_content)
-                .execute(pool).await?;
-                let id = result.last_insert_rowid();
-                Ok(sqlx::query_as::<_, RequestLog>(
-                    r#"SELECT id, provider_id, provider_name, model, status, latency_ms, tokens_used,
-                       error_message, request_type, request_content, response_content, created_at
-                       FROM request_logs WHERE id = ?"#
-                ).bind(id).fetch_one(pool).await?)
-            }
             Self::Postgres(pool) => {
                 let row = sqlx::query(
-                    r#"INSERT INTO request_logs (provider_id, provider_name, model, status, latency_ms, tokens_used, error_message, request_type, request_content, response_content)
+                    r#"
+                    INSERT INTO request_logs (provider_id, provider_name, model, status, latency_ms, tokens_used, error_message, request_type, request_content, response_content)
                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                       RETURNING id, provider_id, provider_name, model, status, latency_ms, tokens_used, error_message, request_type, request_content, response_content, created_at"#
+                       RETURNING id::BIGINT as id, provider_id::BIGINT as provider_id, provider_name, model, status,
+                                 latency_ms::BIGINT as latency_ms, tokens_used::BIGINT as tokens_used,
+                                 error_message, request_type, request_content, response_content, created_at"#
                 )
                 .bind(log.provider_id).bind(&log.provider_name).bind(&log.model).bind(&log.status)
                 .bind(log.latency_ms).bind(log.tokens_used).bind(&log.error_message).bind(&log.request_type)
@@ -82,31 +69,18 @@ impl DatabasePool {
 
     pub async fn list_request_logs(&self, limit: i64, offset: i64, status_filter: Option<&str>) -> Result<Vec<RequestLog>> {
         match self {
-            Self::Sqlite(pool) => {
-                if let Some(status) = status_filter {
-                    Ok(sqlx::query_as::<_, RequestLog>(
-                        r#"SELECT id, provider_id, provider_name, model, status, latency_ms, tokens_used, 
-                           error_message, request_type, request_content, response_content, created_at
-                           FROM request_logs WHERE status = ? ORDER BY created_at DESC LIMIT ? OFFSET ?"#
-                    ).bind(status).bind(limit).bind(offset).fetch_all(pool).await?)
-                } else {
-                    Ok(sqlx::query_as::<_, RequestLog>(
-                        r#"SELECT id, provider_id, provider_name, model, status, latency_ms, tokens_used, 
-                           error_message, request_type, request_content, response_content, created_at
-                           FROM request_logs ORDER BY created_at DESC LIMIT ? OFFSET ?"#
-                    ).bind(limit).bind(offset).fetch_all(pool).await?)
-                }
-            }
             Self::Postgres(pool) => {
                 if let Some(status) = status_filter {
                     Ok(sqlx::query_as::<_, RequestLog>(
-                        r#"SELECT id, provider_id, provider_name, model, status, latency_ms, tokens_used, 
+                        r#"SELECT id::BIGINT as id, provider_id::BIGINT as provider_id, provider_name, model, status,
+                           latency_ms::BIGINT as latency_ms, tokens_used::BIGINT as tokens_used,
                            error_message, request_type, request_content, response_content, created_at
                            FROM request_logs WHERE status = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3"#
                     ).bind(status).bind(limit).bind(offset).fetch_all(pool).await?)
                 } else {
                     Ok(sqlx::query_as::<_, RequestLog>(
-                        r#"SELECT id, provider_id, provider_name, model, status, latency_ms, tokens_used, 
+                        r#"SELECT id::BIGINT as id, provider_id::BIGINT as provider_id, provider_name, model, status,
+                           latency_ms::BIGINT as latency_ms, tokens_used::BIGINT as tokens_used,
                            error_message, request_type, request_content, response_content, created_at
                            FROM request_logs ORDER BY created_at DESC LIMIT $1 OFFSET $2"#
                     ).bind(limit).bind(offset).fetch_all(pool).await?)
@@ -118,16 +92,10 @@ impl DatabasePool {
     #[allow(dead_code)]
     pub async fn get_request_log(&self, id: i64) -> Result<Option<RequestLog>> {
         match self {
-            Self::Sqlite(pool) => {
-                Ok(sqlx::query_as::<_, RequestLog>(
-                    r#"SELECT id, provider_id, provider_name, model, status, latency_ms, tokens_used,
-                       error_message, request_type, request_content, response_content, created_at
-                       FROM request_logs WHERE id = ?"#
-                ).bind(id).fetch_optional(pool).await?)
-            }
             Self::Postgres(pool) => {
                 Ok(sqlx::query_as::<_, RequestLog>(
-                    r#"SELECT id, provider_id, provider_name, model, status, latency_ms, tokens_used,
+                    r#"SELECT id::BIGINT as id, provider_id::BIGINT as provider_id, provider_name, model, status,
+                       latency_ms::BIGINT as latency_ms, tokens_used::BIGINT as tokens_used,
                        error_message, request_type, request_content, response_content, created_at
                        FROM request_logs WHERE id = $1"#
                 ).bind(id).fetch_optional(pool).await?)
@@ -138,28 +106,6 @@ impl DatabasePool {
     /// Get hourly request counts for the last 24 hours
     pub async fn get_hourly_request_counts(&self) -> Result<Vec<HourlyRequestCount>> {
         match self {
-            Self::Sqlite(pool) => {
-                let rows = sqlx::query(
-                    r#"
-                    SELECT 
-                        strftime('%H:00', created_at) as hour,
-                        COUNT(*) as requests
-                    FROM request_logs 
-                    WHERE created_at >= datetime('now', '-24 hours')
-                    GROUP BY strftime('%H:00', created_at)
-                    ORDER BY hour
-                    "#
-                ).fetch_all(pool).await?;
-
-                let mut counts = Vec::new();
-                for row in rows {
-                    counts.push(HourlyRequestCount {
-                        hour: row.get("hour"),
-                        requests: row.get("requests"),
-                    });
-                }
-                Ok(counts)
-            }
             Self::Postgres(pool) => {
                 let rows = sqlx::query(
                     r#"
@@ -190,29 +136,6 @@ impl DatabasePool {
     /// Providers without requests won't appear in the latency distribution
     pub async fn get_provider_latencies(&self) -> Result<Vec<ProviderLatency>> {
         match self {
-            Self::Sqlite(pool) => {
-                let rows = sqlx::query(
-                    r#"
-                    SELECT 
-                        provider_name,
-                        AVG(latency_ms) as avg_latency_ms
-                    FROM request_logs 
-                    WHERE status = 'success' AND created_at >= datetime('now', '-24 hours')
-                    GROUP BY provider_name
-                    ORDER BY avg_latency_ms DESC
-                    LIMIT 10
-                    "#
-                ).fetch_all(pool).await?;
-
-                let mut latencies = Vec::new();
-                for row in rows {
-                    latencies.push(ProviderLatency {
-                        provider_name: row.get("provider_name"),
-                        avg_latency_ms: row.get("avg_latency_ms"),
-                    });
-                }
-                Ok(latencies)
-            }
             Self::Postgres(pool) => {
                 let rows = sqlx::query(
                     r#"
@@ -242,22 +165,6 @@ impl DatabasePool {
     /// Get today's total requests and average latency (last 24 hours)
     pub async fn get_today_stats(&self) -> Result<TodayStats> {
         match self {
-            Self::Sqlite(pool) => {
-                let row = sqlx::query(
-                    r#"
-                    SELECT 
-                        COUNT(*) as total_requests,
-                        AVG(CASE WHEN status = 'success' THEN latency_ms END) as avg_latency_ms
-                    FROM request_logs 
-                    WHERE created_at >= datetime('now', '-24 hours')
-                    "#
-                ).fetch_one(pool).await?;
-
-                Ok(TodayStats {
-                    total_requests: row.get("total_requests"),
-                    avg_latency_ms: row.get::<Option<f64>, _>("avg_latency_ms").unwrap_or(0.0),
-                })
-            }
             Self::Postgres(pool) => {
                 let row = sqlx::query(
                     r#"
@@ -280,55 +187,23 @@ impl DatabasePool {
     /// Get performance stats for the last 24 hours
     pub async fn get_performance_stats(&self) -> Result<PerformanceStats> {
         match self {
-            Self::Sqlite(pool) => {
-                let row = sqlx::query(
-                    r#"
-                    SELECT 
-                        COUNT(*) as total_requests,
-                        SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful_requests,
-                        SUM(CASE WHEN status != 'success' THEN 1 ELSE 0 END) as failed_requests,
-                        SUM(CASE WHEN status = 'success' THEN tokens_used ELSE 0 END) as tokens_used,
-                        AVG(CASE WHEN status = 'success' THEN latency_ms ELSE NULL END) as avg_response_time,
-                        CASE 
-                            WHEN COUNT(*) > 0 THEN (SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) * 100.0 / COUNT(*))
-                            ELSE 0.0 
-                        END as success_rate,
-                        CASE 
-                            WHEN COUNT(*) > 0 AND (julianday('now') - julianday(MIN(created_at))) * 24 * 3600 > 0 
-                            THEN COUNT(*) / ((julianday('now') - julianday(MIN(created_at))) * 24 * 3600)
-                            ELSE 0.0 
-                        END as qps
-                    FROM request_logs 
-                    WHERE created_at >= datetime('now', '-24 hours')
-                    "#
-                ).fetch_one(pool).await?;
-
-                Ok(PerformanceStats {
-                    success_rate: row.get("success_rate"),
-                    requests_today: row.get("total_requests"),
-                    tokens_used: row.get::<Option<i64>, _>("tokens_used").unwrap_or(0),
-                    failed_requests: row.get("failed_requests"),
-                    avg_response_time: row.get::<Option<f64>, _>("avg_response_time").unwrap_or(0.0),
-                    qps: row.get::<Option<f64>, _>("qps").unwrap_or(0.0),
-                })
-            }
             Self::Postgres(pool) => {
                 let row = sqlx::query(
                     r#"
                     SELECT 
                         COUNT(*) as total_requests,
-                        SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful_requests,
-                        SUM(CASE WHEN status != 'success' THEN 1 ELSE 0 END) as failed_requests,
-                        SUM(CASE WHEN status = 'success' THEN tokens_used ELSE 0 END) as tokens_used,
-                        AVG(CASE WHEN status = 'success' THEN latency_ms ELSE NULL END) as avg_response_time,
+                        COALESCE(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END), 0)::BIGINT as successful_requests,
+                        COALESCE(SUM(CASE WHEN status != 'success' THEN 1 ELSE 0 END), 0)::BIGINT as failed_requests,
+                        COALESCE(SUM(CASE WHEN status = 'success' THEN tokens_used ELSE 0 END), 0)::BIGINT as tokens_used,
+                        COALESCE(AVG(CASE WHEN status = 'success' THEN latency_ms ELSE NULL END), 0)::DOUBLE PRECISION as avg_response_time,
                         CASE 
-                            WHEN COUNT(*) > 0 THEN (SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) * 100.0 / COUNT(*))
-                            ELSE 0.0 
+                            WHEN COUNT(*) > 0 THEN ((SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END))::DOUBLE PRECISION * 100.0 / (COUNT(*))::DOUBLE PRECISION)
+                            ELSE 0.0::DOUBLE PRECISION
                         END as success_rate,
                         CASE 
                             WHEN COUNT(*) > 0 AND EXTRACT(EPOCH FROM (NOW() - MIN(created_at))) > 0 
-                            THEN COUNT(*) / EXTRACT(EPOCH FROM (NOW() - MIN(created_at)))
-                            ELSE 0.0 
+                            THEN (COUNT(*))::DOUBLE PRECISION / EXTRACT(EPOCH FROM (NOW() - MIN(created_at)))
+                            ELSE 0.0::DOUBLE PRECISION
                         END as qps
                     FROM request_logs 
                     WHERE created_at >= NOW() - INTERVAL '24 hours'
@@ -338,10 +213,10 @@ impl DatabasePool {
                 Ok(PerformanceStats {
                     success_rate: row.get("success_rate"),
                     requests_today: row.get("total_requests"),
-                    tokens_used: row.get::<Option<i64>, _>("tokens_used").unwrap_or(0),
-                    failed_requests: row.get("failed_requests"),
-                    avg_response_time: row.get::<Option<f64>, _>("avg_response_time").unwrap_or(0.0),
-                    qps: row.get::<Option<f64>, _>("qps").unwrap_or(0.0),
+                    tokens_used: row.get::<i64, _>("tokens_used"),
+                    failed_requests: row.get::<i64, _>("failed_requests"),
+                    avg_response_time: row.get::<f64, _>("avg_response_time"),
+                    qps: row.get::<f64, _>("qps"),
                 })
             }
         }

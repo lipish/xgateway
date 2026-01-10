@@ -56,8 +56,8 @@ tokio-stream = "0.1"
 futures-util = "0.3"
 once_cell = "1.19"
 
-# Database (multi-database support: SQLite and PostgreSQL)
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "sqlite", "postgres", "migrate", "chrono", "uuid"] }
+# Database (multi-database support: PostgreSQL)
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "migrate", "chrono", "uuid"] }
 
 # Additional utilities for multi-mode
 url = "2.4"

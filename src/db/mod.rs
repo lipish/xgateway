@@ -5,4 +5,4 @@ pub mod init;
 
 pub use models::*;
 pub use pool::DatabasePool;
-pub use init::{try_database, test_in_memory_database};
+pub use init::try_database;
