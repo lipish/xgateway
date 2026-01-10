@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-01-10
+
+### 💥 Breaking Changes
+
+- 移除 SQLite 支持，数据库仅支持 PostgreSQL（必须设置 `DATABASE_URL`，且为 `postgres://` 或 `postgresql://`）。
+- 删除 `migrations/sqlite/`，仅保留 `migrations/postgres/`。
+
+### 🧹 Cleanup
+
+- 数据库层收敛为 Postgres：移除 `SqlitePool`/SQLite 初始化与分支逻辑。
+- 更新测试脚本，避免直接读取 SQLite 文件，改为通过 Admin API 获取 providers/logs。
+
+### 🐛 Fixed
+
+- 修复部分 Admin API 在 PostgreSQL 下的类型/聚合解码问题（例如 `/api/logs`、`/api/instances`、`/api/logs/performance`）。
+
 ## [0.6.0] - 2025-11-29
 
 ### 💥 Breaking Changes
