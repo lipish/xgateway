@@ -102,7 +102,11 @@ async fn run_multi_mode(args: Args) -> Result<()> {
         config,
     );
 
-    let port = args.port.unwrap_or(3000);
+    let port = std::env::var("PORT")
+        .ok()
+        .and_then(|s| s.parse::<u16>().ok())
+        .or(args.port)
+        .unwrap_or(3000);
     let bind_addr = format!("0.0.0.0:{}", port);
 
     info!("LLM Link unified service starting on http://localhost:{}", port);
