@@ -4,13 +4,15 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { t } from "@/lib/i18n"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Trash2, Copy, Key, Shield, Globe, Zap } from "lucide-react"
+import { Plus, Trash2, Copy, Shield, MoreHorizontal, Loader2 } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Select } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 interface ApiKey {
   id: number
@@ -38,6 +40,7 @@ export function ApiKeysPage() {
   const [providers, setProviders] = useState<Provider[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedApiKeyId, setSelectedApiKeyId] = useState<number | null>(null)
+  const [statusUpdatingId, setStatusUpdatingId] = useState<number | null>(null)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [dialogKey, setDialogKey] = useState(0)
   const [newKeyData, setNewKeyData] = useState({
@@ -58,7 +61,11 @@ export function ApiKeysPage() {
   }, [])
 
   useEffect(() => {
-    if (!selectedApiKeyId && apiKeys.length > 0) {
+    if (apiKeys.length === 0) {
+      setSelectedApiKeyId(null)
+      return
+    }
+    if (selectedApiKeyId == null || !apiKeys.some((k) => k.id === selectedApiKeyId)) {
       setSelectedApiKeyId(apiKeys[0].id)
     }
   }, [apiKeys, selectedApiKeyId])
@@ -133,6 +140,7 @@ export function ApiKeysPage() {
 
   const toggleApiKeyStatus = async (id: number) => {
     try {
+      setStatusUpdatingId(id)
       const response = await fetch(`/api/api-keys/${id}/toggle`, {
         method: 'POST'
       })
@@ -142,6 +150,8 @@ export function ApiKeysPage() {
       }
     } catch (err) {
       console.error('Failed to toggle API key status:', err)
+    } finally {
+      setStatusUpdatingId((current) => (current === id ? null : current))
     }
   }
 
@@ -413,7 +423,15 @@ export function ApiKeysPage() {
                   <div className="space-y-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
-                        <div className="text-lg font-semibold truncate">{selectedApiKey.name}</div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="text-lg font-semibold truncate">{selectedApiKey.name}</div>
+                          <Badge
+                            variant={selectedApiKey.status === 'active' ? 'success' : 'outline'}
+                            className="shrink-0"
+                          >
+                            {selectedApiKey.status === 'active' ? t('apiKeys.enabled') : t('apiKeys.disabled')}
+                          </Badge>
+                        </div>
                         <div className="text-sm text-muted-foreground">
                           <span className="mr-2">{t('apiKeys.scope')}:</span>
                           <Badge variant="secondary">{selectedApiKey.scope}</Badge>
@@ -421,24 +439,40 @@ export function ApiKeysPage() {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        <Badge variant={selectedApiKey.status === 'active' ? 'default' : 'secondary'}>
-                          {selectedApiKey.status === 'active' ? t('apiKeys.enabled') : t('apiKeys.disabled')}
-                        </Badge>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleApiKeyStatus(selectedApiKey.id)}
-                        >
-                          {selectedApiKey.status === 'active' ? t('apiKeys.disable') : t('apiKeys.enable')}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setApiKeyToDelete(selectedApiKey.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+                          <span className="text-sm text-muted-foreground">{t('apiKeys.enable')}</span>
+                          <Switch
+                            checked={selectedApiKey.status === 'active'}
+                            disabled={statusUpdatingId === selectedApiKey.id}
+                            onCheckedChange={() => toggleApiKeyStatus(selectedApiKey.id)}
+                            className={statusUpdatingId === selectedApiKey.id ? "opacity-80" : undefined}
+                          />
+                          {statusUpdatingId === selectedApiKey.id && (
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          )}
+                        </div>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={statusUpdatingId === selectedApiKey.id}
+                              aria-label={t('apiKeys.actions')}
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onSelect={() => setApiKeyToDelete(selectedApiKey.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              {t('common.delete')}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
 
