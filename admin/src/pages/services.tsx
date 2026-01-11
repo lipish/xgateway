@@ -32,6 +32,18 @@ interface Provider {
   priority?: number
 }
 
+interface ApiKey {
+  id: number
+  name: string
+  scope: string
+  service_ids?: string[] | null
+  qps_limit: number
+  concurrency_limit: number
+  status: string
+  expires_at: string | null
+  created_at: string
+}
+
 interface ApiResponse<T> {
   success: boolean
   data?: T
@@ -53,6 +65,10 @@ export function ServicesPage() {
   const [providers, setProviders] = useState<Provider[]>([])
   const [boundProviders, setBoundProviders] = useState<Provider[]>([])
 
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
+  const [apiKeyLoading, setApiKeyLoading] = useState(false)
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null)
+
   const [loading, setLoading] = useState(true)
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null)
 
@@ -65,8 +81,24 @@ export function ServicesPage() {
   const [bindingBusyId, setBindingBusyId] = useState<number | null>(null)
   const [toggleBusy, setToggleBusy] = useState(false)
 
+  const [showCreateApiKeyDialog, setShowCreateApiKeyDialog] = useState(false)
+  const [apiKeyCreateError, setApiKeyCreateError] = useState<string | null>(null)
+  const [apiKeySaving, setApiKeySaving] = useState(false)
+  const [createdApiKey, setCreatedApiKey] = useState<string | null>(null)
+  const [rotatingKeyId, setRotatingKeyId] = useState<number | null>(null)
+  const [rotatedApiKey, setRotatedApiKey] = useState<string | null>(null)
+  const [rotateError, setRotateError] = useState<string | null>(null)
+  const [apiKeyToDelete, setApiKeyToDelete] = useState<number | null>(null)
+  const [apiKeyStatusUpdatingId, setApiKeyStatusUpdatingId] = useState<number | null>(null)
+
   const [error, setError] = useState<string | null>(null)
   const [editError, setEditError] = useState<string | null>(null)
+
+  const [apiKeyCreateForm, setApiKeyCreateForm] = useState({
+    name: "",
+    qps_limit: 10,
+    concurrency_limit: 5,
+  })
 
   const [createForm, setCreateForm] = useState({
     id: "",
@@ -92,6 +124,15 @@ export function ServicesPage() {
     return new Set(boundProviders.map((p) => p.id))
   }, [boundProviders])
 
+  const apiKeysForSelectedService = useMemo(() => {
+    if (!selectedServiceId) return [] as ApiKey[]
+    return apiKeys.filter((k) => {
+      if (k.scope === 'global') return true
+      const ids = (k.service_ids || []).filter((v): v is string => typeof v === 'string' && v.length > 0)
+      return ids.includes(selectedServiceId)
+    })
+  }, [apiKeys, selectedServiceId])
+
   useEffect(() => {
     fetchAll()
   }, [])
@@ -112,6 +153,11 @@ export function ServicesPage() {
     fetchServiceModelServices(selectedServiceId)
   }, [selectedServiceId])
 
+  useEffect(() => {
+    if (!selectedServiceId) return
+    fetchApiKeys()
+  }, [selectedServiceId])
+
   const fetchAll = async () => {
     try {
       setLoading(true)
@@ -119,6 +165,129 @@ export function ServicesPage() {
       await Promise.all([fetchServices(), fetchProviders()])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchApiKeys = async () => {
+    try {
+      setApiKeyLoading(true)
+      setApiKeyError(null)
+      const resp = await fetch('/api/api-keys')
+      if (!resp.ok) {
+        setApiKeyError(`Failed to fetch API keys: ${resp.status} ${resp.statusText}`)
+        setApiKeys([])
+        return
+      }
+      const data = await resp.json()
+      if (!data.success) {
+        setApiKeyError(data.message || t('common.networkError'))
+        setApiKeys([])
+        return
+      }
+      setApiKeys(data.data || [])
+    } catch {
+      setApiKeyError(t('common.networkError'))
+      setApiKeys([])
+    } finally {
+      setApiKeyLoading(false)
+    }
+  }
+
+  const openCreateApiKey = () => {
+    setApiKeyCreateForm({ name: "", qps_limit: 10, concurrency_limit: 5 })
+    setApiKeyCreateError(null)
+    setCreatedApiKey(null)
+    setRotatedApiKey(null)
+    setRotateError(null)
+    setShowCreateApiKeyDialog(true)
+  }
+
+  const handleCreateApiKeyForService = async () => {
+    if (!selectedServiceId) return
+    try {
+      setApiKeySaving(true)
+      setApiKeyCreateError(null)
+
+      const payload = {
+        name: apiKeyCreateForm.name,
+        scope: 'instance',
+        service_ids: [selectedServiceId],
+        qps_limit: apiKeyCreateForm.qps_limit,
+        concurrency_limit: apiKeyCreateForm.concurrency_limit,
+        provider_id: null,
+        provider_ids: null,
+      }
+
+      const resp = await fetch('/api/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await resp.json()
+      if (!data.success) {
+        setApiKeyCreateError(data.message || t('common.saveFailed'))
+        return
+      }
+      setCreatedApiKey(data.data?.full_key || null)
+      await fetchApiKeys()
+    } catch {
+      setApiKeyCreateError(t('common.networkError'))
+    } finally {
+      setApiKeySaving(false)
+    }
+  }
+
+  const toggleApiKeyStatus = async (id: number) => {
+    try {
+      setApiKeyStatusUpdatingId(id)
+      const resp = await fetch(`/api/api-keys/${id}/toggle`, { method: 'POST' })
+      const data = await resp.json()
+      if (!data.success) {
+        setApiKeyError(data.message || t('common.networkError'))
+        return
+      }
+      await fetchApiKeys()
+    } catch {
+      setApiKeyError(t('common.networkError'))
+    } finally {
+      setApiKeyStatusUpdatingId((cur) => (cur === id ? null : cur))
+    }
+  }
+
+  const rotateApiKey = async (id: number) => {
+    try {
+      setRotatingKeyId(id)
+      setRotateError(null)
+      setRotatedApiKey(null)
+      const resp = await fetch(`/api/api-keys/${id}/rotate`, { method: 'POST' })
+      const data = await resp.json()
+      if (!data.success) {
+        setRotateError(data.message || t('common.networkError'))
+        return
+      }
+      setRotatedApiKey(data.data?.full_key || null)
+      await fetchApiKeys()
+    } catch {
+      setRotateError(t('common.networkError'))
+    } finally {
+      setRotatingKeyId((cur) => (cur === id ? null : cur))
+    }
+  }
+
+  const handleDeleteApiKey = async () => {
+    if (!apiKeyToDelete) return
+    try {
+      const resp = await fetch(`/api/api-keys/${apiKeyToDelete}`, { method: 'DELETE' })
+      const data = await resp.json()
+      if (!data.success) {
+        setApiKeyError(data.message || t('common.networkError'))
+        return
+      }
+      await fetchApiKeys()
+    } catch {
+      setApiKeyError(t('common.networkError'))
+    } finally {
+      setApiKeyToDelete(null)
     }
   }
 
@@ -659,6 +828,107 @@ export function ServicesPage() {
 
                       {error && <p className="text-sm text-destructive mt-3 font-medium">{error}</p>}
                     </div>
+
+                    <div className="rounded-lg border bg-background p-5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-sm font-semibold">{t('apiKeys.title')}</div>
+                        <Button size="sm" onClick={openCreateApiKey} disabled={!selectedServiceId}>
+                          <Plus className="mr-2 h-4 w-4" />
+                          {t('apiKeys.create')}
+                        </Button>
+                      </div>
+
+                      <div className="mt-3 border rounded-md overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-[220px]">{t('apiKeys.name')}</TableHead>
+                              <TableHead className="w-[120px]">{t('apiKeys.scope')}</TableHead>
+                              <TableHead className="w-[120px]">{t('apiKeys.status')}</TableHead>
+                              <TableHead className="w-[90px]">{t('apiKeys.qps')}</TableHead>
+                              <TableHead className="w-[110px]">{t('apiKeys.concurrency')}</TableHead>
+                              <TableHead className="w-[220px]">{t('apiKeys.createdAt')}</TableHead>
+                              <TableHead className="w-[200px]"></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {apiKeyLoading ? (
+                              <TableRow>
+                                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                                  <div className="inline-flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span>{t('common.loading')}</span>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ) : apiKeysForSelectedService.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                                  {t('apiKeys.noKeys')}
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              apiKeysForSelectedService.map((k) => (
+                                <TableRow key={k.id}>
+                                  <TableCell className="font-medium">{k.name}</TableCell>
+                                  <TableCell className="text-muted-foreground text-sm">
+                                    {k.scope === 'global' ? t('apiKeys.global') : t('apiKeys.instance')}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant={k.status === 'active' ? 'success' : 'outline'}>
+                                      {k.status === 'active' ? t('apiKeys.enabled') : t('apiKeys.disabled')}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>{k.qps_limit}</TableCell>
+                                  <TableCell>{k.concurrency_limit}</TableCell>
+                                  <TableCell className="text-muted-foreground text-sm">
+                                    {new Date(k.created_at).toLocaleString()}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center justify-end gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => toggleApiKeyStatus(k.id)}
+                                        disabled={apiKeyStatusUpdatingId === k.id}
+                                      >
+                                        {apiKeyStatusUpdatingId === k.id ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : k.status === 'active' ? (
+                                          t('apiKeys.disable')
+                                        ) : (
+                                          t('apiKeys.enable')
+                                        )}
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => rotateApiKey(k.id)}
+                                        disabled={rotatingKeyId === k.id}
+                                      >
+                                        {rotatingKeyId === k.id ? <Loader2 className="h-4 w-4 animate-spin" /> : t('common.refresh')}
+                                      </Button>
+                                      <Button variant="outline" size="sm" className="text-destructive" onClick={() => setApiKeyToDelete(k.id)}>
+                                        {t('common.delete')}
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      {apiKeyError && <p className="text-sm text-destructive mt-3 font-medium">{apiKeyError}</p>}
+                      {rotateError && <p className="text-sm text-destructive mt-2 font-medium">{rotateError}</p>}
+                      {rotatedApiKey && (
+                        <div className="mt-3 rounded-md border bg-muted/30 p-3">
+                          <div className="text-xs text-muted-foreground">{t('apiKeys.key')}</div>
+                          <div className="mt-1 text-sm font-mono break-all">{rotatedApiKey}</div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -675,6 +945,86 @@ export function ServicesPage() {
                 <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                 <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                   {t("common.delete")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <Dialog open={showCreateApiKeyDialog} onOpenChange={setShowCreateApiKeyDialog}>
+            <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden border">
+              <div className="p-6 space-y-5">
+                <DialogHeader className="space-y-1.5 mb-0">
+                  <DialogTitle className="text-xl font-semibold tracking-tight">{t('apiKeys.create')}</DialogTitle>
+                  <DialogDescription className="text-purple-600 font-medium pb-2">{selectedService?.name}</DialogDescription>
+                </DialogHeader>
+
+                <div className="grid gap-5 py-2">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">{t('apiKeys.name')}</Label>
+                    <Input
+                      value={apiKeyCreateForm.name}
+                      onChange={(e) => setApiKeyCreateForm({ ...apiKeyCreateForm, name: e.target.value })}
+                      placeholder={t('apiKeys.enterName')}
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div className="grid gap-4 grid-cols-2">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">{t('apiKeys.qps')}</Label>
+                      <Input
+                        type="number"
+                        value={apiKeyCreateForm.qps_limit}
+                        onChange={(e) => setApiKeyCreateForm({ ...apiKeyCreateForm, qps_limit: Number(e.target.value) })}
+                        className="h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">{t('apiKeys.concurrency')}</Label>
+                      <Input
+                        type="number"
+                        value={apiKeyCreateForm.concurrency_limit}
+                        onChange={(e) => setApiKeyCreateForm({ ...apiKeyCreateForm, concurrency_limit: Number(e.target.value) })}
+                        className="h-10"
+                      />
+                    </div>
+                  </div>
+
+                  {apiKeyCreateError && <p className="text-sm text-destructive mt-1 font-medium">{apiKeyCreateError}</p>}
+                  {createdApiKey && (
+                    <div className="rounded-md border bg-muted/30 p-3">
+                      <div className="text-xs text-muted-foreground">{t('apiKeys.saveKeyHint')}</div>
+                      <div className="mt-2 text-sm font-mono break-all">{createdApiKey}</div>
+                    </div>
+                  )}
+                </div>
+
+                <DialogFooter className="gap-2 mt-2">
+                  <Button variant="outline" onClick={() => setShowCreateApiKeyDialog(false)} className="h-10 px-10">
+                    {t('common.cancel')}
+                  </Button>
+                  <Button
+                    onClick={handleCreateApiKeyForService}
+                    disabled={apiKeySaving}
+                    className="h-10 px-10 bg-purple-600 hover:bg-purple-700 text-white border-0"
+                  >
+                    {apiKeySaving ? (t('common.saving') || t('common.save')) : t('common.save')}
+                  </Button>
+                </DialogFooter>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <AlertDialog open={apiKeyToDelete != null} onOpenChange={(open) => !open && setApiKeyToDelete(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('common.delete')}</AlertDialogTitle>
+                <AlertDialogDescription>{t('apiKeys.confirmDelete')}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteApiKey} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  {t('common.delete')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
