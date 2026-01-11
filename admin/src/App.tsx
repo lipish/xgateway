@@ -6,6 +6,7 @@ import { AnalyticsPage } from "@/pages/analytics"
 import { LogsPage } from "@/pages/logs"
 import { SettingsPage } from "@/pages/settings"
 import { ApiKeysPage } from "@/pages/api-keys"
+import { ServicesPage } from "@/pages/services"
 import { UsersPage } from "@/pages/users"
 import { HelpPage } from "@/pages/help"
 import { ChatPage } from "@/pages/chat"
@@ -38,6 +39,7 @@ function AppRoutes() {
         <Route path="logs" element={<LogsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="users" element={<UsersPage />} />
+        <Route path="services" element={<ServicesPage />} />
         <Route path="apikeys" element={<ApiKeysPage />} />
         <Route path="help" element={<HelpPage />} />
       </Route>

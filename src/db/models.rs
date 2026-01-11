@@ -17,8 +17,34 @@ pub struct Provider {
     pub secret_id: Option<String>,  // Secret ID for Tencent Cloud
     #[serde(default)]
     pub secret_key: Option<String>,  // Secret Key for Tencent Cloud
+    pub version: i64,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct Service {
+    pub id: String,
+    pub name: String,
+    pub enabled: bool,
+    pub strategy: String,
+    pub fallback_chain: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct ServiceModelService {
+    pub service_id: String,
+    pub provider_id: i64,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct ApiKeyService {
+    pub api_key_id: i64,
+    pub service_id: String,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,6 +72,8 @@ pub struct UpdateProvider {
     pub endpoint: Option<String>,
     pub secret_id: Option<String>,
     pub secret_key: Option<String>,
+    #[serde(default)]
+    pub expected_version: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -78,6 +106,7 @@ impl Provider {
             endpoint: None,
             secret_id: None,
             secret_key: None,
+            version: 0,
             created_at: now,
             updated_at: now,
         }
@@ -96,6 +125,7 @@ impl Provider {
             endpoint: new_provider.endpoint,
             secret_id: new_provider.secret_id,
             secret_key: new_provider.secret_key,
+            version: 0,
             created_at: now,
             updated_at: now,
         }

@@ -22,5 +22,5 @@ pub enum AuthStrategy {
 
 pub enum RequestResult {
     Success(axum::response::Response),
-    Failure { error: String, latency_ms: i64 },
+    Failure { error: String, #[allow(dead_code)] latency_ms: i64 },
 }

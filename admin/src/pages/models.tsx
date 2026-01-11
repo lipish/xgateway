@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { apiGet, apiPost } from "@/lib/api";
+import { apiGet, apiPost, apiPut } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -78,6 +78,8 @@ export function ProvidersPage() {
 
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
 
+  const [togglingProviderIds, setTogglingProviderIds] = useState<number[]>([]);
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingProvider, setDeletingProvider] = useState<Provider | null>(null);
 
@@ -142,24 +144,50 @@ export function ProvidersPage() {
     }
   };
 
-  const toggleProvider = async (id: number) => {
-    try {
-      const response = await fetch(`/api/instances/${id}/toggle`, { method: "POST" });
-      const result = await response.json();
+  const setProviderEnabled = async (id: number, nextEnabled: boolean) => {
+    if (togglingProviderIds.includes(id)) return;
 
-      if (result.success) {
-        setProviders(providers.map((p) => (p.id === id ? result.data : p)));
-        if (selectedProvider?.id === id) {
-          setSelectedProvider(result.data);
-        }
+    const prevProviders = providers;
+    const prevSelectedProvider = selectedProvider;
+
+    const currentProvider = providers.find((p) => p.id === id);
+    const expectedVersion = currentProvider?.version;
+
+    setTogglingProviderIds((ids) => [...ids, id]);
+    setProviders((ps) => ps.map((p) => (p.id === id ? { ...p, enabled: nextEnabled } : p)));
+    setSelectedProvider((sp) => (sp?.id === id ? { ...sp, enabled: nextEnabled } : sp));
+
+    try {
+      const result = await apiPut<ApiResponse<Provider>>(`/api/instances/${id}`, {
+        enabled: nextEnabled,
+        expected_version: expectedVersion,
+      } as any);
+
+      if (result.success && result.data) {
+        setProviders((ps) => ps.map((p) => (p.id === id ? result.data! : p)));
+        setSelectedProvider((sp) => (sp?.id === id ? result.data! : sp));
       } else {
-        setGlobalError(result.message || "Failed to toggle provider");
-        setErrorDialogOpen(true);
+        if (result.data) {
+          setProviders((ps) => ps.map((p) => (p.id === id ? result.data! : p)));
+          setSelectedProvider((sp) => (sp?.id === id ? result.data! : sp));
+          setGlobalError(result.message || "Provider has been modified, please refresh");
+          setErrorDialogOpen(true);
+          fetchProviders();
+        } else {
+          setProviders(prevProviders);
+          setSelectedProvider(prevSelectedProvider);
+          setGlobalError(result.message || "Failed to update provider");
+          setErrorDialogOpen(true);
+        }
       }
     } catch (err) {
-      setGlobalError("Network error: Failed to toggle provider");
+      setProviders(prevProviders);
+      setSelectedProvider(prevSelectedProvider);
+      setGlobalError("Network error: Failed to update provider");
       setErrorDialogOpen(true);
-      console.error("Error toggling provider:", err);
+      console.error("Error updating provider:", err);
+    } finally {
+      setTogglingProviderIds((ids) => ids.filter((x) => x !== id));
     }
   };
 
@@ -482,7 +510,8 @@ export function ProvidersPage() {
                   searchQuery={searchQuery}
                   onSearchChange={setSearchQuery}
                   onSelectProvider={setSelectedProvider}
-                  onToggleProvider={toggleProvider}
+                  onToggleProvider={setProviderEnabled}
+                  togglingProviderIds={togglingProviderIds}
                 />
 
                 <ProviderDetail

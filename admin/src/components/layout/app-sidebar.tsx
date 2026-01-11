@@ -5,6 +5,7 @@ import {
     Server,
     Settings,
     Key,
+    Layers,
     BarChart3,
     Zap,
     HelpCircle,
@@ -44,6 +45,7 @@ function getNavigation() {
             title: t('nav.management'),
             items: [
                 { name: t('nav.users'), href: "/users", icon: User },
+                { name: t('nav.services'), href: "/services", icon: Layers },
                 { name: t('nav.apiKeys'), href: "/apikeys", icon: Key },
             ],
         },

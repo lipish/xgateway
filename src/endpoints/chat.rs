@@ -1,7 +1,7 @@
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use crate::adapter::{send_to_provider, RequestResult};
-use crate::db::{NewRequestLog};
+use crate::pool::LoadBalanceStrategy;
 use crate::pool::RateLimitResult;
 use super::types::ProxyState;
 
@@ -88,53 +88,79 @@ pub async fn handle_chat_completions(
         .get("stream")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
-    let requested_provider_id = request.get("provider_id").and_then(|v| v.as_i64());
 
-    // 3. STRICT MODE: Require explicit provider_id in request
-    let provider_id = match requested_provider_id {
+    let requested_service_id = request
+        .get("service_id")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
+    // 3. STRICT MODE: Require explicit service_id in request
+    let service_id = match requested_service_id {
         Some(id) => id,
         None => {
             return (
                 StatusCode::BAD_REQUEST,
                 axum::Json(serde_json::json!({
                     "error": {
-                        "message": "provider_id is required in request body",
-                        "type": "missing_provider_id"
+                        "message": "service_id is required in request body",
+                        "type": "missing_service_id"
                     }
                 }))
             ).into_response();
         }
     };
 
-    // 4. Check provider access control if API key is scoped to specific instances
+    // 4. Check service access control
     if let Some(key_info) = &api_key_info {
-        if key_info.scope == "instance" {
-            if let Some(ref provider_ids_json) = key_info.provider_ids {
-                let allowed_provider_ids: Vec<i64> = serde_json::from_str(provider_ids_json).unwrap_or_default();
-                
-                if !allowed_provider_ids.contains(&provider_id) {
-                    return (
-                        StatusCode::FORBIDDEN,
-                        axum::Json(serde_json::json!({
-                            "error": {
-                                "message": "API key does not have access to this provider",
-                                "type": "provider_access_denied"
-                            }
-                        }))
-                    ).into_response();
-                }
+        match db_pool.api_key_has_service_access(key_info, &service_id).await {
+            Ok(true) => {}
+            Ok(false) => {
+                return (
+                    StatusCode::FORBIDDEN,
+                    axum::Json(serde_json::json!({
+                        "error": {
+                            "message": "API key does not have access to this service",
+                            "type": "service_access_denied"
+                        }
+                    })),
+                )
+                    .into_response();
+            }
+            Err(e) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    axum::Json(serde_json::json!({
+                        "error": {
+                            "message": format!("Failed to check service access: {}", e),
+                            "type": "server_error"
+                        }
+                    })),
+                )
+                    .into_response();
             }
         }
     }
 
-    let providers = match db_pool.list_providers().await {
-        Ok(p) => p,
+    let service = match db_pool.get_service(&service_id).await {
+        Ok(Some(s)) => s,
+        Ok(None) => {
+            return (
+                StatusCode::NOT_FOUND,
+                axum::Json(serde_json::json!({
+                    "error": {
+                        "message": format!("Service with id {} not found", service_id),
+                        "type": "service_not_found"
+                    }
+                })),
+            )
+                .into_response();
+        }
         Err(e) => {
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!({
                     "error": {
-                        "message": format!("Failed to get providers: {}", e),
+                        "message": format!("Failed to get service: {}", e),
                         "type": "server_error"
                     }
                 })),
@@ -143,9 +169,51 @@ pub async fn handle_chat_completions(
         }
     };
 
+    if !service.enabled {
+        return (
+            StatusCode::FORBIDDEN,
+            axum::Json(serde_json::json!({
+                "error": {
+                    "message": format!("Service {} is disabled", service_id),
+                    "type": "service_disabled"
+                }
+            })),
+        )
+            .into_response();
+    }
+
+    let providers = match db_pool.list_service_providers(&service_id).await {
+        Ok(p) => p,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                axum::Json(serde_json::json!({
+                    "error": {
+                        "message": format!("Failed to get service providers: {}", e),
+                        "type": "server_error"
+                    }
+                })),
+            )
+                .into_response();
+        }
+    };
+
+    let candidate_provider_ids: Vec<i64> = providers.iter().map(|p| p.id).collect();
+
+    let strategy = match service.strategy.as_str() {
+        "RoundRobin" => LoadBalanceStrategy::RoundRobin,
+        "LeastConnections" => LoadBalanceStrategy::LeastConnections,
+        "Random" => LoadBalanceStrategy::Random,
+        "Priority" => LoadBalanceStrategy::Priority,
+        "LatencyBased" => LoadBalanceStrategy::LatencyBased,
+        "LowestPrice" => LoadBalanceStrategy::LowestPrice,
+        "QuotaAware" => LoadBalanceStrategy::QuotaAware,
+        _ => LoadBalanceStrategy::Priority,
+    };
+
     let mut req_body = request.clone();
     if let Some(obj) = req_body.as_object_mut() {
-        obj.remove("provider_id");
+        obj.remove("service_id");
     }
 
     let request_content = req_body
@@ -167,16 +235,18 @@ pub async fn handle_chat_completions(
         })
         .filter(|s| !s.is_empty());
 
-    // Find the requested provider
-    let provider = match providers.iter().find(|p| p.id == provider_id) {
-        Some(p) => p,
+    let provider_id = match pool_manager
+        .select_provider_from_candidates_with_strategy(strategy.clone(), &candidate_provider_ids, None)
+        .await
+    {
+        Some(id) => id,
         None => {
             return (
-                StatusCode::NOT_FOUND,
+                StatusCode::SERVICE_UNAVAILABLE,
                 axum::Json(serde_json::json!({
                     "error": {
-                        "message": format!("Provider with id {} not found", provider_id),
-                        "type": "provider_not_found"
+                        "message": format!("No available model service for service {}", service_id),
+                        "type": "no_available_model_service"
                     }
                 })),
             )
@@ -184,7 +254,22 @@ pub async fn handle_chat_completions(
         }
     };
 
-    // Send request to the specified provider (NO RETRY, NO FAILOVER)
+    let provider = match providers.iter().find(|p| p.id == provider_id) {
+        Some(p) => p,
+        None => {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                axum::Json(serde_json::json!({
+                    "error": {
+                        "message": format!("Selected model service {} is not available", provider_id),
+                        "type": "no_available_model_service"
+                    }
+                })),
+            )
+                .into_response();
+        }
+    };
+
     match send_to_provider(
         provider,
         &req_body,
@@ -196,20 +281,40 @@ pub async fn handle_chat_completions(
     .await
     {
         RequestResult::Success(response) => response,
-        RequestResult::Failure { error, latency_ms } => {
-            let log = NewRequestLog {
-                provider_id: Some(provider.id),
-                provider_name: provider.name.clone(),
-                model: "".to_string(),
-                status: "error".to_string(),
-                latency_ms,
-                tokens_used: 0,
-                error_message: Some(error.clone()),
-                request_type: "chat".to_string(),
-                request_content,
-                response_content: None,
-            };
-            let _ = db_pool.create_request_log(log).await;
+        RequestResult::Failure { error, .. } => {
+            let fallback_id = pool_manager
+                .select_provider_from_candidates_with_strategy(strategy, &candidate_provider_ids, Some(provider_id))
+                .await;
+
+            if let Some(fid) = fallback_id {
+                if let Some(fallback_provider) = providers.iter().find(|p| p.id == fid) {
+                    match send_to_provider(
+                        fallback_provider,
+                        &req_body,
+                        is_stream,
+                        request_content.clone(),
+                        db_pool,
+                        pool_manager,
+                    )
+                    .await
+                    {
+                        RequestResult::Success(response) => return response,
+                        RequestResult::Failure { error, .. } => {
+                            return (
+                                StatusCode::BAD_GATEWAY,
+                                axum::Json(serde_json::json!({
+                                    "error": {
+                                        "message": error,
+                                        "type": "provider_error",
+                                        "provider": fallback_provider.name
+                                    }
+                                })),
+                            )
+                                .into_response();
+                        }
+                    }
+                }
+            }
 
             (
                 StatusCode::BAD_GATEWAY,

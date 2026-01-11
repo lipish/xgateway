@@ -26,7 +26,7 @@ impl DatabasePool {
 
     pub async fn list_providers(&self) -> Result<Vec<Provider>> {
         let query = r#"
-            SELECT id::BIGINT as id, name, type, config, enabled, priority, endpoint, secret_id, secret_key, created_at, updated_at
+            SELECT id::BIGINT as id, name, type, config, enabled, priority, endpoint, secret_id, secret_key, version, created_at, updated_at
             FROM providers 
             ORDER BY priority DESC, created_at ASC
         "#;
@@ -42,7 +42,7 @@ impl DatabasePool {
         match self {
             Self::Postgres(pool) => {
                 Ok(sqlx::query_as::<_, Provider>(
-                    "SELECT id::BIGINT as id, name, type, config, enabled, priority, endpoint, secret_id, secret_key, created_at, updated_at FROM providers WHERE id = $1"
+                    "SELECT id::BIGINT as id, name, type, config, enabled, priority, endpoint, secret_id, secret_key, version, created_at, updated_at FROM providers WHERE id = $1"
                 )
                 .bind(id)
                 .fetch_optional(pool)
@@ -54,7 +54,7 @@ impl DatabasePool {
     #[allow(dead_code)]
     pub async fn get_enabled_providers(&self) -> Result<Vec<Provider>> {
         let query = r#"
-            SELECT id::BIGINT as id, name, type, config, enabled, priority, endpoint, secret_id, secret_key, created_at, updated_at
+            SELECT id::BIGINT as id, name, type, config, enabled, priority, endpoint, secret_id, secret_key, version, created_at, updated_at
             FROM providers 
             WHERE enabled = true
             ORDER BY priority DESC, created_at ASC
@@ -74,7 +74,9 @@ impl DatabasePool {
     }
 
     async fn update_provider_postgres(&self, pool: &PgPool, id: i64, update: UpdateProvider) -> Result<bool> {
-        let mut query = QueryBuilder::new("UPDATE providers SET updated_at = CURRENT_TIMESTAMP");
+        let mut query = QueryBuilder::new(
+            "UPDATE providers SET updated_at = CURRENT_TIMESTAMP, version = version + 1",
+        );
         let mut has_updates = false;
 
         if let Some(name) = &update.name {
@@ -125,6 +127,11 @@ impl DatabasePool {
         query.push(" WHERE id = ");
         query.push_bind(id);
 
+        if let Some(expected_version) = update.expected_version {
+            query.push(" AND version = ");
+            query.push_bind(expected_version);
+        }
+
         let result = query.build().execute(pool).await?;
         Ok(result.rows_affected() > 0)
     }
@@ -148,6 +155,21 @@ impl DatabasePool {
                     "UPDATE providers SET enabled = NOT enabled, updated_at = CURRENT_TIMESTAMP WHERE id = $1"
                 )
                 .bind(id)
+                .execute(pool)
+                .await?;
+                Ok(result.rows_affected() > 0)
+            }
+        }
+    }
+
+    pub async fn set_provider_enabled(&self, id: i64, enabled: bool) -> Result<bool> {
+        match self {
+            Self::Postgres(pool) => {
+                let result = sqlx::query(
+                    "UPDATE providers SET enabled = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1",
+                )
+                .bind(id)
+                .bind(enabled)
                 .execute(pool)
                 .await?;
                 Ok(result.rows_affected() > 0)

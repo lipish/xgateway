@@ -120,6 +120,8 @@ async fn handle_stream_request(
             let (tx, rx) = mpsc::unbounded_channel::<String>();
             let collected_content = Arc::new(std::sync::Mutex::new(String::new()));
             let content_clone = collected_content.clone();
+            let stream_error = Arc::new(std::sync::Mutex::new(None::<String>));
+            let stream_error_clone = stream_error.clone();
             let provider_id = provider.id;
             let provider_name = provider.name.clone();
             let model_str = chat_request.model.clone();
@@ -142,6 +144,9 @@ async fn handle_stream_request(
                         }
                         Err(e) => {
                             tracing::error!("Stream error: {}", e);
+                            if let Ok(mut err) = stream_error_clone.lock() {
+                                *err = Some(e.to_string());
+                            }
                             break;
                         }
                     }
@@ -149,7 +154,14 @@ async fn handle_stream_request(
                 let _ = tx.send("data: [DONE]\n\n".to_string());
 
                 let latency_ms = start_time.elapsed().as_millis() as i64;
-                pm.record_success(provider_id, start_time.elapsed()).await;
+                let err = stream_error.lock().ok().and_then(|e| e.clone());
+                let (status, error_message) = if let Some(e) = err {
+                    pm.record_failure(provider_id, Some(&e)).await;
+                    ("error".to_string(), Some(e))
+                } else {
+                    pm.record_success(provider_id, start_time.elapsed()).await;
+                    ("success".to_string(), None)
+                };
 
                 let response_content = content_clone.lock().ok().and_then(|c| {
                     if c.is_empty() { None } else { Some(c.clone()) }
@@ -159,10 +171,10 @@ async fn handle_stream_request(
                     provider_id: Some(provider_id),
                     provider_name,
                     model: model_str,
-                    status: "success".to_string(),
+                    status,
                     latency_ms,
                     tokens_used: 0,
-                    error_message: None,
+                    error_message,
                     request_type: "chat".to_string(),
                     request_content,
                     response_content,

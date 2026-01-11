@@ -75,4 +75,52 @@ impl DatabasePool {
             }
         }
     }
+
+    pub async fn update_api_key(
+        &self,
+        id: i64,
+        name: &str,
+        scope: &str,
+        provider_id: Option<i64>,
+        provider_ids: Option<Vec<i64>>,
+        qps_limit: f64,
+        concurrency_limit: i32,
+    ) -> Result<bool> {
+        let provider_ids_json = provider_ids.as_ref().map(|ids| {
+            serde_json::to_string(ids).unwrap_or_else(|_| "[]".to_string())
+        });
+
+        let pg_query = "UPDATE api_keys SET name = $1, scope = $2, provider_id = $3, provider_ids = $4, qps_limit = $5, concurrency_limit = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7";
+
+        match self {
+            Self::Postgres(pool) => {
+                let result = sqlx::query(pg_query)
+                    .bind(name)
+                    .bind(scope)
+                    .bind(provider_id)
+                    .bind(provider_ids_json.as_ref())
+                    .bind(qps_limit)
+                    .bind(concurrency_limit)
+                    .bind(id)
+                    .execute(pool)
+                    .await?;
+                Ok(result.rows_affected() > 0)
+            }
+        }
+    }
+
+    pub async fn update_api_key_hash(&self, id: i64, key_hash: &str) -> Result<bool> {
+        let pg_query = "UPDATE api_keys SET key_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2";
+
+        match self {
+            Self::Postgres(pool) => {
+                let result = sqlx::query(pg_query)
+                    .bind(key_hash)
+                    .bind(id)
+                    .execute(pool)
+                    .await?;
+                Ok(result.rows_affected() > 0)
+            }
+        }
+    }
 }

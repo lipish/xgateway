@@ -102,6 +102,27 @@ impl LoadBalancer {
         self.select_from_list(&healthy_providers).await
     }
 
+    pub async fn select_provider_with_strategy(
+        &self,
+        strategy: LoadBalanceStrategy,
+        available_providers: &[i64],
+    ) -> Option<i64> {
+        if available_providers.is_empty() {
+            return None;
+        }
+
+        let healthy_providers = self.filter_healthy(available_providers).await;
+        if healthy_providers.is_empty() {
+            tracing::warn!(
+                "No healthy providers available, falling back to all providers (strategy override)"
+            );
+            return self.select_from_list_with_strategy(strategy, available_providers).await;
+        }
+
+        self.select_from_list_with_strategy(strategy, &healthy_providers)
+            .await
+    }
+
     /// Filter to only healthy providers
     async fn filter_healthy(&self, providers: &[i64]) -> Vec<i64> {
         let mut healthy = Vec::new();
@@ -126,6 +147,27 @@ impl LoadBalancer {
             LoadBalanceStrategy::WeightedRoundRobin { ref weights } => {
                 self.select_weighted(providers, weights)
             }
+            LoadBalanceStrategy::Random => self.select_random(providers),
+            LoadBalanceStrategy::Priority => self.select_by_priority(providers).await,
+            LoadBalanceStrategy::LatencyBased => self.select_by_latency(providers).await,
+            LoadBalanceStrategy::LowestPrice => self.select_by_price(providers).await,
+            LoadBalanceStrategy::QuotaAware => self.select_quota_aware(providers).await,
+        }
+    }
+
+    async fn select_from_list_with_strategy(
+        &self,
+        strategy: LoadBalanceStrategy,
+        providers: &[i64],
+    ) -> Option<i64> {
+        if providers.is_empty() {
+            return None;
+        }
+
+        match strategy {
+            LoadBalanceStrategy::RoundRobin => self.select_round_robin(providers),
+            LoadBalanceStrategy::LeastConnections => self.select_least_connections(providers).await,
+            LoadBalanceStrategy::WeightedRoundRobin { ref weights } => self.select_weighted(providers, weights),
             LoadBalanceStrategy::Random => self.select_random(providers),
             LoadBalanceStrategy::Priority => self.select_by_priority(providers).await,
             LoadBalanceStrategy::LatencyBased => self.select_by_latency(providers).await,

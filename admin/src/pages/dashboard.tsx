@@ -27,7 +27,7 @@ import {
   Server
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
-import { apiGet, apiPost } from "@/lib/api"
+import { apiGet, apiPost, apiPut } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 interface ProviderStats {
@@ -42,6 +42,7 @@ interface Provider {
   provider_type: string
   config: string
   enabled: boolean
+  version: number
   priority: number
   created_at: string
   updated_at: string
@@ -141,7 +142,9 @@ export function DashboardPage() {
   const toggleProvider = async (id: number) => {
     try {
       setError(null)
-      const result = await apiPost(`/api/instances/${id}/toggle`) as any
+      const current = allProviders.find(p => p.id === id) || recentProviders.find(p => p.id === id)
+      const nextEnabled = current ? !current.enabled : true
+      const result = await apiPut(`/api/instances/${id}`, { enabled: nextEnabled, expected_version: current?.version }) as any
       if (result.success) {
         setRecentProviders(recentProviders.map(p => p.id === id ? result.data : p))
         setAllProviders(allProviders.map(p => p.id === id ? result.data : p))
@@ -150,6 +153,10 @@ export function DashboardPage() {
           setStats(statsResult.data)
         }
       } else {
+        if (result.data) {
+          setRecentProviders(recentProviders.map(p => p.id === id ? result.data : p))
+          setAllProviders(allProviders.map(p => p.id === id ? result.data : p))
+        }
         setError(result.message || t('common.error'))
         setTimeout(() => setError(null), 3000)
       }
@@ -202,14 +209,10 @@ export function DashboardPage() {
           <div className="space-y-4">
             <div className="grid gap-4 lg:grid-cols-12 items-start">
               <Card className="lg:col-span-8 h-80">
-                <CardHeader className="flex flex-row items-center justify-between px-6 pb-2">
-                  <CardTitle className="text-lg font-semibold">{t("dashboard.enabledProviders")}</CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate('/instances')}
-                  >
-                    <ArrowRight className="mr-1 h-4 w-4" />
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-xl font-bold">{t("dashboard.recentProviders")}</CardTitle>
+                  <Button variant="ghost" size="sm" onClick={() => navigate('/models')} className="gap-1">
+                    <ArrowRight className="h-4 w-4" />
                     {t("dashboard.viewAll")}
                   </Button>
                 </CardHeader>
@@ -222,7 +225,7 @@ export function DashboardPage() {
                         <TableHead className="w-[100px]">{t("providers.status")}</TableHead>
                         <TableHead>{t("providers.model")}</TableHead>
                         <TableHead className="w-[80px]">{t("providers.priority")}</TableHead>
-                        <TableHead className="w-[120px] text-right pr-6">{t("providers.actions")}</TableHead>
+                        <TableHead className="w-[120px] text-right pr-6">{t("providers.enableDisable")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

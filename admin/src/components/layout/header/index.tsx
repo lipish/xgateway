@@ -21,7 +21,8 @@ export function SiteHeader() {
     const currentPart = pathParts.length === 0 ? 'dashboard' : pathParts[pathParts.length - 1]
     const navKey = currentPart === 'models' ? 'models' :
         currentPart === 'providers' ? 'modelTypes' :
-            currentPart === 'apikeys' ? 'apiKeys' : currentPart
+            currentPart === 'apikeys' ? 'apiKeys' :
+                currentPart === 'services' ? 'services' : currentPart
     const currentTitle = t(`nav.${navKey}` as any) || currentPart
 
     return (

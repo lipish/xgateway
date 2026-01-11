@@ -118,6 +118,27 @@ impl PoolManager {
         self.pool.select_provider_with_fallback(Some(exclude_id)).await
     }
 
+    pub async fn select_provider_from_candidates(
+        &self,
+        candidate_provider_ids: &[i64],
+        exclude: Option<i64>,
+    ) -> Option<i64> {
+        self.pool
+            .select_provider_from_candidates(candidate_provider_ids, exclude)
+            .await
+    }
+
+    pub async fn select_provider_from_candidates_with_strategy(
+        &self,
+        strategy: LoadBalanceStrategy,
+        candidate_provider_ids: &[i64],
+        exclude: Option<i64>,
+    ) -> Option<i64> {
+        self.pool
+            .select_provider_from_candidates_with_strategy(strategy, candidate_provider_ids, exclude)
+            .await
+    }
+
     /// Record request start (increment active connections)
     pub async fn record_request_start(&self, provider_id: i64) {
         self.pool.record_request_start(provider_id).await;

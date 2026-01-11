@@ -43,6 +43,7 @@ pub struct UpdateProviderRequest {
     pub endpoint: Option<String>,
     pub secret_id: Option<String>,
     pub secret_key: Option<String>,
+    pub expected_version: Option<i64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -139,6 +140,18 @@ pub async fn create_provider_api(
             // Return the created provider
             match db_pool.get_provider(provider_id).await {
                 Ok(Some(provider)) => {
+                    // Backward-compatible default: create a service with id = provider.name and bind it.
+                    // (If already exists, ignore.)
+                    if let Err(e) = db_pool
+                        .create_service(&provider.name, &provider.name, true, "Priority", None)
+                        .await
+                    {
+                        tracing::warn!("Failed to create default service for provider: {}", e);
+                    }
+                    if let Err(e) = db_pool.bind_service_provider(&provider.name, provider.id).await {
+                        tracing::warn!("Failed to bind provider to default service: {}", e);
+                    }
+
                     if provider.enabled {
                         if let Err(e) = pool_manager.add_provider(&provider).await {
                             tracing::warn!("Failed to add provider to pool: {}", e);
@@ -186,6 +199,8 @@ pub async fn update_provider_api(
         }
     }
     
+    let has_expected_version = request.expected_version.is_some();
+
     let update = UpdateProvider {
         name: request.name,
         provider_type: request.provider_type,
@@ -195,6 +210,7 @@ pub async fn update_provider_api(
         endpoint: request.endpoint,
         secret_id: request.secret_id,
         secret_key: request.secret_key,
+        expected_version: request.expected_version,
     };
     
     match db_pool.update_provider(id, update).await {
@@ -218,11 +234,32 @@ pub async fn update_provider_api(
                 }
             }
         }
-        Ok(false) => Ok(Json(SingleProviderResponse {
-            success: false,
-            data: None,
-            message: "Provider not found".to_string(),
-        })),
+        Ok(false) => {
+            if has_expected_version {
+                match db_pool.get_provider(id).await {
+                    Ok(Some(provider)) => Ok(Json(SingleProviderResponse {
+                        success: false,
+                        data: Some(provider),
+                        message: "Provider has been modified, please refresh and try again".to_string(),
+                    })),
+                    Ok(None) => Ok(Json(SingleProviderResponse {
+                        success: false,
+                        data: None,
+                        message: "Provider not found".to_string(),
+                    })),
+                    Err(e) => {
+                        tracing::error!("Failed to retrieve provider after update failure: {}", e);
+                        Err(StatusCode::INTERNAL_SERVER_ERROR)
+                    }
+                }
+            } else {
+                Ok(Json(SingleProviderResponse {
+                    success: false,
+                    data: None,
+                    message: "Provider not found".to_string(),
+                }))
+            }
+        }
         Err(e) => {
             tracing::error!("Failed to update provider: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)

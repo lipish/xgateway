@@ -8,6 +8,7 @@ export interface Provider {
   endpoint?: string;
   secret_id?: string;
   secret_key?: string;
+  version: number;
   created_at: string;
   updated_at: string;
 }

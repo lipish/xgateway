@@ -22,7 +22,8 @@ interface ProviderListProps {
   searchQuery: string
   onSearchChange: (query: string) => void
   onSelectProvider: (provider: Provider) => void
-  onToggleProvider: (id: number) => void
+  onToggleProvider: (id: number, nextEnabled: boolean) => void
+  togglingProviderIds: number[]
 }
 
 export function ProviderList({
@@ -32,6 +33,7 @@ export function ProviderList({
   onSearchChange,
   onSelectProvider,
   onToggleProvider,
+  togglingProviderIds,
 }: ProviderListProps) {
   return (
     <div className="bg-card rounded-xl border p-6 flex flex-col w-[65%]">
@@ -69,7 +71,7 @@ export function ProviderList({
                 <TableHead className="text-center w-[100px]">{t("providers.status")}</TableHead>
                 <TableHead className="text-center">{t("providers.priority")}</TableHead>
                 <TableHead className="text-center w-[80px]">
-                  {t("providers.actions")}
+                  {t("providers.enableDisable")}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -88,8 +90,8 @@ export function ProviderList({
                   </TableCell>
                   <TableCell className="text-center">
                     <Badge
-                      className={provider.enabled ? "bg-primary/10 text-primary border-0" : ""}
-                      variant={provider.enabled ? "outline" : "destructive"}
+                      variant="outline"
+                      className={provider.enabled ? "bg-primary/10 text-primary border-0" : "bg-muted text-muted-foreground border-0"}
                     >
                       {provider.enabled
                         ? t("providers.enabled")
@@ -101,7 +103,8 @@ export function ProviderList({
                     <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
                       <Switch
                         checked={provider.enabled}
-                        onCheckedChange={() => onToggleProvider(provider.id)}
+                        disabled={togglingProviderIds.includes(provider.id)}
+                        onCheckedChange={(checked) => onToggleProvider(provider.id, checked)}
                       />
                     </div>
                   </TableCell>

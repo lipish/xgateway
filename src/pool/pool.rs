@@ -140,6 +140,88 @@ impl ProviderPool {
         self.load_balancer.select_provider(&enabled_ids).await
     }
 
+    pub async fn select_provider_from_candidates(
+        &self,
+        candidate_provider_ids: &[i64],
+        exclude: Option<i64>,
+    ) -> Option<i64> {
+        let instances = self.instances.read().await;
+        let mut enabled_in_pool: Vec<i64> = candidate_provider_ids
+            .iter()
+            .copied()
+            .filter(|id| {
+                instances
+                    .get(id)
+                    .map(|p| p.config.enabled)
+                    .unwrap_or(false)
+            })
+            .collect();
+        drop(instances);
+
+        if let Some(excluded) = exclude {
+            enabled_in_pool.retain(|&id| id != excluded);
+        }
+
+        let enabled_snapshot = enabled_in_pool.clone();
+
+        let mut available: Vec<i64> = Vec::new();
+        for id in enabled_in_pool {
+            if self.is_provider_available(id).await {
+                available.push(id);
+            }
+        }
+
+        if available.is_empty() {
+            return self.load_balancer.select_provider(&enabled_snapshot).await;
+        }
+
+        self.load_balancer.select_provider(&available).await
+    }
+
+    pub async fn select_provider_from_candidates_with_strategy(
+        &self,
+        strategy: LoadBalanceStrategy,
+        candidate_provider_ids: &[i64],
+        exclude: Option<i64>,
+    ) -> Option<i64> {
+        let instances = self.instances.read().await;
+        let mut enabled_in_pool: Vec<i64> = candidate_provider_ids
+            .iter()
+            .copied()
+            .filter(|id| {
+                instances
+                    .get(id)
+                    .map(|p| p.config.enabled)
+                    .unwrap_or(false)
+            })
+            .collect();
+        drop(instances);
+
+        if let Some(excluded) = exclude {
+            enabled_in_pool.retain(|&id| id != excluded);
+        }
+
+        let enabled_snapshot = enabled_in_pool.clone();
+
+        let mut available: Vec<i64> = Vec::new();
+        for id in enabled_in_pool {
+            if self.is_provider_available(id).await {
+                available.push(id);
+            }
+        }
+
+        if available.is_empty() {
+            return self
+                .load_balancer
+                .select_provider_with_strategy(strategy, &enabled_snapshot)
+                .await;
+        }
+
+        self.load_balancer
+            .select_provider_with_strategy(strategy, &available)
+            .await
+    }
+
     /// Select a provider with fallback support
     pub async fn select_provider_with_fallback(&self, exclude: Option<i64>) -> Option<i64> {
         let mut enabled_ids = self.get_enabled_provider_ids().await;
