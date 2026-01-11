@@ -57,8 +57,8 @@ export function RecentErrorsPanel({ recentErrors = [] }: RecentErrorsPanelProps)
           {t('dashboard.viewAll')}
         </Button>
       </CardHeader>
-      <CardContent className="px-6 pb-2">
-        <div className="space-y-1">
+      <CardContent className="px-6 pb-2 flex-1 min-h-0 overflow-auto">
+        <div className="space-y-1 min-w-0">
           {recentErrors.length === 0 ? (
             <div className="text-center py-4 text-muted-foreground">
               <div className="text-sm">{t('common.recentErrors.noRecentErrors')}</div>
@@ -86,7 +86,9 @@ export function RecentErrorsPanel({ recentErrors = [] }: RecentErrorsPanelProps)
                         {formatTime(error.timestamp)}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">{error.error_message || error.error_type}</p>
+                    <p className="text-xs text-muted-foreground break-words overflow-hidden">
+                      {error.error_message || error.error_type}
+                    </p>
                   </div>
                 </div>
               )

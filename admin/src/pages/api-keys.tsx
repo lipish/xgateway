@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Select } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { PageHeader } from "@/components/layout/page-header"
  
 
 interface ApiKey {
@@ -71,6 +72,12 @@ export function ApiKeysPage() {
   }, [apiKeys, selectedApiKeyId])
 
   const selectedApiKey = apiKeys.find((k) => k.id === selectedApiKeyId) || null
+
+  const getScopeLabel = (scope: string): string => {
+    if (scope === 'global') return t('apiKeys.global')
+    if (scope === 'instance') return t('apiKeys.instance')
+    return scope
+  }
 
   const getBoundProviders = (key: ApiKey): Provider[] => {
     const ids = [key.provider_id, ...(key.provider_ids || [])].filter((v): v is number => typeof v === 'number')
@@ -188,8 +195,10 @@ export function ApiKeysPage() {
 
   return (
     <div className="flex-1 min-h-0 h-full flex flex-col page-transition p-6 scrollbar-hide">
-      <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">
-        <div className="flex items-center justify-end mb-3">
+      <PageHeader
+        title={t('apiKeys.title')}
+        subtitle={t('apiKeys.description')}
+        action={
           <Button
             size="sm"
             onClick={() => {
@@ -209,8 +218,9 @@ export function ApiKeysPage() {
             <Plus className="mr-2 h-4 w-4" />
             {t('apiKeys.create')}
           </Button>
-        </div>
-
+        }
+      />
+      <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">
         <div className="flex-1 min-h-0 flex flex-col gap-4 h-full">
 
         <Dialog key={dialogKey} open={showCreateDialog} onOpenChange={(open) => {
@@ -361,8 +371,8 @@ export function ApiKeysPage() {
         </Dialog>
 
 
-          <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
-            <Card className="w-full lg:w-[520px] shrink-0 h-full flex flex-col">
+          <div className="flex flex-row gap-6 flex-1 min-h-0">
+            <Card className="w-[520px] shrink-0 h-full flex flex-col">
               <CardContent className="flex-1 h-full overflow-y-auto p-6">
                 {loading ? (
                   <div className="flex flex-col gap-4">
@@ -407,7 +417,7 @@ export function ApiKeysPage() {
                           >
                             <TableCell className="font-medium">{key.name}</TableCell>
                             <TableCell>
-                              <Badge variant="secondary">{key.scope}</Badge>
+                              <Badge variant="secondary">{getScopeLabel(key.scope)}</Badge>
                             </TableCell>
                             <TableCell>
                               {key.scope === 'global' ? (
@@ -450,65 +460,64 @@ export function ApiKeysPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="text-lg font-semibold truncate">{selectedApiKey.name}</div>
-                          <Badge
-                            variant={selectedApiKey.status === 'active' ? 'success' : 'outline'}
-                            className="shrink-0"
-                          >
-                            {selectedApiKey.status === 'active' ? t('apiKeys.enabled') : t('apiKeys.disabled')}
-                          </Badge>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          <span className="mr-2">{t('apiKeys.scope')}:</span>
-                          <Badge variant="secondary">{selectedApiKey.scope}</Badge>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <div className="flex items-center gap-2 rounded-md border px-3 py-2">
-                          <span className="text-sm text-muted-foreground">{t('apiKeys.enable')}</span>
-                          <Switch
-                            checked={selectedApiKey.status === 'active'}
-                            disabled={statusUpdatingId === selectedApiKey.id}
-                            onCheckedChange={() => toggleApiKeyStatus(selectedApiKey.id)}
-                            className={statusUpdatingId === selectedApiKey.id ? "opacity-80" : undefined}
-                          />
-                          {statusUpdatingId === selectedApiKey.id && (
-                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="rounded-md border p-4">
-                        <div className="text-sm text-muted-foreground">{t('apiKeys.usage')}</div>
-                        <div className="mt-2 space-y-1 text-sm">
-                          <div className="flex justify-between">
-                            <span>{t('apiKeys.qps')}:</span>
-                            <span className="font-medium">{selectedApiKey.qps_limit}</span>
+                    <div className="rounded-lg border bg-background">
+                      <div className="p-5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="text-xl font-semibold truncate">{selectedApiKey.name}</div>
+                              <Badge
+                                variant={selectedApiKey.status === 'active' ? 'success' : 'outline'}
+                                className="shrink-0"
+                              >
+                                {selectedApiKey.status === 'active' ? t('apiKeys.enabled') : t('apiKeys.disabled')}
+                              </Badge>
+                            </div>
                           </div>
-                          <div className="flex justify-between">
-                            <span>{t('apiKeys.concurrency')}:</span>
-                            <span className="font-medium">{selectedApiKey.concurrency_limit}</span>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Switch
+                              checked={selectedApiKey.status === 'active'}
+                              disabled={statusUpdatingId === selectedApiKey.id}
+                              onCheckedChange={() => toggleApiKeyStatus(selectedApiKey.id)}
+                              className={statusUpdatingId === selectedApiKey.id ? "opacity-80" : undefined}
+                            />
+                            {statusUpdatingId === selectedApiKey.id && (
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            )}
                           </div>
                         </div>
                       </div>
 
-                      <div className="rounded-md border p-4">
-                        <div className="text-sm text-muted-foreground">{t('apiKeys.created')}</div>
-                        <div className="mt-2 text-sm">
-                          {new Date(selectedApiKey.created_at).toLocaleString()}
+                      <div className="border-t" />
+
+                      <div className="p-5">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="rounded-md bg-muted/30 p-4">
+                            <div className="text-xs text-muted-foreground">{t('apiKeys.qps')}</div>
+                            <div className="mt-1 text-lg font-semibold">{selectedApiKey.qps_limit}</div>
+                          </div>
+                          <div className="rounded-md bg-muted/30 p-4">
+                            <div className="text-xs text-muted-foreground">{t('apiKeys.concurrency')}</div>
+                            <div className="mt-1 text-lg font-semibold">{selectedApiKey.concurrency_limit}</div>
+                          </div>
+                          <div className="rounded-md bg-muted/30 p-4">
+                            <div className="text-xs text-muted-foreground">{t('apiKeys.created')}</div>
+                            <div className="mt-1 text-sm font-medium">
+                              {new Date(selectedApiKey.created_at).toLocaleString()}
+                            </div>
+                          </div>
+                          <div className="rounded-md bg-muted/30 p-4">
+                            <div className="text-xs text-muted-foreground">{t('apiKeys.scope')}</div>
+                            <div className="mt-1 text-sm font-medium">{getScopeLabel(selectedApiKey.scope)}</div>
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="rounded-md border p-4">
-                      <div className="text-sm text-muted-foreground">{t('apiKeys.provider')}</div>
-                      <div className="mt-2">
+                    <div className="rounded-lg border bg-background p-5">
+                      <div className="text-sm font-semibold">{t('apiKeys.supportedProviders')}</div>
+                      <div className="mt-3">
                         {selectedApiKey.scope === 'global' ? (
                           <Badge variant="secondary">{t('apiKeys.global')}</Badge>
                         ) : (

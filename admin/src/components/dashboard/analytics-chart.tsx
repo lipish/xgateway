@@ -9,7 +9,11 @@ interface HourlyRequestCount {
   requests: number
 }
 
-export function AnalyticsChart() {
+interface AnalyticsChartProps {
+  maxHours?: number
+}
+
+export function AnalyticsChart({ maxHours }: AnalyticsChartProps) {
   const [data, setData] = useState<HourlyRequestCount[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -44,7 +48,8 @@ export function AnalyticsChart() {
     )
   }
 
-  const maxValue = data.length > 0 ? Math.max(...data.map(d => d.requests)) : 1
+  const displayData = typeof maxHours === 'number' && maxHours > 0 ? data.slice(-maxHours) : data
+  const maxValue = displayData.length > 0 ? Math.max(...displayData.map(d => d.requests)) : 1
 
   return (
     <Card className="rounded-xl border bg-card h-80">
@@ -54,28 +59,34 @@ export function AnalyticsChart() {
       </CardHeader>
       <CardContent className="px-6 pb-2">
         <div className="space-y-1">
-          <div className="flex items-end justify-between gap-1 h-28">
-            {data.map((item, index) => {
-              const height = data.length > 0 ? (item.requests / maxValue) * 100 : 0
-              return (
-                <div key={index} className="flex-1 flex flex-col items-center gap-1.5">
-                  <div className="w-full flex items-end justify-center h-32">
-                    <div
-                      className="w-full bg-gradient-to-t from-primary to-primary/60 rounded-t transition-all hover:opacity-80 cursor-pointer"
-                      style={{ height: `${height}%` }}
-                      title={`${item.hour}: ${item.requests} requests`}
-                    />
+          {displayData.length === 0 ? (
+            <div className="h-32 flex items-center justify-center text-xs text-muted-foreground">
+              —
+            </div>
+          ) : (
+            <div className="flex items-end justify-between gap-1 h-32 min-w-0 overflow-hidden">
+              {displayData.map((item, index) => {
+                const height = displayData.length > 0 ? (item.requests / maxValue) * 100 : 0
+                return (
+                  <div key={index} className="flex-1 min-w-0 flex flex-col items-center gap-1.5">
+                    <div className="w-full flex items-end justify-center h-full min-w-0">
+                      <div
+                        className="w-full bg-gradient-to-t from-primary to-primary/60 rounded-t transition-all hover:opacity-80 cursor-pointer"
+                        style={{ height: `${height}%` }}
+                        title={`${item.hour}: ${item.requests} requests`}
+                      />
+                    </div>
+                    <span className="text-[9px] text-muted-foreground truncate max-w-full">{item.hour}</span>
                   </div>
-                  <span className="text-[9px] text-muted-foreground">{item.hour}</span>
-                </div>
-              )
-            })}
-          </div>
-          <div className="flex items-center justify-between pt-1.5 border-t">
-            <div>
+                )
+              })}
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-2 pt-1.5 border-t min-w-0">
+            <div className="min-w-0">
               <div className="text-xs text-muted-foreground">{t('common.requestVolume.totalToday')}</div>
-              <div className="text-xl font-bold text-foreground">
-                {data.reduce((acc, curr) => acc + curr.requests, 0).toLocaleString()}
+              <div className="text-xl font-bold text-foreground truncate">
+                {displayData.reduce((acc, curr) => acc + curr.requests, 0).toLocaleString()}
               </div>
             </div>
             <div className="flex items-center gap-2 text-green-600">

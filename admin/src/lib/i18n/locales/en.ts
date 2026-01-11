@@ -126,6 +126,10 @@ export const en = {
     tokensUsed: 'Tokens Used',
     priceUnit: '¥/1M tokens',
   },
+  models: {
+    title: 'Model Services',
+    description: 'Manage connected model service instances',
+  },
   chat: {
     title: 'Chat Test',
     description: 'Test chat functionality of model services',
@@ -186,6 +190,7 @@ export const en = {
     name: 'Name',
     key: 'Key',
     provider: 'Provider',
+    supportedProviders: 'Supported Model Services',
     usage: 'Usage',
     status: 'Status',
     enable: 'Enable',
@@ -210,7 +215,7 @@ export const en = {
     copiedToClipboard: 'Copied to clipboard',
     scope: 'Scope',
     global: 'Global',
-    instance: 'Specific Instance',
+    instance: 'Specific Model',
     selectInstance: 'Select Model Service',
     concurrency: 'Concurrency Limit',
     qps: 'QPS Limit',
@@ -312,6 +317,7 @@ export const en = {
   },
   modelTypes: {
     title: 'Provider Catalog',
+    pageDescription: 'Manage provider types and model catalog',
     allTypes: 'All Providers',
     availableModels: 'Available Models',
     models: 'Available Models',

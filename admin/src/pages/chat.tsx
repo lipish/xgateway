@@ -5,6 +5,7 @@ import { t } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { useAuth } from "@/lib/auth"
+import { PageHeader } from "@/components/layout/page-header"
 import {
   ChatPanelCard,
   ChatHistoryDropdown,
@@ -229,21 +230,35 @@ export function ChatPage() {
   return (
     <div className="flex-1 min-h-0 flex flex-col page-transition overflow-hidden p-6">
       <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0">
-        <div className="flex items-start justify-end gap-3 mb-3">
-          <div className="flex gap-2 shrink-0">
-            <ChatHistoryDropdown
-              open={historyOpen}
-              onOpenChange={setHistoryOpen}
-              conversations={conversations}
-              onSelect={(id) => loadConversation(id, panels[0].id)}
-              onDelete={deleteConversation}
-            />
-            <Button variant="default" size="sm" onClick={addPanel} disabled={panels.length >= 4} className="bg-primary hover:bg-primary/90">
-              <Plus className="mr-2 h-4 w-4" />
-              {t('chat.addChatWindow')}
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          title={t('chat.title')}
+          subtitle={
+            <span>
+              {t('chat.subtitle')} {panels.length}{t('chat.windows')}
+            </span>
+          }
+          action={
+            <div className="flex gap-2 shrink-0">
+              <ChatHistoryDropdown
+                open={historyOpen}
+                onOpenChange={setHistoryOpen}
+                conversations={conversations}
+                onSelect={(id) => loadConversation(id, panels[0].id)}
+                onDelete={deleteConversation}
+              />
+              <Button
+                variant="default"
+                size="sm"
+                onClick={addPanel}
+                disabled={panels.length >= 4}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                {t('chat.addChatWindow')}
+              </Button>
+            </div>
+          }
+        />
 
         <div className="flex-1 flex overflow-hidden min-h-0 h-full w-full">
           <div className="flex-1 flex flex-col overflow-hidden min-h-0 h-full">

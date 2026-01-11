@@ -88,6 +88,10 @@ export function LogsPage() {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
+      <PageHeader
+        title={t('logs.title')}
+        subtitle={t('logs.description')}
+      />
       <div className="flex-1 max-w-[1400px] mx-auto w-full overflow-hidden">
         <div className="flex items-center gap-2 mb-4">
           <div className="relative flex-1 max-w-sm">

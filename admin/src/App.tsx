@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { DashboardPage } from "@/pages/dashboard"
 import { ProvidersPage } from "@/pages/models"
@@ -48,9 +48,9 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <HashRouter>
         <AppRoutes />
-      </BrowserRouter>
+      </HashRouter>
     </AuthProvider>
   )
 }

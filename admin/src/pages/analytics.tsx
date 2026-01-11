@@ -95,7 +95,10 @@ export function AnalyticsPage() {
   if (loading) {
     return (
       <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
-        <PageHeader />
+        <PageHeader
+          title={t('analytics.title')}
+          subtitle={t('analytics.description')}
+        />
         <div className="flex-1 max-w-[1400px] mx-auto w-full">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {[1, 2, 3, 4].map((i) => (
@@ -118,7 +121,10 @@ export function AnalyticsPage() {
   if (error) {
     return (
       <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
-        <PageHeader />
+        <PageHeader
+          title={t('analytics.title')}
+          subtitle={t('analytics.description')}
+        />
         <div className="flex-1 max-w-[1400px] mx-auto w-full">
           <div className="rounded-xl border bg-destructive/5 p-8 text-center">
             <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
@@ -139,7 +145,10 @@ export function AnalyticsPage() {
   if (!data) {
     return (
       <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
-        <PageHeader />
+        <PageHeader
+          title={t('analytics.title')}
+          subtitle={t('analytics.description')}
+        />
         <div className="flex-1 max-w-[1400px] mx-auto w-full">
           <div className="rounded-xl border bg-muted/50 p-8 text-center">
             <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -181,6 +190,10 @@ export function AnalyticsPage() {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
+      <PageHeader
+        title={t('analytics.title')}
+        subtitle={t('analytics.description')}
+      />
       <div className="flex-1 max-w-[1400px] mx-auto w-full">
         <div className="space-y-4">
           {/* Stats Cards */}
@@ -189,7 +202,7 @@ export function AnalyticsPage() {
           {/* Charts - First Row */}
           <div className="grid gap-4 lg:grid-cols-12 items-start">
             <div className="lg:col-span-8">
-              <AnalyticsChart />
+              <AnalyticsChart maxHours={10} />
             </div>
             <div className="lg:col-span-4">
               <PerformancePanel

@@ -13,6 +13,7 @@ import { ProviderDetail } from "@/components/providers/ProviderDetail"
 import { ModelDialog } from "@/components/providers/ModelDialog"
 import { AddProviderDialog } from "@/components/providers/AddProviderDialog"
 import { EditProviderDialog } from "@/components/providers/EditProviderDialog"
+import { PageHeader } from "@/components/layout/page-header"
 
 export function ModelTypesPage() {
   const [providerTypes, setProviderTypes] = useState<ProviderType[]>([])
@@ -226,12 +227,16 @@ export function ModelTypesPage() {
   return (
     <div className="flex-1 min-h-0 h-full flex flex-col page-transition overflow-y-auto px-6 pb-6 pt-4 scrollbar-hide">
       <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">
-        <div className="flex items-center justify-end mb-3">
-          <Button size="sm" onClick={() => setShowAddProvider(true)} className="bg-primary hover:bg-primary/90">
-            <Plus className="mr-2 h-4 w-4" />
-            {t('providers.addProvider')}
-          </Button>
-        </div>
+        <PageHeader
+          title={t('modelTypes.title')}
+          subtitle={t('modelTypes.pageDescription')}
+          action={
+            <Button size="sm" onClick={() => setShowAddProvider(true)} className="bg-primary hover:bg-primary/90">
+              <Plus className="mr-2 h-4 w-4" />
+              {t('providers.addProvider')}
+            </Button>
+          }
+        />
 
         <div className="flex-1 min-h-0 h-full">
         {error && (

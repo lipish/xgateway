@@ -34,6 +34,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 启用状态徽标（success badge）提升文字对比度。
 - 用户创建后刷新/选中逻辑修复（后端返回值为数字 id）。
 
+## [0.11.2] - 2026-01-11
+
+### 🎛️ Admin
+
+- 统一各页面顶部标题与副标题（`PageHeader`），提升页面一致性与信息层级。
+- 页面主操作按钮（如创建/添加）统一收敛到标题区右侧。
+- 优化部分卡片/图表在窄容器下的溢出表现（`min-w-0`、滚动区域等）。
+- 路由切换为 Hash 模式（`HashRouter`），便于静态部署场景。
+- 顶部导航面包屑显示逻辑简化为当前页面标题。
+
 ## [0.6.0] - 2025-11-29
 
 ### 💥 Breaking Changes

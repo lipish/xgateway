@@ -124,6 +124,10 @@ export const zh = {
     tokensUsed: '已用 Token',
     priceUnit: '¥/1M tokens',
   },
+  models: {
+    title: '模型服务',
+    description: '管理已接入的模型服务实例',
+  },
   chat: {
     title: '对话测试',
     description: '测试模型服务的对话功能',
@@ -184,6 +188,7 @@ export const zh = {
     name: '名称',
     key: '密钥',
     provider: '模型服务',
+    supportedProviders: '支持的模型服务',
     usage: '限制',
     status: '状态',
     enable: '启用',
@@ -208,7 +213,7 @@ export const zh = {
     copiedToClipboard: '已复制到剪贴板',
     scope: '作用域',
     global: '全局',
-    instance: '指定实例',
+    instance: '指定模型',
     selectInstance: '选择模型服务',
     concurrency: '并发限制',
     qps: 'QPS 限制',
@@ -310,6 +315,7 @@ export const zh = {
   },
   modelTypes: {
     title: '服务商目录',
+    pageDescription: '管理服务商类型与模型目录',
     allTypes: '所有服务商',
     availableModels: '可用模型',
     models: '可用模型',

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
+import { PageHeader } from "@/components/layout/page-header"
 
 interface Provider {
     id: number
@@ -63,6 +64,18 @@ export function UsersPage() {
             }
             const list: User[] = data.data || []
             setUsers(list)
+
+            if (list.length === 0) {
+                setSelectedUser(null)
+                setUserInstances([])
+            } else {
+                const hasValidSelection = selectedUser && list.some((u) => u.id === selectedUser.id)
+                if (!hasValidSelection) {
+                    setSelectedUser(list[0])
+                    fetchUserInstances(list[0].id)
+                }
+            }
+
             return list
         } catch (err) {
             console.error('Failed to fetch users:', err)
@@ -220,14 +233,17 @@ export function UsersPage() {
 
     return (
         <div className="flex-1 min-h-0 h-full flex flex-col page-transition p-6 scrollbar-hide">
-            <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">
-                <div className="flex items-center justify-end mb-3">
+            <PageHeader
+                title={t('users.title')}
+                subtitle={t('users.description')}
+                action={
                     <Button size="sm" onClick={() => setShowCreateDialog(true)} className="bg-primary hover:bg-primary/90">
                         <UserPlus className="mr-2 h-4 w-4" />
                         {t('users.addUser')}
                     </Button>
-                </div>
-
+                }
+            />
+            <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">
                 <div className="flex-1 min-h-0 flex flex-col h-full">
                 
                 {!loading && users.length > 0 && (

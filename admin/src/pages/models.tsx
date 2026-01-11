@@ -22,6 +22,7 @@ import { ProviderList } from "@/components/instances/ProviderList";
 import { ProviderDetail } from "@/components/instances/ProviderDetail";
 import { AddProviderDialog } from "@/components/instances/AddProviderDialog";
 import { EditProviderDialog } from "@/components/instances/EditProviderDialog";
+import { PageHeader } from "@/components/layout/page-header";
 
 export function ProvidersPage() {
   const { user } = useAuth();
@@ -432,16 +433,19 @@ export function ProvidersPage() {
 
   return (
     <div className="flex-1 min-h-0 h-full flex flex-col page-transition p-6 scrollbar-hide">
-      <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">
-        <div className="flex items-center justify-end mb-3">
-          {isAdmin ? (
+      <PageHeader
+        title={t('models.title')}
+        subtitle={t('models.description')}
+        action={
+          isAdmin ? (
             <Button size="sm" onClick={openAddDialog} className="bg-primary hover:bg-primary/90">
               <Plus className="mr-2 h-4 w-4" />
               {t('providers.addProvider')}
             </Button>
-          ) : null}
-        </div>
-
+          ) : null
+        }
+      />
+      <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">
         <div className="flex-1 min-h-0 flex flex-col h-full">
         {loading && (
           <Card className="flex-1 h-full flex flex-col">
