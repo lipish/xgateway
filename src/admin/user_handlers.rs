@@ -33,7 +33,7 @@ pub struct CreateUserRequest {
 pub async fn create_user_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
     Json(req): Json<CreateUserRequest>,
-) -> Json<ApiResponse<i32>> {
+) -> Json<ApiResponse<i64>> {
     let new_user = NewUser {
         username: req.username,
         password_hash: req.password_hash,
@@ -57,7 +57,7 @@ pub async fn create_user_api(
 /// Delete user
 pub async fn delete_user_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
-    axum::extract::Path(id): axum::extract::Path<i32>,
+    axum::extract::Path(id): axum::extract::Path<i64>,
 ) -> Json<ApiResponse<()>> {
     match db_pool.delete_user(id).await {
         Ok(true) => Json(ApiResponse {
@@ -81,7 +81,7 @@ pub async fn delete_user_api(
 /// Toggle user status
 pub async fn toggle_user_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
-    axum::extract::Path(id): axum::extract::Path<i32>,
+    axum::extract::Path(id): axum::extract::Path<i64>,
 ) -> Json<ApiResponse<()>> {
     // We need a way to get user by id to toggle
     // For now, let's just list and find (inefficient but works for small user lists)
@@ -120,13 +120,13 @@ pub async fn toggle_user_api(
 #[derive(Debug, Deserialize)]
 pub struct GrantInstanceRequest {
     pub provider_id: i64,
-    pub granted_by: Option<i32>,
+    pub granted_by: Option<i64>,
 }
 
 /// List all instances granted to a user
 pub async fn list_user_instances_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
-    axum::extract::Path(user_id): axum::extract::Path<i32>,
+    axum::extract::Path(user_id): axum::extract::Path<i64>,
 ) -> Json<ApiResponse<Vec<UserInstance>>> {
     match db_pool.get_user_granted_instances(user_id).await {
         Ok(instances) => Json(ApiResponse {
@@ -145,9 +145,9 @@ pub async fn list_user_instances_api(
 /// Grant user access to a provider instance
 pub async fn grant_user_instance_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
-    axum::extract::Path(user_id): axum::extract::Path<i32>,
+    axum::extract::Path(user_id): axum::extract::Path<i64>,
     Json(req): Json<GrantInstanceRequest>,
-) -> Json<ApiResponse<i32>> {
+) -> Json<ApiResponse<i64>> {
     let grant = NewUserInstance {
         user_id,
         provider_id: req.provider_id,
@@ -171,7 +171,7 @@ pub async fn grant_user_instance_api(
 /// Revoke user access to a provider instance
 pub async fn revoke_user_instance_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
-    axum::extract::Path((user_id, provider_id)): axum::extract::Path<(i32, i64)>,
+    axum::extract::Path((user_id, provider_id)): axum::extract::Path<(i64, i64)>,
 ) -> Json<ApiResponse<()>> {
     match db_pool.revoke_user_instance(user_id, provider_id).await {
         Ok(true) => Json(ApiResponse {

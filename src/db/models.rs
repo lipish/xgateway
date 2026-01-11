@@ -322,7 +322,7 @@ pub struct Role {
 /// User - Administrative user accounts
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct User {
-    pub id: i32,
+    pub id: i64,
     pub username: String,
     pub password_hash: String,
     pub role_id: Option<String>,
@@ -342,26 +342,26 @@ pub struct NewUser {
 /// User-Instance relationship (for granting access)
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct UserInstance {
-    pub id: i32,
-    pub user_id: i32,
+    pub id: i64,
+    pub user_id: i64,
     pub provider_id: i64,
     pub granted_at: DateTime<Utc>,
-    pub granted_by: Option<i32>,
+    pub granted_by: Option<i64>,
 }
 
 /// New user-instance grant
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewUserInstance {
-    pub user_id: i32,
+    pub user_id: i64,
     pub provider_id: i64,
-    pub granted_by: Option<i32>,
+    pub granted_by: Option<i64>,
 }
 
 /// API Key - Access keys for the data plane
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct ApiKey {
-    pub id: i32,
-    pub owner_id: Option<i32>,
+    pub id: i64,
+    pub owner_id: Option<i64>,
     pub key_hash: String,
     pub name: String,
     pub scope: String,
@@ -379,7 +379,7 @@ pub struct ApiKey {
 /// New API Key for creation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewApiKey {
-    pub owner_id: Option<i32>,
+    pub owner_id: Option<i64>,
     pub key_hash: String,
     pub name: String,
     pub scope: String, // "global" or "instance"

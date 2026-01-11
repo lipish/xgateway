@@ -136,6 +136,43 @@
     scrollbar-width: none;
   }
 
+  .scrollbar-hover::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-hover::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-hover::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  .scrollbar-hover:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.25);
+  }
+
+  .dark .scrollbar-hover:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.25);
+  }
+
+  .scrollbar-hover {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .scrollbar-hover:hover {
+    scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
+  }
+
+  .dark .scrollbar-hover:hover {
+    scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+  }
+
   @keyframes fadeIn {
     from {
       opacity: 0;

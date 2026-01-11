@@ -3,7 +3,7 @@ use anyhow::Result;
 use crate::db::{DatabasePool, User, NewUser};
 
 impl DatabasePool {
-    pub async fn create_user(&self, user: NewUser) -> Result<i32> {
+    pub async fn create_user(&self, user: NewUser) -> Result<i64> {
         match self {
             Self::Postgres(pool) => {
                 let row = sqlx::query(
@@ -14,7 +14,7 @@ impl DatabasePool {
                 .bind(&user.role_id)
                 .fetch_one(pool)
                 .await?;
-                Ok(row.get("id"))
+                Ok(row.try_get("id")?)
             }
         }
     }
@@ -37,7 +37,7 @@ impl DatabasePool {
         }
     }
 
-    pub async fn delete_user(&self, id: i32) -> Result<bool> {
+    pub async fn delete_user(&self, id: i64) -> Result<bool> {
         let pg_query = "DELETE FROM users WHERE id = $1";
         match self {
             Self::Postgres(pool) => {
@@ -47,7 +47,7 @@ impl DatabasePool {
         }
     }
 
-    pub async fn update_user_status(&self, id: i32, status: &str) -> Result<bool> {
+    pub async fn update_user_status(&self, id: i64, status: &str) -> Result<bool> {
         let pg_query = "UPDATE users SET status = $1 WHERE id = $2";
         match self {
             Self::Postgres(pool) => {

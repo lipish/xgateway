@@ -4,7 +4,7 @@ use crate::db::{DatabasePool, UserInstance, NewUserInstance};
 
 impl DatabasePool {
     /// Grant user access to a provider instance
-    pub async fn grant_user_instance(&self, grant: NewUserInstance) -> Result<i32> {
+    pub async fn grant_user_instance(&self, grant: NewUserInstance) -> Result<i64> {
         match self {
             Self::Postgres(pool) => {
                 let row = sqlx::query(
@@ -15,13 +15,13 @@ impl DatabasePool {
                 .bind(grant.granted_by)
                 .fetch_one(pool)
                 .await?;
-                Ok(row.get("id"))
+                Ok(row.try_get("id")?)
             }
         }
     }
 
     /// Revoke user access to a provider instance
-    pub async fn revoke_user_instance(&self, user_id: i32, provider_id: i64) -> Result<bool> {
+    pub async fn revoke_user_instance(&self, user_id: i64, provider_id: i64) -> Result<bool> {
         let pg_query = "DELETE FROM user_instances WHERE user_id = $1 AND provider_id = $2";
         match self {
             Self::Postgres(pool) => {
@@ -36,7 +36,7 @@ impl DatabasePool {
     }
 
     /// Get all instances granted to a user
-    pub async fn get_user_granted_instances(&self, user_id: i32) -> Result<Vec<UserInstance>> {
+    pub async fn get_user_granted_instances(&self, user_id: i64) -> Result<Vec<UserInstance>> {
         let pg_query = "SELECT id, user_id, provider_id, granted_at, granted_by FROM user_instances WHERE user_id = $1 ORDER BY granted_at DESC";
         match self {
             Self::Postgres(pool) => {
@@ -62,7 +62,7 @@ impl DatabasePool {
     }
 
     /// Check if user has access to a provider instance
-    pub async fn user_has_instance_access(&self, user_id: i32, provider_id: i64) -> Result<bool> {
+    pub async fn user_has_instance_access(&self, user_id: i64, provider_id: i64) -> Result<bool> {
         let pg_query = "SELECT COUNT(*) as count FROM user_instances WHERE user_id = $1 AND provider_id = $2";
         match self {
             Self::Postgres(pool) => {
@@ -71,7 +71,7 @@ impl DatabasePool {
                     .bind(provider_id)
                     .fetch_one(pool)
                     .await?;
-                let count: i64 = row.get("count");
+                let count: i64 = row.try_get("count")?;
                 Ok(count > 0)
             }
         }

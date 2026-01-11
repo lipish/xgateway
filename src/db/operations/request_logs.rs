@@ -50,18 +50,18 @@ impl DatabasePool {
                 .bind(&log.request_content).bind(&log.response_content)
                 .fetch_one(pool).await?;
                 Ok(RequestLog {
-                    id: row.get("id"),
-                    provider_id: row.get("provider_id"),
-                    provider_name: row.get("provider_name"),
-                    model: row.get("model"),
-                    status: row.get("status"),
-                    latency_ms: row.get("latency_ms"),
-                    tokens_used: row.get("tokens_used"),
-                    error_message: row.get("error_message"),
-                    request_type: row.get("request_type"),
-                    request_content: row.get("request_content"),
-                    response_content: row.get("response_content"),
-                    created_at: row.get("created_at"),
+                    id: row.try_get("id")?,
+                    provider_id: row.try_get("provider_id")?,
+                    provider_name: row.try_get("provider_name")?,
+                    model: row.try_get("model")?,
+                    status: row.try_get("status")?,
+                    latency_ms: row.try_get("latency_ms")?,
+                    tokens_used: row.try_get("tokens_used")?,
+                    error_message: row.try_get("error_message")?,
+                    request_type: row.try_get("request_type")?,
+                    request_content: row.try_get("request_content")?,
+                    response_content: row.try_get("response_content")?,
+                    created_at: row.try_get("created_at")?,
                 })
             }
         }
@@ -122,8 +122,8 @@ impl DatabasePool {
                 let mut counts = Vec::new();
                 for row in rows {
                     counts.push(HourlyRequestCount {
-                        hour: row.get("hour"),
-                        requests: row.get("requests"),
+                        hour: row.try_get("hour")?,
+                        requests: row.try_get("requests")?,
                     });
                 }
                 Ok(counts)
@@ -153,8 +153,8 @@ impl DatabasePool {
                 let mut latencies = Vec::new();
                 for row in rows {
                     latencies.push(ProviderLatency {
-                        provider_name: row.get("provider_name"),
-                        avg_latency_ms: row.get("avg_latency_ms"),
+                        provider_name: row.try_get("provider_name")?,
+                        avg_latency_ms: row.try_get("avg_latency_ms")?,
                     });
                 }
                 Ok(latencies)
@@ -170,15 +170,15 @@ impl DatabasePool {
                     r#"
                     SELECT 
                         COUNT(*) as total_requests,
-                        AVG(CASE WHEN status = 'success' THEN latency_ms END) as avg_latency_ms
+                        AVG(CASE WHEN status = 'success' THEN latency_ms END)::DOUBLE PRECISION as avg_latency_ms
                     FROM request_logs 
                     WHERE created_at >= NOW() - INTERVAL '24 hours'
                     "#
                 ).fetch_one(pool).await?;
 
                 Ok(TodayStats {
-                    total_requests: row.get("total_requests"),
-                    avg_latency_ms: row.get::<Option<f64>, _>("avg_latency_ms").unwrap_or(0.0),
+                    total_requests: row.try_get("total_requests")?,
+                    avg_latency_ms: row.try_get::<Option<f64>, _>("avg_latency_ms")?.unwrap_or(0.0),
                 })
             }
         }
@@ -211,12 +211,12 @@ impl DatabasePool {
                 ).fetch_one(pool).await?;
 
                 Ok(PerformanceStats {
-                    success_rate: row.get("success_rate"),
-                    requests_today: row.get("total_requests"),
-                    tokens_used: row.get::<i64, _>("tokens_used"),
-                    failed_requests: row.get::<i64, _>("failed_requests"),
-                    avg_response_time: row.get::<f64, _>("avg_response_time"),
-                    qps: row.get::<f64, _>("qps"),
+                    success_rate: row.try_get("success_rate")?,
+                    requests_today: row.try_get("total_requests")?,
+                    tokens_used: row.try_get("tokens_used")?,
+                    failed_requests: row.try_get("failed_requests")?,
+                    avg_response_time: row.try_get("avg_response_time")?,
+                    qps: row.try_get("qps")?,
                 })
             }
         }

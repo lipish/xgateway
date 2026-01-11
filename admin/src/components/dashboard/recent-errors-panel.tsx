@@ -57,36 +57,39 @@ export function RecentErrorsPanel({ recentErrors = [] }: RecentErrorsPanelProps)
           {t('dashboard.viewAll')}
         </Button>
       </CardHeader>
-      <CardContent className="px-6 pb-2 flex-1 min-h-0 overflow-auto">
+      <CardContent className="px-6 pb-2 flex-1 min-h-0 overflow-auto scrollbar-hover">
         <div className="space-y-1 min-w-0">
           {recentErrors.length === 0 ? (
             <div className="text-center py-4 text-muted-foreground">
               <div className="text-sm">{t('common.recentErrors.noRecentErrors')}</div>
             </div>
           ) : (
-            recentErrors.slice(0, 2).map((error, index) => {
+            recentErrors.slice(0, 6).map((error, index) => {
               const Icon = getErrorIcon(error.error_type)
               const type = getErrorType(error.error_type)
 
               return (
                 <div
                   key={index}
-                  className="flex items-start gap-2.5 p-1.5 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                  className="flex items-start gap-2 p-1 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                 >
                   <Icon
                     className={`h-4 w-4 mt-0.5 shrink-0 ${type === "error" ? "text-red-500" : "text-yellow-500"
                       }`}
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-sm font-medium text-foreground truncate">
+                    <div className="flex items-center justify-between gap-2 mb-0.5 min-w-0">
+                      <span className="text-xs font-medium text-foreground truncate">
                         {error.provider} - {error.model}
                       </span>
                       <span className="text-xs text-muted-foreground whitespace-nowrap">
                         {formatTime(error.timestamp)}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground break-words overflow-hidden">
+                    <p
+                      className="text-xs text-muted-foreground truncate whitespace-nowrap"
+                      title={error.error_message || error.error_type}
+                    >
                       {error.error_message || error.error_type}
                     </p>
                   </div>

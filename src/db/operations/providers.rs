@@ -19,7 +19,7 @@ impl DatabasePool {
                 .bind(&provider.secret_key)
                 .fetch_one(pool)
                 .await?;
-                Ok(row.get("id"))
+                Ok(row.try_get("id")?)
             }
         }
     }

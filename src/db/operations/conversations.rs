@@ -11,15 +11,15 @@ impl DatabasePool {
         match self {
             Self::Postgres(pool) => {
                 let row = sqlx::query(
-                    "INSERT INTO conversations (title, provider_id) VALUES ($1, $2) RETURNING id, title, provider_id, created_at, updated_at"
+                    "INSERT INTO conversations (title, provider_id) VALUES ($1, $2) RETURNING id::BIGINT as id, title, provider_id::BIGINT as provider_id, created_at, updated_at"
                 )
                 .bind(&title).bind(conv.provider_id).fetch_one(pool).await?;
                 Ok(Conversation {
-                    id: row.get("id"),
-                    title: row.get("title"),
-                    provider_id: row.get("provider_id"),
-                    created_at: row.get("created_at"),
-                    updated_at: row.get("updated_at"),
+                    id: row.try_get("id")?,
+                    title: row.try_get("title")?,
+                    provider_id: row.try_get("provider_id")?,
+                    created_at: row.try_get("created_at")?,
+                    updated_at: row.try_get("updated_at")?,
                 })
             }
         }
@@ -34,14 +34,14 @@ impl DatabasePool {
     async fn list_conversations_postgres(&self, pool: &PgPool, provider_id: Option<i64>, limit: i64) -> Result<Vec<ConversationListItem>> {
         if let Some(pid) = provider_id {
             Ok(sqlx::query_as::<_, ConversationListItem>(
-                r#"SELECT c.id, c.title, c.provider_id, p.name as provider_name, c.updated_at,
+                r#"SELECT c.id::BIGINT as id, c.title, c.provider_id::BIGINT as provider_id, p.name as provider_name, c.updated_at,
                    (SELECT COUNT(*) FROM messages WHERE conversation_id = c.id) as message_count
                    FROM conversations c LEFT JOIN providers p ON c.provider_id = p.id
                    WHERE c.provider_id = $1 ORDER BY c.updated_at DESC LIMIT $2"#
             ).bind(pid).bind(limit).fetch_all(pool).await?)
         } else {
             Ok(sqlx::query_as::<_, ConversationListItem>(
-                r#"SELECT c.id, c.title, c.provider_id, p.name as provider_name, c.updated_at,
+                r#"SELECT c.id::BIGINT as id, c.title, c.provider_id::BIGINT as provider_id, p.name as provider_name, c.updated_at,
                    (SELECT COUNT(*) FROM messages WHERE conversation_id = c.id) as message_count
                    FROM conversations c LEFT JOIN providers p ON c.provider_id = p.id
                    ORDER BY c.updated_at DESC LIMIT $1"#
@@ -53,7 +53,7 @@ impl DatabasePool {
         match self {
             Self::Postgres(pool) => {
                 Ok(sqlx::query_as::<_, Conversation>(
-                    "SELECT id, title, provider_id, created_at, updated_at FROM conversations WHERE id = $1"
+                    "SELECT id::BIGINT as id, title, provider_id::BIGINT as provider_id, created_at, updated_at FROM conversations WHERE id = $1"
                 ).bind(id).fetch_optional(pool).await?)
             }
         }

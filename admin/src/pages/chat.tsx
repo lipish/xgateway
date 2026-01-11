@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
-import { apiGet, apiPost } from "@/lib/api"
+import { API_URL, apiGet, apiPost } from "@/lib/api"
 import { t } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
@@ -151,9 +151,11 @@ export function ChatPage() {
     } : p))
 
     try {
-      const response = await fetch("/v1/chat/completions", {
+      const response = await fetch(`${API_URL}/v1/chat/completions`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           provider_id: panel.providerId,
           messages: [...panel.messages, { role: "user", content: userMessage }],
@@ -171,31 +173,42 @@ export function ChatPage() {
         return
       }
 
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
+      const contentType = response.headers.get("content-type") || ""
       let accumulatedContent = ""
 
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
+      if (contentType.includes("application/json")) {
+        const json = await response.json().catch(() => null) as any
+        accumulatedContent = json?.choices?.[0]?.message?.content || ""
+        setPanels(prev => prev.map(p => p.id === panelId ? {
+          ...p,
+          messages: [...p.messages.slice(0, -1), { role: "assistant" as const, content: accumulatedContent || t('chat.error') }],
+        } : p))
+      } else {
+        const reader = response.body?.getReader()
+        const decoder = new TextDecoder()
 
-          const chunk = decoder.decode(value, { stream: true })
-          const lines = chunk.split("\n")
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
 
-          for (const line of lines) {
-            if (line.startsWith("data:")) {
-              const data = line.startsWith("data: ") ? line.slice(6) : line.slice(5)
-              if (data === "[DONE]") continue
-              try {
-                const parsed = JSON.parse(data)
-                const delta = parsed.choices?.[0]?.delta?.content || ""
-                accumulatedContent += delta
-                setPanels(prev => prev.map(p => p.id === panelId ? {
-                  ...p,
-                  messages: [...p.messages.slice(0, -1), { role: "assistant" as const, content: accumulatedContent }]
-                } : p))
-              } catch {
+            const chunk = decoder.decode(value, { stream: true })
+            const lines = chunk.split("\n")
+
+            for (const line of lines) {
+              if (line.startsWith("data:")) {
+                const data = line.startsWith("data: ") ? line.slice(6) : line.slice(5)
+                if (data === "[DONE]") continue
+                try {
+                  const parsed = JSON.parse(data)
+                  const delta = parsed.choices?.[0]?.delta?.content || ""
+                  accumulatedContent += delta
+                  setPanels(prev => prev.map(p => p.id === panelId ? {
+                    ...p,
+                    messages: [...p.messages.slice(0, -1), { role: "assistant" as const, content: accumulatedContent }]
+                  } : p))
+                } catch {
+                }
               }
             }
           }

@@ -91,7 +91,7 @@ pub async fn create_api_key_api(
 /// Delete API key
 pub async fn delete_api_key_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
-    axum::extract::Path(id): axum::extract::Path<i32>,
+    axum::extract::Path(id): axum::extract::Path<i64>,
 ) -> Json<ApiResponse<()>> {
     match db_pool.delete_api_key(id).await {
         Ok(true) => Json(ApiResponse {
@@ -115,7 +115,7 @@ pub async fn delete_api_key_api(
 /// Toggle API key
 pub async fn toggle_api_key_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
-    axum::extract::Path(id): axum::extract::Path<i32>,
+    axum::extract::Path(id): axum::extract::Path<i64>,
 ) -> Json<ApiResponse<()>> {
     // Get current status first
     match db_pool.get_api_key_by_id(id).await {
