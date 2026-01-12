@@ -67,7 +67,7 @@ export function ApiKeysListCard({
                 return (
                   <TableRow
                     key={key.id}
-                    className={cn("cursor-pointer", selectedApiKeyId === key.id && "bg-muted/60")}
+                    className={cn("cursor-pointer transition-colors", selectedApiKeyId === key.id ? "bg-violet-50 border-l-2 border-l-violet-400" : "hover:bg-muted/40")}
                     onClick={() => onSelectApiKeyId(key.id)}
                   >
                     <TableCell className="font-medium">{key.name}</TableCell>

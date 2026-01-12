@@ -40,7 +40,7 @@ export function UserDetailCard({
                     className={cn(
                       "cursor-pointer",
                       user.status === "active"
-                        ? "bg-emerald-500/10 text-emerald-600 border-0"
+                        ? "bg-violet-50 text-violet-700 border border-violet-200"
                         : "bg-muted text-muted-foreground border-0"
                     )}
                     onClick={() => onToggleStatus(user)}

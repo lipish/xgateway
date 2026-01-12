@@ -64,7 +64,7 @@ export function LogsPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'success': return <Badge className="bg-primary/10 text-primary border-0" variant="outline">{t('common.success')}</Badge>
+      case 'success': return <Badge className="bg-violet-50 text-violet-700 border border-violet-200" variant="outline">{t('common.success')}</Badge>
       case 'error': return <Badge className="bg-destructive text-destructive-foreground border-0" variant="destructive">{t('common.error')}</Badge>
       case 'timeout': return <Badge variant="secondary">{t('common.timeout')}</Badge>
       default: return <Badge variant="outline">{status}</Badge>
@@ -139,7 +139,7 @@ export function LogsPage() {
                     {filteredLogs.map((log) => (
                       <TableRow
                         key={log.id}
-                        className={`cursor-pointer hover:bg-muted/50 ${selectedLog?.id === log.id ? 'bg-muted' : ''}`}
+                        className={`cursor-pointer hover:bg-muted/50 ${selectedLog?.id === log.id ? 'bg-violet-50 border-l-2 border-l-violet-400' : ''}`}
                         onClick={() => setSelectedLog(log)}
                       >
                         <TableCell className="text-sm whitespace-nowrap pl-6">{new Date(log.created_at).toLocaleString()}</TableCell>
@@ -166,7 +166,7 @@ export function LogsPage() {
                 <div className="flex-1 overflow-auto p-4 space-y-4 scrollbar-hide">
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
-                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${selectedLog.status === 'success' ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
+                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${selectedLog.status === 'success' ? 'bg-violet-50 text-violet-700' : 'bg-destructive/10 text-destructive'}`}>
                         <Server className="h-5 w-5" />
                       </div>
                       <div>

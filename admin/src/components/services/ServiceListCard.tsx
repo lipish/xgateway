@@ -56,7 +56,7 @@ export function ServiceListCard({
                   key={svc.id}
                   className={cn(
                     "cursor-pointer transition-colors",
-                    selectedServiceId === svc.id ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-muted/40"
+                    selectedServiceId === svc.id ? "bg-violet-50 border-l-2 border-l-violet-400" : "hover:bg-muted/40"
                   )}
                   onClick={() => onSelectServiceId(svc.id)}
                 >

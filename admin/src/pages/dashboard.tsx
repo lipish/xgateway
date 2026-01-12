@@ -251,7 +251,7 @@ export function DashboardPage() {
                                   variant="outline"
                                   className={cn(
                                     "text-xs",
-                                    provider.enabled ? "bg-green-50 text-green-700 border-green-200" : "bg-muted text-muted-foreground"
+                                    provider.enabled ? "bg-violet-50 text-violet-700 border-violet-200" : "bg-muted text-muted-foreground"
                                   )}
                                 >
                                   {provider.enabled ? t("providers.enabled") : t("providers.disabled")}

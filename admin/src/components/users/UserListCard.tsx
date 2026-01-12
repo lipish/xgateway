@@ -29,8 +29,8 @@ export function UserListCard({ users, selectedUserId, onSelectUser }: UserListCa
               <div
                 key={user.id}
                 className={cn(
-                  "p-3 rounded-lg border cursor-pointer transition-all hover:border-primary/50",
-                  selectedUserId === user.id ? "border-primary bg-primary/5" : "border-border"
+                  "p-3 rounded-lg border cursor-pointer transition-all hover:border-violet-300",
+                  selectedUserId === user.id ? "border-violet-400 bg-violet-50" : "border-border"
                 )}
                 onClick={() => onSelectUser(user)}
               >
@@ -48,7 +48,7 @@ export function UserListCard({ users, selectedUserId, onSelectUser }: UserListCa
                         className={cn(
                           "text-xs",
                           user.status === "active"
-                            ? "bg-emerald-500/10 text-emerald-600 border-0"
+                            ? "bg-violet-50 text-violet-700 border border-violet-200"
                             : "bg-muted text-muted-foreground border-0"
                         )}
                       >
