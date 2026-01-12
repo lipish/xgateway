@@ -37,53 +37,6 @@ pub async fn handle_chat_completions(
         None
     };
 
-    // 2. Check Rate Limits (QPS and Concurrency)
-    let _concurrency_permit = if let Some(key_info) = &api_key_info {
-        match pool_manager.check_api_key_limit(key_info).await {
-            RateLimitResult::Denied { retry_after } => {
-                return (
-                    StatusCode::TOO_MANY_REQUESTS,
-                    [("Retry-After", retry_after.as_secs().to_string())],
-                    axum::Json(serde_json::json!({
-                        "error": {
-                            "message": format!("Rate limit exceeded for API Key. Retry after {} seconds.", retry_after.as_secs()),
-                            "type": "rate_limit_exceeded"
-                        }
-                    }))
-                ).into_response();
-            }
-            RateLimitResult::ConcurrencyExceeded => {
-                return (
-                    StatusCode::TOO_MANY_REQUESTS,
-                    axum::Json(serde_json::json!({
-                        "error": {
-                            "message": "Concurrency limit exceeded for API Key.",
-                            "type": "concurrency_limit_exceeded"
-                        }
-                    }))
-                ).into_response();
-            }
-            RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
-        }
-    } else {
-        match pool_manager.check_rate_limit(None).await {
-            RateLimitResult::Denied { retry_after } => {
-                return (
-                    StatusCode::TOO_MANY_REQUESTS,
-                    [("Retry-After", retry_after.as_secs().to_string())],
-                    axum::Json(serde_json::json!({
-                        "error": {
-                            "message": format!("Global rate limit exceeded. Retry after {} seconds.", retry_after.as_secs()),
-                            "type": "rate_limit_exceeded"
-                        }
-                    }))
-                ).into_response();
-            }
-            RateLimitResult::ConcurrencyExceeded => unreachable!(),
-            RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
-        }
-    };
-
     let is_stream = request
         .get("stream")
         .and_then(|v| v.as_bool())
@@ -94,7 +47,7 @@ pub async fn handle_chat_completions(
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
 
-    // 3. STRICT MODE: Require explicit service_id in request
+    // 2. STRICT MODE: Require explicit service_id in request
     let service_id = match requested_service_id {
         Some(id) => id,
         None => {
@@ -110,7 +63,7 @@ pub async fn handle_chat_completions(
         }
     };
 
-    // 4. Check service access control
+    // 3. Check service access control
     if let Some(key_info) = &api_key_info {
         match db_pool.api_key_has_service_access(key_info, &service_id).await {
             Ok(true) => {}
@@ -181,6 +134,88 @@ pub async fn handle_chat_completions(
         )
             .into_response();
     }
+
+    // 4. Service hard limits (QPS + bounded queue + concurrency)
+    let _service_concurrency_permit = match pool_manager.check_service_limit(&service).await {
+        RateLimitResult::Denied { .. } => {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                axum::Json(serde_json::json!({
+                    "error": {
+                        "message": "Service is busy. Please retry later.",
+                        "type": "service_rate_limit_exceeded"
+                    }
+                })),
+            )
+                .into_response();
+        }
+        RateLimitResult::ConcurrencyExceeded | RateLimitResult::QueueFull | RateLimitResult::WaitTimeout => {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                axum::Json(serde_json::json!({
+                    "error": {
+                        "message": "Service is busy. Please retry later.",
+                        "type": "service_overloaded"
+                    }
+                })),
+            )
+                .into_response();
+        }
+        RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
+    };
+
+    // 5. API key soft limits (QPS + concurrency)
+    let _api_key_concurrency_permit = if let Some(key_info) = &api_key_info {
+        match pool_manager.check_api_key_limit(key_info).await {
+            RateLimitResult::Denied { retry_after } => {
+                return (
+                    StatusCode::TOO_MANY_REQUESTS,
+                    [("Retry-After", retry_after.as_secs().to_string())],
+                    axum::Json(serde_json::json!({
+                        "error": {
+                            "message": format!("Rate limit exceeded for API Key. Retry after {} seconds.", retry_after.as_secs()),
+                            "type": "rate_limit_exceeded"
+                        }
+                    })),
+                )
+                    .into_response();
+            }
+            RateLimitResult::ConcurrencyExceeded => {
+                return (
+                    StatusCode::TOO_MANY_REQUESTS,
+                    axum::Json(serde_json::json!({
+                        "error": {
+                            "message": "Concurrency limit exceeded for API Key.",
+                            "type": "concurrency_limit_exceeded"
+                        }
+                    })),
+                )
+                    .into_response();
+            }
+            RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
+            RateLimitResult::QueueFull | RateLimitResult::WaitTimeout => unreachable!(),
+        }
+    } else {
+        // Backward-compat / internal mode: still apply global rate limit if no API key
+        match pool_manager.check_rate_limit(None).await {
+            RateLimitResult::Denied { retry_after } => {
+                return (
+                    StatusCode::TOO_MANY_REQUESTS,
+                    [("Retry-After", retry_after.as_secs().to_string())],
+                    axum::Json(serde_json::json!({
+                        "error": {
+                            "message": format!("Global rate limit exceeded. Retry after {} seconds.", retry_after.as_secs()),
+                            "type": "rate_limit_exceeded"
+                        }
+                    })),
+                )
+                    .into_response();
+            }
+            RateLimitResult::ConcurrencyExceeded => unreachable!(),
+            RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
+            RateLimitResult::QueueFull | RateLimitResult::WaitTimeout => unreachable!(),
+        }
+    };
 
     let providers = match db_pool.list_service_providers(&service_id).await {
         Ok(p) => p,

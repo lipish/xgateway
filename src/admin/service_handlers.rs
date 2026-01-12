@@ -11,6 +11,10 @@ pub struct CreateServiceRequest {
     pub enabled: Option<bool>,
     pub strategy: Option<String>,
     pub fallback_chain: Option<String>,
+    pub qps_limit: Option<f64>,
+    pub concurrency_limit: Option<i32>,
+    pub max_queue_size: Option<i32>,
+    pub max_queue_wait_ms: Option<i32>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -19,6 +23,10 @@ pub struct UpdateServiceRequest {
     pub enabled: Option<bool>,
     pub strategy: Option<String>,
     pub fallback_chain: Option<String>,
+    pub qps_limit: Option<f64>,
+    pub concurrency_limit: Option<i32>,
+    pub max_queue_size: Option<i32>,
+    pub max_queue_wait_ms: Option<i32>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -87,26 +95,38 @@ pub async fn create_service_api(
     let strategy = req.strategy.unwrap_or_else(|| "Priority".to_string());
 
     match db_pool
-        .create_service(&req.id, &req.name, enabled, &strategy, req.fallback_chain.as_deref())
+        .create_service(
+            &req.id,
+            &req.name,
+            enabled,
+            &strategy,
+            req.fallback_chain.as_deref(),
+            req.qps_limit,
+            req.concurrency_limit,
+            req.max_queue_size,
+            req.max_queue_wait_ms,
+        )
         .await
     {
-        Ok(_) => match db_pool.get_service(&req.id).await {
-            Ok(Some(service)) => Json(ApiResponse {
-                success: true,
-                data: Some(service),
-                message: "Service created".to_string(),
-            }),
-            Ok(None) => Json(ApiResponse {
-                success: false,
-                data: None,
-                message: "Service created but cannot be retrieved".to_string(),
-            }),
-            Err(e) => Json(ApiResponse {
-                success: false,
-                data: None,
-                message: format!("Failed to retrieve created service: {}", e),
-            }),
-        },
+        Ok(_) => {
+            match db_pool.get_service(&req.id).await {
+                Ok(Some(service)) => Json(ApiResponse {
+                    success: true,
+                    data: Some(service),
+                    message: "Service created".to_string(),
+                }),
+                Ok(None) => Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: "Service created but cannot be retrieved".to_string(),
+                }),
+                Err(e) => Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: format!("Failed to retrieve created service: {}", e),
+                }),
+            }
+        }
         Err(e) => Json(ApiResponse {
             success: false,
             data: None,
@@ -127,6 +147,10 @@ pub async fn update_service_api(
             req.enabled,
             req.strategy.as_deref(),
             req.fallback_chain.as_deref(),
+            req.qps_limit,
+            req.concurrency_limit,
+            req.max_queue_size,
+            req.max_queue_wait_ms,
         )
         .await
     {

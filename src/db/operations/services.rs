@@ -6,7 +6,7 @@ use crate::db::{ApiKey, DatabasePool, Provider, Service};
 impl DatabasePool {
     pub async fn list_services(&self) -> Result<Vec<Service>> {
         let query = r#"
-            SELECT id, name, enabled, strategy, fallback_chain, created_at, updated_at
+            SELECT id, name, enabled, strategy, fallback_chain, qps_limit, concurrency_limit, max_queue_size, max_queue_wait_ms, created_at, updated_at
             FROM services
             ORDER BY created_at DESC
         "#;
@@ -25,10 +25,34 @@ impl DatabasePool {
         enabled: bool,
         strategy: &str,
         fallback_chain: Option<&str>,
+        qps_limit: Option<f64>,
+        concurrency_limit: Option<i32>,
+        max_queue_size: Option<i32>,
+        max_queue_wait_ms: Option<i32>,
     ) -> Result<()> {
         let query = r#"
-            INSERT INTO services (id, name, enabled, strategy, fallback_chain)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO services (
+                id,
+                name,
+                enabled,
+                strategy,
+                fallback_chain,
+                qps_limit,
+                concurrency_limit,
+                max_queue_size,
+                max_queue_wait_ms
+            )
+            VALUES (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5,
+                COALESCE($6, 100.0),
+                COALESCE($7, 50),
+                COALESCE($8, 100),
+                COALESCE($9, 30000)
+            )
             ON CONFLICT (id) DO NOTHING
         "#;
 
@@ -40,6 +64,10 @@ impl DatabasePool {
                     .bind(enabled)
                     .bind(strategy)
                     .bind(fallback_chain)
+                    .bind(qps_limit)
+                    .bind(concurrency_limit)
+                    .bind(max_queue_size)
+                    .bind(max_queue_wait_ms)
                     .execute(pool)
                     .await?;
                 Ok(())
@@ -54,9 +82,27 @@ impl DatabasePool {
         enabled: Option<bool>,
         strategy: Option<&str>,
         fallback_chain: Option<&str>,
+        qps_limit: Option<f64>,
+        concurrency_limit: Option<i32>,
+        max_queue_size: Option<i32>,
+        max_queue_wait_ms: Option<i32>,
     ) -> Result<bool> {
         match self {
-            Self::Postgres(pool) => self.update_service_postgres(pool, id, name, enabled, strategy, fallback_chain).await,
+            Self::Postgres(pool) => {
+                self.update_service_postgres(
+                    pool,
+                    id,
+                    name,
+                    enabled,
+                    strategy,
+                    fallback_chain,
+                    qps_limit,
+                    concurrency_limit,
+                    max_queue_size,
+                    max_queue_wait_ms,
+                )
+                .await
+            }
         }
     }
 
@@ -68,6 +114,10 @@ impl DatabasePool {
         enabled: Option<bool>,
         strategy: Option<&str>,
         fallback_chain: Option<&str>,
+        qps_limit: Option<f64>,
+        concurrency_limit: Option<i32>,
+        max_queue_size: Option<i32>,
+        max_queue_wait_ms: Option<i32>,
     ) -> Result<bool> {
         let mut query = QueryBuilder::new("UPDATE services SET updated_at = CURRENT_TIMESTAMP");
         let mut has_updates = false;
@@ -90,6 +140,27 @@ impl DatabasePool {
         if let Some(fallback_chain) = fallback_chain {
             query.push(", fallback_chain = ");
             query.push_bind(fallback_chain);
+            has_updates = true;
+        }
+
+        if let Some(qps_limit) = qps_limit {
+            query.push(", qps_limit = ");
+            query.push_bind(qps_limit);
+            has_updates = true;
+        }
+        if let Some(concurrency_limit) = concurrency_limit {
+            query.push(", concurrency_limit = ");
+            query.push_bind(concurrency_limit);
+            has_updates = true;
+        }
+        if let Some(max_queue_size) = max_queue_size {
+            query.push(", max_queue_size = ");
+            query.push_bind(max_queue_size);
+            has_updates = true;
+        }
+        if let Some(max_queue_wait_ms) = max_queue_wait_ms {
+            query.push(", max_queue_wait_ms = ");
+            query.push_bind(max_queue_wait_ms);
             has_updates = true;
         }
 
@@ -116,7 +187,7 @@ impl DatabasePool {
 
     pub async fn get_service(&self, service_id: &str) -> Result<Option<Service>> {
         let query = r#"
-            SELECT id, name, enabled, strategy, fallback_chain, created_at, updated_at
+            SELECT id, name, enabled, strategy, fallback_chain, qps_limit, concurrency_limit, max_queue_size, max_queue_wait_ms, created_at, updated_at
             FROM services
             WHERE id = $1
         "#;

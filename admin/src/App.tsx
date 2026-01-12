@@ -1,26 +1,27 @@
+import React, { Suspense } from "react"
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { DashboardPage } from "@/pages/dashboard"
-import { ProvidersPage } from "@/pages/models"
-import { AnalyticsPage } from "@/pages/analytics"
-import { LogsPage } from "@/pages/logs"
-import { SettingsPage } from "@/pages/settings"
-import { ApiKeysPage } from "@/pages/api-keys"
-import { ServicesPage } from "@/pages/services"
-import { UsersPage } from "@/pages/users"
-import { HelpPage } from "@/pages/help"
-import { ChatPage } from "@/pages/chat"
-import { ModelTypesPage } from "@/pages/providers"
-import { LoginPage } from "@/pages/login"
 import { AuthProvider, useAuth } from "@/lib/auth"
+import { PageLoading } from "@/components/ui/page-loading"
+
+const DashboardPage = React.lazy(() => import("@/pages/dashboard").then((m) => ({ default: m.DashboardPage })))
+const ProvidersPage = React.lazy(() => import("@/pages/models").then((m) => ({ default: m.ProvidersPage })))
+const AnalyticsPage = React.lazy(() => import("@/pages/analytics").then((m) => ({ default: m.AnalyticsPage })))
+const LogsPage = React.lazy(() => import("@/pages/logs").then((m) => ({ default: m.LogsPage })))
+const SettingsPage = React.lazy(() => import("@/pages/settings").then((m) => ({ default: m.SettingsPage })))
+const ApiKeysPage = React.lazy(() => import("@/pages/api-keys").then((m) => ({ default: m.ApiKeysPage })))
+const ServicesPage = React.lazy(() => import("@/pages/services").then((m) => ({ default: m.ServicesPage })))
+const UsersPage = React.lazy(() => import("@/pages/users").then((m) => ({ default: m.UsersPage })))
+const HelpPage = React.lazy(() => import("@/pages/help").then((m) => ({ default: m.HelpPage })))
+const ChatPage = React.lazy(() => import("@/pages/chat").then((m) => ({ default: m.ChatPage })))
+const ModelTypesPage = React.lazy(() => import("@/pages/providers").then((m) => ({ default: m.ModelTypesPage })))
+const LoginPage = React.lazy(() => import("@/pages/login").then((m) => ({ default: m.LoginPage })))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth()
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-    </div>
+    return <PageLoading fullScreen />
   }
 
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
@@ -28,22 +29,24 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-        <Route index element={<DashboardPage />} />
-        <Route path="models" element={<ProvidersPage />} />
-        <Route path="providers" element={<ModelTypesPage />} />
-        <Route path="chat" element={<ChatPage />} />
-        <Route path="analytics" element={<AnalyticsPage />} />
-        <Route path="logs" element={<LogsPage />} />
-        <Route path="settings" element={<SettingsPage />} />
-        <Route path="users" element={<UsersPage />} />
-        <Route path="services" element={<ServicesPage />} />
-        <Route path="apikeys" element={<ApiKeysPage />} />
-        <Route path="help" element={<HelpPage />} />
-      </Route>
-    </Routes>
+    <Suspense fallback={<PageLoading fullScreen />}>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+          <Route index element={<DashboardPage />} />
+          <Route path="models" element={<ProvidersPage />} />
+          <Route path="providers" element={<ModelTypesPage />} />
+          <Route path="chat" element={<ChatPage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="logs" element={<LogsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="users" element={<UsersPage />} />
+          <Route path="services" element={<ServicesPage />} />
+          <Route path="apikeys" element={<ApiKeysPage />} />
+          <Route path="help" element={<HelpPage />} />
+        </Route>
+      </Routes>
+    </Suspense>
   )
 }
 
