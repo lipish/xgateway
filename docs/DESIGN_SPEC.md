@@ -1,6 +1,6 @@
-# LLM-Link Design Specifications (Lovable Style)
+# LLM-Link Design Specifications 
 
-This document defines the core UI/UX standards for the LLM-Link project, derived from the modern, premium SaaS aesthetics of the Lovable design system.
+This document defines the core UI/UX standards for the LLM-Link project
 
 ## 1. Core Design Tokens
 

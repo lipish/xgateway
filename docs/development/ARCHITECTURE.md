@@ -1,164 +1,292 @@
-# LLM Link Architecture & Multi-Provider Expansion
+# LLM Link 架构说明（Gateway / 多模型服务）
 
-## Overview
+本文档面向开发与运维，目的不是“概念图”，而是把当前实现里 **Service / API Key / Provider（模型服务）/ 负载均衡 / 限流与排队** 的真实数据结构与请求链路讲清楚。
 
-LLM Link is designed as a multi-provider gateway that unifies various LLM APIs (OpenAI, Anthropic, Zhipu, etc.) into standard interfaces like OpenAI and Ollama. This architecture enables clients like Zed, VS Code, and Aider to work with *any* provider transparently.
+## 1. 总体目标与边界
 
-## Core Architecture Design
+LLM Link 是一个多供应商模型网关：对客户端暴露统一协议（OpenAI / Ollama / Anthropic 等），内部将请求路由到不同 Provider，并在入口处完成：
 
-LLM Link adopts a tiered architecture to decouple protocol emulation from provider-specific drivers, ensuring high flexibility and maintainability.
+1. API Key 鉴权与授权（能否访问某个 `service_id`）
+2. 双层限流（Service 硬限制 503，API Key 软限制 429）
+3. 负载均衡（按 Service 配置的策略在候选 Provider 里选一个）
+4. 失败处理（Provider 级 failover / service 级 fallback_chain）
 
-### High-Level Design
+## 2. 核心实体与数据模型（DB + Rust）
+
+系统对外主要抽象成三层：
+
+- **Service（服务入口）**：对外可见的路由目标（请求体里显式传 `service_id`）；承载调度策略、回退链、服务级限流/排队。
+- **API Key（调用方身份与配额）**：鉴权凭证；支持 key 级 QPS/并发（公平性软限制）。
+- **Provider（模型服务/实例）**：实际调用的后端模型服务（OpenAI 兼容、云厂商、自建等），含连接与鉴权配置、优先级、可用性等。
+
+### 2.1 数据表关系（PostgreSQL）
+
+数据模型的关键在两张关联表：
+
+- `service_model_services`：Service → Provider 的绑定（一个 Service 可以绑定多个 Provider 作为候选池）
+- `api_key_services`：API Key → Service 的授权（当 key 的 scope=instance 时，必须显式授权才能访问）
+
+来源：`migrations/postgres/011_add_services.sql`。
 
 ```mermaid
-graph TD
-    Client[Clients (Zed, Aider, CLI)] -->|OpenAI/Ollama Protocol| Emulators
-    
-    subgraph "LLM Link Core Architecture"
-        subgraph "1. Protocol Emulator Layer (Emulators)"
-            Emulators[Protocol Dispatcher]
-            Emulators --> E1[OpenAI Emulator]
-            Emulators --> E2[Ollama Emulator]
-            Emulators --> E3[Anthropic Emulator]
-        end
-        
-        subgraph "2. Unified Endpoint Layer (Endpoints)"
-            E1 & E2 & E3 --> ProxyState[Unified State Management / ProxyState]
-            ProxyState --> Basic[Basic Services: Health/Info]
-        end
+erDiagram
+    services ||--o{ service_model_services : binds
+    providers ||--o{ service_model_services : is_bound
+    api_keys ||--o{ api_key_services : authorizes
+    services ||--o{ api_key_services : is_authorized
 
-        subgraph "3. Core Orchestration Layer (Engine)"
-            ProxyState --> Engine[Client Orchestrator]
-            Engine --> Mapping[Model Mapping & Unified Response]
-            Engine --> Instance[Instance ID Management]
-        end
+    services {
+        text id PK
+        text name
+        bool enabled
+        text strategy
+        text fallback_chain
+        float qps_limit
+        int concurrency_limit
+        int max_queue_size
+        int max_queue_wait_ms
+        timestamptz created_at
+        timestamptz updated_at
+    }
 
-        subgraph "4. Adapter & Driver Layer (Adapter/Drivers)"
-            Engine --> Generic[Generic Sender]
-            Generic --> Drivers{Driver Registry}
-            Drivers --> D1[OpenAI Compatible]
-            Drivers --> D2[Specialized: Minimax]
-            Drivers --> D3[Native: Aliyun/Tencent]
-        end
+    providers {
+        bigint id PK
+        text name
+        text type
+        text config
+        bool enabled
+        int priority
+        text endpoint
+        text secret_id
+        text secret_key
+        bigint version
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    api_keys {
+        bigint id PK
+        text key_hash
+        text name
+        text scope
+        bigint provider_id
+        text provider_ids
+        float qps_limit
+        int concurrency_limit
+        text status
+        timestamptz expires_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    service_model_services {
+        text service_id PK
+        bigint provider_id PK
+        timestamptz created_at
+    }
+
+    api_key_services {
+        bigint api_key_id PK
+        text service_id PK
+        timestamptz created_at
+    }
+```
+
+说明：
+
+- `services` 的 4 个限流/队列字段来自 `migrations/postgres/012_add_service_limits.sql`。
+- `api_keys` 里仍保留 `provider_id/provider_ids` 作为历史兼容；新模型优先使用 `api_key_services`。
+
+### 2.2 Rust 侧结构体（权威来源）
+
+权威结构体定义位于：`src/db/models.rs`。
+
+- `Service`
+  - `id/name/enabled/strategy/fallback_chain`
+  - `qps_limit/concurrency_limit/max_queue_size/max_queue_wait_ms`
+- `Provider`
+  - `id/name/provider_type/config/enabled/priority/.../version`
+- `ApiKey`
+  - `key_hash/scope/qps_limit/concurrency_limit/status/expires_at/...`
+- 关系表 struct：`ServiceModelService`、`ApiKeyService`
+
+## 3. 运行时分层与职责
+
+从代码结构看，可以把请求链路拆成 5 层：
+
+1. **协议仿真层（Emulators）**：把 OpenAI/Ollama/Anthropic 等协议适配到统一内部入口。
+   - 位置：`src/endpoints/emulators/`
+2. **业务入口层（Endpoints）**：做鉴权、授权、限流、选路、转发、错误码语义。
+   - 典型：`src/endpoints/chat.rs` 的 `handle_chat_completions`
+3. **Pool 管理层（PoolManager / ProviderPool）**：管理 Provider 实例的可用性/健康/指标，提供候选选择能力。
+   - 位置：`src/pool/manager.rs`、`src/pool/pool.rs`
+4. **负载均衡与失败处理（LoadBalancer / Failover）**：策略选路、健康过滤、失败重试/切换。
+   - 位置：`src/pool/load_balancer.rs`、`src/pool/failover.rs`、`src/pool/health.rs`
+5. **适配器/驱动层（Adapter/Drivers）**：把统一请求真正发送到不同 Provider 的 HTTP API。
+   - 位置：`src/adapter/`
+
+## 4. 核心请求流程（以 `/v1/chat/completions` 为例）
+
+该入口的“权威实现”在：`src/endpoints/chat.rs::handle_chat_completions`。
+
+### 4.1 关键原则：先 Service（503），后 API Key（429）
+
+这条顺序是有意设计的：
+
+- **Service 维度**属于“保护系统整体能力”的硬限制，触发应返回 **503**。
+- **API Key 维度**属于“多租户公平性”的软限制，触发应返回 **429**。
+
+### 4.2 步骤拆解
+
+请求（客户端）→ 协议仿真层 → 业务入口层后，依次执行：
+
+1. 从 `Authorization: Bearer ...` 提取并校验 API Key
+   - `db_pool.get_api_key_by_hash(...)`
+2. 从请求体读取 `service_id`（严格模式：必须显式提供）
+3. 授权检查：API Key 是否能访问该 Service
+   - `db_pool.api_key_has_service_access(api_key, service_id)`
+4. 读取 Service 配置（含策略与限流参数）
+   - `db_pool.get_service(service_id)`
+5. **Service 硬限流 + 有界队列 + 并发（503）**
+   - `pool_manager.check_service_limit(&service)` → `rate_limiter.check_service(...)`
+   - 可能返回：
+     - `Denied`（QPS 不满足）→ 503
+     - `QueueFull`（队列满）→ 503
+     - `WaitTimeout`（排队等待超时）→ 503
+6. **API Key 软限流 + 并发（429）**
+   - `pool_manager.check_api_key_limit(key)` → `rate_limiter.check_api_key(...)`
+   - 可能返回：
+     - `Denied`（QPS 不满足）→ 429（带 `Retry-After`）
+     - `ConcurrencyExceeded`（并发不满足）→ 429
+7. 读取 Service 绑定的 Provider 候选集合
+   - `db_pool.list_service_providers(service_id)`
+8. 将 `service.strategy` 映射为 `LoadBalanceStrategy`，在候选集合里选择目标 Provider
+   - `pool_manager.select_provider_from_candidates_with_strategy(strategy, candidate_ids, exclude)`
+9. 进入 adapter/driver 发送请求，记录 metrics/health，并按 failover 机制尝试 fallback
+
+### 4.3 流程图（入口到转发）
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant E as Emulator (OpenAI/Ollama/...)
+    participant H as Endpoint (handle_chat_completions)
+    participant DB as Postgres (db_pool)
+    participant PM as PoolManager
+    participant RL as RateLimiter
+    participant LB as ProviderPool/LoadBalancer
+    participant AD as Adapter/Driver
+    participant P as Provider API
+
+    C->>E: HTTP request
+    E->>H: normalized request
+    H->>DB: get_api_key_by_hash
+    H->>DB: api_key_has_service_access
+    H->>DB: get_service(service_id)
+    H->>PM: check_service_limit(service)
+    PM->>RL: check_service(service_id, qps, queue, concurrency)
+    alt service limited
+        RL-->>H: Denied/QueueFull/WaitTimeout
+        H-->>C: 503
     end
-    
-    D1 & D2 & D3 -->|HTTPS| Cloud[Cloud LLM Providers]
+    H->>PM: check_api_key_limit(api_key)
+    PM->>RL: check_api_key(key_hash, qps, concurrency)
+    alt key limited
+        RL-->>H: Denied/ConcurrencyExceeded
+        H-->>C: 429
+    end
+    H->>DB: list_service_providers(service_id)
+    H->>LB: select_provider(strategy, candidate_ids)
+    H->>AD: send_to_provider(provider)
+    AD->>P: HTTPS
+    P-->>AD: response/stream
+    AD-->>H: unified response
+    H-->>C: response
 ```
 
-### 1. Protocol Emulator Layer
-**Location**: `src/endpoints/emulators/`
+## 5. 双层限流与排队机制（实现细节）
 
-The outermost layer responsible for "camouflaging" as standard protocols.
-*   **OpenAI Emulator (`openai.rs`)**: Provides standard `/v1/chat/completions` and `/v1/models` endpoints.
-*   **Ollama Emulator (`ollama.rs`)**: Provides `/api/chat`, `/api/tags`, and specialized `/api/show` endpoints.
-*   **Anthropic Emulator (`anthropic.rs`)**: Supports the Anthropic Messages protocol.
+实现位置：`src/pool/rate_limiter.rs`。
 
-**Core Responsibility**: Handles input/output format conversion, manages differences between streaming (SSE/NDJSON) and non-streaming responses, and hides backend provider specificities.
+### 5.1 RateLimiter 的三个维度
 
-### 2. Unified Endpoint Layer
-**Location**: `src/endpoints/`
+- `global`：全局 token bucket（目前主要用于无 API key 的兼容模式）
+- `api_keys`：按 `key_hash` 的 token bucket + semaphore（软限制）
+- `services`：按 `service_id` 的 token bucket + semaphore + queue semaphore（硬限制 + 排队）
 
-Serves as the boundary for API entry and core logic.
-*   **State Management (`types.rs`)**: Defines the unified `ProxyState` containing database pools, service handles, and system settings. It acts as the "Single Source of Truth."
-*   **Basic Services (`basic.rs`)**: Provides non-business interfaces like health checks and system information queries.
+### 5.2 Service：QPS + 有界排队 + 并发
 
-### 3. Core Orchestration Layer
-**Location**: `src/engine/`
+`check_service(service_id, config, max_queue_size, max_queue_wait)` 的语义是：
 
-The execution hub (formerly `normalizer`).
-*   **Client Orchestrator (`mod.rs`)**: Dynamically creates and manages unified clients for different providers based on request parameters.
-*   **Model Mapping (`types.rs`)**: Defines system-wide common `Model` and `Response` objects, eliminating terminology differences between providers.
-*   **Instance Management (`instance.rs`)**: Manages unique instance IDs to ensure traceability in multi-node deployments.
+1. QPS：token bucket 不足则 `Denied { retry_after }`
+2. queue：用 `service_queue_semaphores[service_id]` 控制“最多允许多少请求在等待区”
+   - 拿不到则 `QueueFull`
+3. concurrency：用 `service_semaphores[service_id]` 控制“同时执行中的请求数”
+   - 在 `max_queue_wait` 内拿不到则 `WaitTimeout`
+   - 拿到 permit 则返回 `Allowed { concurrency_permit }`
 
-### 4. Adapter & Driver Layer
-**Location**: `src/adapter/`
+注意点：当并发上限/队列长度配置发生变化时，会重建对应 semaphore，避免“从大改小不生效”。
 
-Handles the final mile of communication with specific provider APIs.
-*   **Abstract Driver (`driver.rs`)**: Defines `DriverType` and `AuthStrategy`, supporting Ak/Sk, API Key, and other authentication methods.
-*   **Specialized Drivers (`drivers/`)**: Provides customized client implementations for providers requiring special handling (e.g., MiniMax's thinking tag cleanup).
-*   **Generic Sender (`generic.rs`)**: Automatically selects the appropriate connector via the driver registry to execute actual HTTP communication.
+### 5.3 API Key：QPS + 并发
 
----
+`check_api_key(key_hash, config)` 的语义是：
 
-### Data Flow Example (e.g., Ollama Request)
+1. QPS：token bucket 不足 → `Denied { retry_after }`
+2. concurrency：`try_acquire_owned()` 获取 semaphore
+   - 获取失败 → `ConcurrencyExceeded`
 
-1.  **Ingress**: Client sends a request to `/api/chat`.
-2.  **Emulation**: The `ollama` emulator intercepts the request and extracts parameters.
-3.  **Orchestration**: The emulator calls the `engine` to retrieve the corresponding provider client.
-4.  **Adaptation**: The `adapter` selects the appropriate driver based on provider type (e.g., `MinimaxClient`).
-5.  **Conversion**: The `convert` module transforms internal objects into the provider's raw JSON format.
-6.  **Execution**: The driver layer sends the HTTPS request and handles the response (including real-time streaming data conversion).
-7.  **Egress**: The emulator wraps the final result into the `Ollama` format and returns it to the client.
+## 6. 负载均衡与失败处理
 
-### Module Structure
+### 6.1 负载均衡策略
 
-```
-src/
-├── adapter/        # Provider Adapters & Drivers
-│   ├── drivers/    # Specialized Drivers (e.g., Minimax)
-│   ├── driver.rs   # Driver Abstraction & Config
-│   └── generic.rs  # Unified Request Dispatching
-├── endpoints/      # API Endpoints & Emulators
-│   ├── emulators/  # OpenAI/Ollama/Anthropic Emulation
-│   ├── basic.rs    # Health Checks & System Info
-│   └── types.rs    # Unified ProxyState
-├── engine/         # Core Execution Engine
-│   ├── mod.rs      # Client Orchestration
-│   ├── instance.rs # Instance ID Management
-│   └── types.rs    # Common Model & Response Definitions
-├── db/             # Database Access Layer
-├── pool/           # Provider Resource Pool Management
-└── router/         # Routing & Dispatch Logic
-```
+策略枚举定义：`src/pool/load_balancer.rs::LoadBalanceStrategy`。
 
-## Multi-Provider Strategy
+当前 Service 的 `strategy` 字段在入口处被映射为：
 
-The system is designed to support multiple active providers simultaneously using a **Single Process, Multi-Provider** model.
+- `RoundRobin`
+- `LeastConnections`
+- `Random`
+- `Priority`
+- `LatencyBased`
+- `LowestPrice`
+- `QuotaAware`
 
-### Provider Management
-- **Configuration**: Providers are configured via YAML/JSON or database.
-- **Hot Reloading**: Supports updating provider configs without restarting the service.
-- **Failover**: (Planned) Circuit breakers and automatic failover to backup providers.
+具体选路行为由 `ProviderPool` 调用 `LoadBalancer` 完成：
 
-### Database Schema (PostgreSQL)
+- 先过滤健康实例（`HealthChecker`）
+- 若无健康实例，降级到“从全部候选里选”
+- 再按策略选择 provider id
 
-Core tables for provider persistence:
+### 6.2 Provider 级 failover（同一 Service 候选内）
 
-```sql
-CREATE TABLE providers (
-    id INTEGER PRIMARY KEY,
-    name VARCHAR(50) UNIQUE NOT NULL,
-    type VARCHAR(20) NOT NULL,
-    config JSON NOT NULL, -- Encrypted creds
-    enabled BOOLEAN DEFAULT true,
-    priority INTEGER DEFAULT 0
-);
+failover 主要能力在 `src/pool/failover.rs`：
 
-CREATE TABLE metrics (
-    provider_id INTEGER,
-    request_count INTEGER,
-    success_count INTEGER,
-    avg_latency FLOAT
-);
-```
+- 定义重试条件（网络/5xx/timeout/rate_limit/quota）
+- 支持 backoff 策略
+- 维护 provider 的 circuit breaker 状态
 
-## Operational Considerations
+### 6.3 Service 级 fallback_chain（跨 Service 回退）
 
-### Security
-- **API Keys**: Stored encrypted in the database or passed via environment variables (`*_API_KEY`).
-- **Isolation**: Tenant-level isolation for multi-user deployments.
+`services.fallback_chain` 是“跨 service 的回退链”配置。
 
-### Observability
-- **Metrics**: Prometheus-compatible metrics for request counts, latency, and error rates.
-- **Audit Logs**: Full request/response logging (configurable) for debugging.
+入口层已经把 `fallback_chain` 做成可配置字段并写入 DB；实际跨 service 回退的生效点取决于 router/engine 层如何解释该字段（需要在后续继续把 fallback_chain 的解析与生效路径进一步固化/文档化）。
 
-### Deployment
-- **Docker**: Lightweight container image based on `debian:bookworm-slim`.
-- **K8s**: Support for deployment strategies like Canary rollouts.
+## 7. 管理端（Admin）到运行时生效链路
 
-## Future Roadmap
+管理端的作用是写 DB，并在必要时同步 Pool 的运行时状态：
 
-- **Cloud Provider Support**: AWS Bedrock, GCP Vertex AI, Azure OpenAI via driver abstraction.
-- **Smart Routing**: Route requests based on cost, latency, or model capability.
-- **Cost Tracking**: Real-time token usage and cost calculation per tenant/provider.
-- **Web UI**: Admin dashboard for managing providers and viewing analytics (SvelteKit + Rust).
+- Provider 的增删改：管理 API 更新 DB 后，调用 `pool_manager.add_provider/remove_provider/set_provider_enabled` 等，更新运行时 pool。
+- Service 的配置（包括限流字段）：管理 API 写入 `services` 表；请求入口每次通过 `get_service/list_service_providers` 读取 DB，因此无需重启即可生效。
+- API Key 的配置与授权：管理 API 更新 `api_keys` 与 `api_key_services`；入口每次鉴权/授权时读取 DB，因此无需重启即可生效。
+
+## 8. 代码导航（按职责）
+
+1. 数据结构：`src/db/models.rs`
+2. Service DB 操作（含绑定/授权）：`src/db/operations/services.rs`
+3. API Key DB 操作：`src/db/operations/api_keys.rs`
+4. Chat 入口（鉴权/限流/选路/错误码）：`src/endpoints/chat.rs`
+5. PoolManager：`src/pool/manager.rs`
+6. ProviderPool / LoadBalancer / Health / Failover：`src/pool/pool.rs`、`src/pool/load_balancer.rs`、`src/pool/health.rs`、`src/pool/failover.rs`
+7. RateLimiter（双层限流 + 排队）：`src/pool/rate_limiter.rs`
+8. 真实转发：`src/adapter/*`

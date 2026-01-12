@@ -18,7 +18,7 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 
     return (
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-card/95 backdrop-blur-sm">
-        <div className="relative flex items-center gap-3 px-4 py-2 rounded-3xl bg-muted/30 border border-border/30">
+        <div className="relative flex items-center gap-3 px-4 py-2 rounded-3xl bg-muted/30 border border-border/30 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-colors">
           <button className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted/50 transition-colors">
             <Image className="w-5 h-5 text-muted-foreground" strokeWidth={1.2} />
           </button>

@@ -15,7 +15,7 @@ import {
 } from "@/components/chat"
 
 export function ChatPage() {
-  const { user } = useAuth()
+  const { user, token } = useAuth()
   const isAdmin = user?.role_id === 'admin'
   const [searchParams, setSearchParams] = useSearchParams()
   const [providers, setProviders] = useState<Provider[]>([])
@@ -151,10 +151,11 @@ export function ChatPage() {
     } : p))
 
     try {
-      const response = await fetch(`${API_URL}/v1/chat/completions`, {
+      const response = await fetch(`/api/chat/completions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           provider_id: panel.providerId,
@@ -164,10 +165,23 @@ export function ChatPage() {
       })
 
       if (!response.ok) {
-        const text = await response.text()
+        const raw = await response.text().catch(() => "")
+        let details = raw
+        if (!details) {
+          details = `HTTP ${response.status} ${response.statusText}`
+        } else {
+          try {
+            const parsed = JSON.parse(details) as any
+            const msg = parsed?.error?.message || parsed?.message
+            const typ = parsed?.error?.type
+            const det = parsed?.error?.details
+            details = [msg, typ, det].filter(Boolean).join(" | ") || raw
+          } catch {
+          }
+        }
         setPanels(prev => prev.map(p => p.id === panelId ? {
           ...p,
-          messages: [...p.messages.slice(0, -1), { role: "assistant" as const, content: `${t('chat.error')}: ${text}` }],
+          messages: [...p.messages.slice(0, -1), { role: "assistant" as const, content: `${t('chat.error')}: ${details}` }],
           loading: false
         } : p))
         return

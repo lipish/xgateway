@@ -29,7 +29,7 @@ impl DatabasePool {
         concurrency_limit: Option<i32>,
         max_queue_size: Option<i32>,
         max_queue_wait_ms: Option<i32>,
-    ) -> Result<()> {
+    ) -> Result<bool> {
         let query = r#"
             INSERT INTO services (
                 id,
@@ -58,7 +58,7 @@ impl DatabasePool {
 
         match self {
             Self::Postgres(pool) => {
-                sqlx::query(query)
+                let result = sqlx::query(query)
                     .bind(id)
                     .bind(name)
                     .bind(enabled)
@@ -70,7 +70,7 @@ impl DatabasePool {
                     .bind(max_queue_wait_ms)
                     .execute(pool)
                     .await?;
-                Ok(())
+                Ok(result.rows_affected() > 0)
             }
         }
     }
@@ -297,6 +297,25 @@ impl DatabasePool {
                 .bind(service_id)
                 .fetch_all(pool)
                 .await?),
+        }
+    }
+
+    pub async fn list_service_ids_by_provider_id(&self, provider_id: i64) -> Result<Vec<String>> {
+        let query = r#"
+            SELECT service_id
+            FROM service_model_services
+            WHERE provider_id = $1
+            ORDER BY service_id ASC
+        "#;
+
+        match self {
+            Self::Postgres(pool) => {
+                let rows = sqlx::query_scalar::<_, String>(query)
+                    .bind(provider_id)
+                    .fetch_all(pool)
+                    .await?;
+                Ok(rows)
+            }
         }
     }
 

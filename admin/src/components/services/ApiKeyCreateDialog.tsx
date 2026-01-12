@@ -3,6 +3,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { t } from "@/lib/i18n"
+import { Copy } from "lucide-react"
+import { useEffect, useState } from "react"
 
 interface ApiKeyCreateDialogProps {
   open: boolean
@@ -10,8 +12,6 @@ interface ApiKeyCreateDialogProps {
   serviceName?: string
   form: {
     name: string
-    qps_limit: number
-    concurrency_limit: number
   }
   onFormChange: (next: ApiKeyCreateDialogProps["form"]) => void
   onSave: () => void
@@ -31,6 +31,12 @@ export function ApiKeyCreateDialog({
   error,
   createdApiKey,
 }: ApiKeyCreateDialogProps) {
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    setCopied(false)
+  }, [createdApiKey, open])
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden border">
@@ -44,6 +50,7 @@ export function ApiKeyCreateDialog({
             <div className="space-y-2">
               <Label className="text-sm font-medium">{t("apiKeys.name")}</Label>
               <Input
+                autoFocus
                 value={form.name}
                 onChange={(e) => onFormChange({ ...form, name: e.target.value })}
                 placeholder={t("apiKeys.enterName")}
@@ -51,32 +58,29 @@ export function ApiKeyCreateDialog({
               />
             </div>
 
-            <div className="grid gap-4 grid-cols-2">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">{t("apiKeys.qps")}</Label>
-                <Input
-                  type="number"
-                  value={form.qps_limit}
-                  onChange={(e) => onFormChange({ ...form, qps_limit: Number(e.target.value) })}
-                  className="h-10"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">{t("apiKeys.concurrency")}</Label>
-                <Input
-                  type="number"
-                  value={form.concurrency_limit}
-                  onChange={(e) => onFormChange({ ...form, concurrency_limit: Number(e.target.value) })}
-                  className="h-10"
-                />
-              </div>
-            </div>
-
             {error && <p className="text-sm text-destructive mt-1 font-medium">{error}</p>}
             {createdApiKey && (
               <div className="rounded-md border bg-muted/30 p-3">
                 <div className="text-xs text-muted-foreground">{t("apiKeys.saveKeyHint")}</div>
-                <div className="mt-2 text-sm font-mono break-all">{createdApiKey}</div>
+                <div className="mt-2 flex items-start gap-2">
+                  <div className="text-sm font-mono break-all flex-1">{createdApiKey}</div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(createdApiKey)
+                        setCopied(true)
+                        window.setTimeout(() => setCopied(false), 1500)
+                      } catch {
+                        setCopied(false)
+                      }
+                    }}
+                  >
+                    {copied ? <span className="text-[10px]">{t("apiKeys.copiedToClipboard")}</span> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -86,11 +90,11 @@ export function ApiKeyCreateDialog({
               {t("common.cancel")}
             </Button>
             <Button
-              onClick={onSave}
+              onClick={createdApiKey ? () => onOpenChange(false) : onSave}
               disabled={saving}
               className="h-10 px-10 bg-purple-600 hover:bg-purple-700 text-white border-0"
             >
-              {saving ? (t("common.saving") || t("common.save")) : t("common.save")}
+              {createdApiKey ? t("common.confirm") : saving ? (t("common.saving") || t("common.save")) : t("common.save")}
             </Button>
           </DialogFooter>
         </div>

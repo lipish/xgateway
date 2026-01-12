@@ -1,12 +1,13 @@
 use axum::Json;
 use serde::Deserialize;
+use uuid::Uuid;
 
 use crate::db::{DatabasePool, Service};
 use super::ApiResponse;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateServiceRequest {
-    pub id: String,
+    pub id: Option<String>,
     pub name: String,
     pub enabled: Option<bool>,
     pub strategy: Option<String>,
@@ -83,56 +84,104 @@ pub async fn create_service_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
     Json(req): Json<CreateServiceRequest>,
 ) -> Json<ApiResponse<Service>> {
-    if req.id.trim().is_empty() || req.name.trim().is_empty() {
+    if req.name.trim().is_empty() {
         return Json(ApiResponse {
             success: false,
             data: None,
-            message: "id and name are required".to_string(),
+            message: "name is required".to_string(),
         });
     }
 
     let enabled = req.enabled.unwrap_or(true);
     let strategy = req.strategy.unwrap_or_else(|| "Priority".to_string());
 
-    match db_pool
-        .create_service(
-            &req.id,
-            &req.name,
-            enabled,
-            &strategy,
-            req.fallback_chain.as_deref(),
-            req.qps_limit,
-            req.concurrency_limit,
-            req.max_queue_size,
-            req.max_queue_wait_ms,
-        )
-        .await
-    {
-        Ok(_) => {
-            match db_pool.get_service(&req.id).await {
-                Ok(Some(service)) => Json(ApiResponse {
-                    success: true,
-                    data: Some(service),
-                    message: "Service created".to_string(),
-                }),
-                Ok(None) => Json(ApiResponse {
-                    success: false,
-                    data: None,
-                    message: "Service created but cannot be retrieved".to_string(),
-                }),
-                Err(e) => Json(ApiResponse {
-                    success: false,
-                    data: None,
-                    message: format!("Failed to retrieve created service: {}", e),
-                }),
+    fn slugify(input: &str) -> String {
+        let mut out = String::with_capacity(input.len());
+        let mut last_dash = false;
+        for ch in input.chars() {
+            let c = ch.to_ascii_lowercase();
+            if c.is_ascii_alphanumeric() {
+                out.push(c);
+                last_dash = false;
+            } else if !last_dash {
+                out.push('-');
+                last_dash = true;
             }
         }
-        Err(e) => Json(ApiResponse {
-            success: false,
-            data: None,
-            message: format!("Failed to create service: {}", e),
-        }),
+        let out = out.trim_matches('-').to_string();
+        if out.is_empty() { "service".to_string() } else { out }
     }
+
+    let explicit_id = req.id.as_ref().map(|s| s.trim()).filter(|s| !s.is_empty()).map(|s| s.to_string());
+    let base_id = explicit_id.clone().unwrap_or_else(|| slugify(&req.name));
+
+    let mut id_to_use = base_id.clone();
+    let max_attempts: usize = if explicit_id.is_some() { 1 } else { 5 };
+
+    for attempt in 0..max_attempts {
+        if attempt > 0 {
+            let suffix = Uuid::new_v4().simple().to_string();
+            id_to_use = format!("{}-{}", base_id, &suffix[..8]);
+        }
+
+        match db_pool
+            .create_service(
+                &id_to_use,
+                &req.name,
+                enabled,
+                &strategy,
+                req.fallback_chain.as_deref(),
+                req.qps_limit,
+                req.concurrency_limit,
+                req.max_queue_size,
+                req.max_queue_wait_ms,
+            )
+            .await
+        {
+            Ok(true) => {
+                return match db_pool.get_service(&id_to_use).await {
+                    Ok(Some(service)) => Json(ApiResponse {
+                        success: true,
+                        data: Some(service),
+                        message: "Service created".to_string(),
+                    }),
+                    Ok(None) => Json(ApiResponse {
+                        success: false,
+                        data: None,
+                        message: "Service created but cannot be retrieved".to_string(),
+                    }),
+                    Err(e) => Json(ApiResponse {
+                        success: false,
+                        data: None,
+                        message: format!("Failed to retrieve created service: {}", e),
+                    }),
+                };
+            }
+            Ok(false) => {
+                if explicit_id.is_some() {
+                    return Json(ApiResponse {
+                        success: false,
+                        data: None,
+                        message: "service id already exists".to_string(),
+                    });
+                }
+                continue;
+            }
+            Err(e) => {
+                return Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: format!("Failed to create service: {}", e),
+                });
+            }
+        }
+    }
+
+    Json(ApiResponse {
+        success: false,
+        data: None,
+        message: "Failed to generate a unique service id".to_string(),
+    })
 }
 
 pub async fn update_service_api(

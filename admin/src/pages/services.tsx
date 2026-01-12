@@ -52,16 +52,14 @@ export function ServicesPage() {
 
   const [apiKeyCreateForm, setApiKeyCreateForm] = useState({
     name: "",
-    qps_limit: 10,
-    concurrency_limit: 5,
   })
 
   const [createForm, setCreateForm] = useState({
-    id: "",
     name: "",
     enabled: true,
     strategy: "Priority",
     fallback_chain: "",
+    bound_provider_ids: [] as number[],
     qps_limit: 100,
     concurrency_limit: 50,
     max_queue_size: 100,
@@ -158,7 +156,7 @@ export function ServicesPage() {
   }
 
   const openCreateApiKey = () => {
-    setApiKeyCreateForm({ name: "", qps_limit: 10, concurrency_limit: 5 })
+    setApiKeyCreateForm({ name: "" })
     setApiKeyCreateError(null)
     setCreatedApiKey(null)
     setRotatedApiKey(null)
@@ -176,8 +174,6 @@ export function ServicesPage() {
         name: apiKeyCreateForm.name,
         scope: 'instance',
         service_ids: [selectedServiceId],
-        qps_limit: apiKeyCreateForm.qps_limit,
-        concurrency_limit: apiKeyCreateForm.concurrency_limit,
         provider_id: null,
         provider_ids: null,
       }
@@ -187,12 +183,25 @@ export function ServicesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      const data = await resp.json()
-      if (!data.success) {
-        setApiKeyCreateError(data.message || t('common.saveFailed'))
+
+      const raw = await resp.text().catch(() => "")
+      let data: any = null
+      if (raw) {
+        try {
+          data = JSON.parse(raw)
+        } catch {
+          data = null
+        }
+      }
+
+      if (!resp.ok || !data?.success) {
+        const fallback = `HTTP ${resp.status} ${resp.statusText}`
+        const details = data && typeof data === 'object' ? JSON.stringify(data) : raw
+        setApiKeyCreateError(data?.message || (details ? `${fallback}: ${details}` : fallback) || t('common.saveFailed'))
         return
       }
-      setCreatedApiKey(data.data?.full_key || null)
+
+      setCreatedApiKey(data?.data?.full_key || null)
       await fetchApiKeys()
     } catch {
       setApiKeyCreateError(t('common.networkError'))
@@ -302,18 +311,18 @@ export function ServicesPage() {
   }
 
   const openCreate = () => {
+    setError(null)
     setCreateForm({
-      id: "",
       name: "",
       enabled: true,
       strategy: "Priority",
       fallback_chain: "",
+      bound_provider_ids: [],
       qps_limit: 100,
       concurrency_limit: 50,
       max_queue_size: 100,
       max_queue_wait_ms: 30000,
     })
-    setError(null)
     setShowCreateDialog(true)
   }
 
@@ -358,7 +367,6 @@ export function ServicesPage() {
       }
 
       const payload = {
-        id: createForm.id,
         name: createForm.name,
         enabled: createForm.enabled,
         strategy: createForm.strategy,
@@ -381,9 +389,33 @@ export function ServicesPage() {
         return
       }
 
+      const createdId = data.data?.id
+      if (!createdId) {
+        setError(t("common.saveFailed"))
+        return
+      }
+
+      if (createForm.bound_provider_ids.length > 0) {
+        const results = await Promise.all(
+          createForm.bound_provider_ids.map(async (providerId) => {
+            const r = await fetch(`/api/services/${createdId}/model-services`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ provider_id: providerId }),
+            })
+            const d = await r.json()
+            return { ok: Boolean(d?.success), message: d?.message as string | undefined }
+          })
+        )
+        const failed = results.find((x) => !x.ok)
+        if (failed) {
+          setError(failed.message || t("common.saveFailed"))
+        }
+      }
+
       setShowCreateDialog(false)
       await fetchServices()
-      setSelectedServiceId(payload.id)
+      setSelectedServiceId(createdId)
     } catch {
       setError(t("common.networkError"))
     } finally {
@@ -544,8 +576,10 @@ export function ServicesPage() {
           <ServiceCreateDialog
             open={showCreateDialog}
             onOpenChange={setShowCreateDialog}
+            services={services}
+            providers={providers}
             form={createForm}
-            onFormChange={(next) => setCreateForm(next)}
+            onFormChange={(next) => setCreateForm(() => next)}
             onSave={handleCreate}
             saving={saving}
             error={error}
@@ -554,8 +588,14 @@ export function ServicesPage() {
           <ServiceEditDialog
             open={showEditDialog}
             onOpenChange={setShowEditDialog}
+            services={services}
+            providers={providers}
+            boundProviderIdSet={boundProviderIdSet}
+            bindingBusyId={bindingBusyId}
+            onToggleBinding={setBinding}
+            currentServiceId={editingServiceId}
             form={editForm}
-            onFormChange={(next) => setEditForm(next)}
+            onFormChange={(next) => setEditForm(() => next)}
             onSave={handleUpdate}
             saving={saving}
             error={editError}
@@ -607,6 +647,7 @@ export function ServicesPage() {
                       onToggleStatus={toggleApiKeyStatus}
                       onRotate={rotateApiKey}
                       onRequestDelete={setApiKeyToDelete}
+                      onClearRotatedApiKey={() => setRotatedApiKey(null)}
                     />
                   </div>
                 )}
@@ -618,7 +659,14 @@ export function ServicesPage() {
 
           <ApiKeyCreateDialog
             open={showCreateApiKeyDialog}
-            onOpenChange={setShowCreateApiKeyDialog}
+            onOpenChange={(open) => {
+              setShowCreateApiKeyDialog(open)
+              if (!open) {
+                setApiKeyCreateForm({ name: "" })
+                setApiKeyCreateError(null)
+                setCreatedApiKey(null)
+              }
+            }}
             serviceName={selectedService?.name}
             form={apiKeyCreateForm}
             onFormChange={setApiKeyCreateForm}

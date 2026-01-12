@@ -2,7 +2,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { t } from "@/lib/i18n"
-import { Loader2, Plus } from "lucide-react"
+import { Copy, Loader2, Plus } from "lucide-react"
+import { useEffect, useState } from "react"
 import type { ApiKey } from "./types"
 
 interface ServiceApiKeysSectionProps {
@@ -18,6 +19,7 @@ interface ServiceApiKeysSectionProps {
   onToggleStatus: (id: number) => void
   onRotate: (id: number) => void
   onRequestDelete: (id: number) => void
+  onClearRotatedApiKey: () => void
 }
 
 export function ServiceApiKeysSection({
@@ -33,7 +35,14 @@ export function ServiceApiKeysSection({
   onToggleStatus,
   onRotate,
   onRequestDelete,
+  onClearRotatedApiKey,
 }: ServiceApiKeysSectionProps) {
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    setCopied(false)
+  }, [rotatedApiKey])
+
   return (
     <div className="rounded-lg border bg-background p-5">
       <div className="flex items-center justify-between gap-2">
@@ -51,8 +60,6 @@ export function ServiceApiKeysSection({
               <TableHead className="w-[220px]">{t("apiKeys.name")}</TableHead>
               <TableHead className="w-[120px]">{t("apiKeys.scope")}</TableHead>
               <TableHead className="w-[120px]">{t("apiKeys.status")}</TableHead>
-              <TableHead className="w-[90px]">{t("apiKeys.qps")}</TableHead>
-              <TableHead className="w-[110px]">{t("apiKeys.concurrency")}</TableHead>
               <TableHead className="w-[220px]">{t("apiKeys.createdAt")}</TableHead>
               <TableHead className="w-[200px]"></TableHead>
             </TableRow>
@@ -60,7 +67,7 @@ export function ServiceApiKeysSection({
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
                   <div className="inline-flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span>{t("common.loading")}</span>
@@ -69,7 +76,7 @@ export function ServiceApiKeysSection({
               </TableRow>
             ) : apiKeys.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
                   {t("apiKeys.noKeys")}
                 </TableCell>
               </TableRow>
@@ -85,8 +92,6 @@ export function ServiceApiKeysSection({
                       {k.status === "active" ? t("apiKeys.enabled") : t("apiKeys.disabled")}
                     </Badge>
                   </TableCell>
-                  <TableCell>{k.qps_limit}</TableCell>
-                  <TableCell>{k.concurrency_limit}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">{new Date(k.created_at).toLocaleString()}</TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-2">
@@ -105,7 +110,7 @@ export function ServiceApiKeysSection({
                         )}
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => onRotate(k.id)} disabled={rotatingKeyId === k.id}>
-                        {rotatingKeyId === k.id ? <Loader2 className="h-4 w-4 animate-spin" /> : t("common.refresh")}
+                        {rotatingKeyId === k.id ? <Loader2 className="h-4 w-4 animate-spin" /> : t("apiKeys.resetKey")}
                       </Button>
                       <Button variant="outline" size="sm" className="text-destructive" onClick={() => onRequestDelete(k.id)}>
                         {t("common.delete")}
@@ -124,7 +129,27 @@ export function ServiceApiKeysSection({
       {rotatedApiKey && (
         <div className="mt-3 rounded-md border bg-muted/30 p-3">
           <div className="text-xs text-muted-foreground">{t("apiKeys.key")}</div>
-          <div className="mt-1 text-sm font-mono break-all">{rotatedApiKey}</div>
+          <div className="mt-2 inline-flex items-center gap-2">
+            <div className="text-sm font-mono break-all leading-5">{rotatedApiKey}</div>
+            <Button
+              variant="ghost"
+              size="icon"
+              type="button"
+              className="shrink-0 h-8 w-8 p-0"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(rotatedApiKey)
+                  setCopied(true)
+                  onClearRotatedApiKey()
+                  window.setTimeout(() => setCopied(false), 1500)
+                } catch {
+                  setCopied(false)
+                }
+              }}
+            >
+              {copied ? <span className="text-[10px]">{t("apiKeys.copiedToClipboard")}</span> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
       )}
     </div>

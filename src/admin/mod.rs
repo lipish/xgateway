@@ -7,6 +7,7 @@ pub mod conversation_handlers;
 pub mod user_handlers;
 pub mod log_handlers;
 pub mod service_handlers;
+pub mod chat_handlers;
 
 
 
@@ -84,6 +85,8 @@ pub fn create_admin_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -
         .route("/api/conversations", get(conversation_handlers::list_conversations_api).post(conversation_handlers::create_conversation_api))
         .route("/api/conversations/:id", get(conversation_handlers::get_conversation_api).put(conversation_handlers::update_conversation_api).delete(conversation_handlers::delete_conversation_api))
         .route("/api/conversations/:id/messages", get(conversation_handlers::list_messages_api).post(conversation_handlers::create_message_api))
+        // Admin chat test API (bypass service_id)
+        .route("/api/chat/completions", post(chat_handlers::handle_admin_chat_completions))
         // User management
         .route("/api/users", get(user_handlers::list_users_api).post(user_handlers::create_user_api))
         .route("/api/users/:id", delete(user_handlers::delete_user_api))

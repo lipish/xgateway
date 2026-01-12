@@ -28,15 +28,11 @@ export function ApiKeysPage() {
     name: "",
     scope: "global",
     service_ids: [] as string[],
-    qps_limit: 10,
-    concurrency_limit: 5
   })
   const [editKeyData, setEditKeyData] = useState({
     name: "",
     scope: "global",
     service_ids: [] as string[],
-    qps_limit: 10,
-    concurrency_limit: 5
   })
   const [createdKey, setCreatedKey] = useState<string | null>(null)
   const [rotatedKey, setRotatedKey] = useState<string | null>(null)
@@ -194,8 +190,6 @@ export function ApiKeysPage() {
       name: key.name,
       scope: key.scope || 'global',
       service_ids: serviceIds,
-      qps_limit: key.qps_limit,
-      concurrency_limit: key.concurrency_limit
     })
     setEditError(null)
     setShowEditDialog(true)
@@ -218,8 +212,6 @@ export function ApiKeysPage() {
         provider_id: null,
         provider_ids: null,
         service_ids: editKeyData.scope === 'global' ? null : editKeyData.service_ids,
-        qps_limit: editKeyData.qps_limit,
-        concurrency_limit: editKeyData.concurrency_limit
       }
 
       const response = await fetch(`/api/api-keys/${editingApiKeyId}`, {
@@ -354,8 +346,6 @@ export function ApiKeysPage() {
         provider_id: null,
         provider_ids: null,
         service_ids: legacyServiceIds,
-        qps_limit: key.qps_limit,
-        concurrency_limit: key.concurrency_limit,
       }
 
       const response = await fetch(`/api/api-keys/${key.id}`, {
@@ -386,7 +376,7 @@ export function ApiKeysPage() {
             size="sm"
             onClick={() => {
               setCreatedKey(null)
-              setNewKeyData({ name: "", scope: "global", service_ids: [], qps_limit: 10, concurrency_limit: 5 })
+              setNewKeyData({ name: "", scope: "global", service_ids: [] })
               setError(null)
               setDialogKey((prev) => prev + 1)
               setShowCreateDialog(true)
@@ -409,7 +399,7 @@ export function ApiKeysPage() {
                 setCreatedKey(null)
                 setRotatedKey(null)
                 setRotateError(null)
-                setNewKeyData({ name: "", scope: "global", service_ids: [], qps_limit: 10, concurrency_limit: 5 })
+                setNewKeyData({ name: "", scope: "global", service_ids: [] })
                 setError(null)
               }
             }}
@@ -423,7 +413,7 @@ export function ApiKeysPage() {
             onSave={handleCreate}
             onConfirmAfterCreated={() => {
               setCreatedKey(null)
-              setNewKeyData({ name: "", scope: "global", service_ids: [], qps_limit: 10, concurrency_limit: 5 })
+              setNewKeyData({ name: "", scope: "global", service_ids: [] })
               setError(null)
               setShowCreateDialog(false)
             }}

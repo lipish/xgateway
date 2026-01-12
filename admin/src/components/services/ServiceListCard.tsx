@@ -2,9 +2,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { t } from "@/lib/i18n"
-import { Pencil, Trash2 } from "lucide-react"
+import { MoreVertical, Pencil, Trash2 } from "lucide-react"
 import type { Service } from "./types"
 
 interface ServiceListCardProps {
@@ -53,7 +54,10 @@ export function ServiceListCard({
               {services.map((svc) => (
                 <TableRow
                   key={svc.id}
-                  className={cn("cursor-pointer", selectedServiceId === svc.id && "bg-muted/60")}
+                  className={cn(
+                    "cursor-pointer transition-colors",
+                    selectedServiceId === svc.id ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-muted/40"
+                  )}
                   onClick={() => onSelectServiceId(svc.id)}
                 >
                   <TableCell className="font-medium">{svc.name}</TableCell>
@@ -64,32 +68,40 @@ export function ServiceListCard({
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onEdit(svc)
-                        }}
-                        aria-label={t("common.edit")}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onRequestDelete(svc.id)
-                        }}
-                        aria-label={t("common.delete")}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <DropdownMenu modal={false}>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={t("common.actions") || "Actions"}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onEdit(svc)
+                          }}
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          {t("common.edit")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onRequestDelete(svc.id)
+                          }}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {t("common.delete")}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}

@@ -5,6 +5,16 @@ use crate::pool::LoadBalanceStrategy;
 use crate::pool::RateLimitResult;
 use super::types::ProxyState;
 
+fn parse_fallback_chain(chain: Option<&str>) -> Vec<String> {
+    chain
+        .unwrap_or("")
+        .split(',')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .collect()
+}
+
 pub async fn handle_chat_completions(
     axum::extract::State(state): axum::extract::State<ProxyState>,
     headers: axum::http::HeaderMap,
@@ -47,19 +57,67 @@ pub async fn handle_chat_completions(
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
 
+    let requested_provider_id = request
+        .get("provider_id")
+        .and_then(|v| v.as_i64());
+
     // 2. STRICT MODE: Require explicit service_id in request
     let service_id = match requested_service_id {
         Some(id) => id,
         None => {
-            return (
-                StatusCode::BAD_REQUEST,
-                axum::Json(serde_json::json!({
-                    "error": {
-                        "message": "service_id is required in request body",
-                        "type": "missing_service_id"
+            // Backward compatibility: allow provider_id to infer service_id when unambiguous.
+            if let Some(provider_id) = requested_provider_id {
+                match db_pool.list_service_ids_by_provider_id(provider_id).await {
+                    Ok(service_ids) => {
+                        if service_ids.len() == 1 {
+                            service_ids[0].clone()
+                        } else if service_ids.is_empty() {
+                            return (
+                                StatusCode::BAD_REQUEST,
+                                axum::Json(serde_json::json!({
+                                    "error": {
+                                        "message": "service_id is required in request body",
+                                        "type": "missing_service_id",
+                                        "details": "provider_id is not bound to any service"
+                                    }
+                                }))
+                            ).into_response();
+                        } else {
+                            return (
+                                StatusCode::BAD_REQUEST,
+                                axum::Json(serde_json::json!({
+                                    "error": {
+                                        "message": "service_id is required in request body",
+                                        "type": "missing_service_id",
+                                        "details": "provider_id is bound to multiple services; please specify service_id"
+                                    }
+                                }))
+                            ).into_response();
+                        }
                     }
-                }))
-            ).into_response();
+                    Err(e) => {
+                        return (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            axum::Json(serde_json::json!({
+                                "error": {
+                                    "message": format!("Failed to infer service_id: {}", e),
+                                    "type": "server_error"
+                                }
+                            }))
+                        ).into_response();
+                    }
+                }
+            } else {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    axum::Json(serde_json::json!({
+                        "error": {
+                            "message": "service_id is required in request body",
+                            "type": "missing_service_id"
+                        }
+                    }))
+                ).into_response();
+            }
         }
     };
 
@@ -94,107 +152,10 @@ pub async fn handle_chat_completions(
         }
     }
 
-    let service = match db_pool.get_service(&service_id).await {
-        Ok(Some(s)) => s,
-        Ok(None) => {
-            return (
-                StatusCode::NOT_FOUND,
-                axum::Json(serde_json::json!({
-                    "error": {
-                        "message": format!("Service with id {} not found", service_id),
-                        "type": "service_not_found"
-                    }
-                })),
-            )
-                .into_response();
-        }
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                axum::Json(serde_json::json!({
-                    "error": {
-                        "message": format!("Failed to get service: {}", e),
-                        "type": "server_error"
-                    }
-                })),
-            )
-                .into_response();
-        }
-    };
-
-    if !service.enabled {
-        return (
-            StatusCode::FORBIDDEN,
-            axum::Json(serde_json::json!({
-                "error": {
-                    "message": format!("Service {} is disabled", service_id),
-                    "type": "service_disabled"
-                }
-            })),
-        )
-            .into_response();
-    }
-
-    // 4. Service hard limits (QPS + bounded queue + concurrency)
-    let _service_concurrency_permit = match pool_manager.check_service_limit(&service).await {
-        RateLimitResult::Denied { .. } => {
-            return (
-                StatusCode::SERVICE_UNAVAILABLE,
-                axum::Json(serde_json::json!({
-                    "error": {
-                        "message": "Service is busy. Please retry later.",
-                        "type": "service_rate_limit_exceeded"
-                    }
-                })),
-            )
-                .into_response();
-        }
-        RateLimitResult::ConcurrencyExceeded | RateLimitResult::QueueFull | RateLimitResult::WaitTimeout => {
-            return (
-                StatusCode::SERVICE_UNAVAILABLE,
-                axum::Json(serde_json::json!({
-                    "error": {
-                        "message": "Service is busy. Please retry later.",
-                        "type": "service_overloaded"
-                    }
-                })),
-            )
-                .into_response();
-        }
-        RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
-    };
-
-    // 5. API key soft limits (QPS + concurrency)
-    let _api_key_concurrency_permit = if let Some(key_info) = &api_key_info {
-        match pool_manager.check_api_key_limit(key_info).await {
-            RateLimitResult::Denied { retry_after } => {
-                return (
-                    StatusCode::TOO_MANY_REQUESTS,
-                    [("Retry-After", retry_after.as_secs().to_string())],
-                    axum::Json(serde_json::json!({
-                        "error": {
-                            "message": format!("Rate limit exceeded for API Key. Retry after {} seconds.", retry_after.as_secs()),
-                            "type": "rate_limit_exceeded"
-                        }
-                    })),
-                )
-                    .into_response();
-            }
-            RateLimitResult::ConcurrencyExceeded => {
-                return (
-                    StatusCode::TOO_MANY_REQUESTS,
-                    axum::Json(serde_json::json!({
-                        "error": {
-                            "message": "Concurrency limit exceeded for API Key.",
-                            "type": "concurrency_limit_exceeded"
-                        }
-                    })),
-                )
-                    .into_response();
-            }
-            RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
-            RateLimitResult::QueueFull | RateLimitResult::WaitTimeout => unreachable!(),
-        }
+    // 4. API key soft limits (QPS + concurrency)
+    // Simplified mode: only keep Service-level limits. Do NOT apply API key-specific rate limits.
+    let _api_key_concurrency_permit = if api_key_info.is_some() {
+        None
     } else {
         // Backward-compat / internal mode: still apply global rate limit if no API key
         match pool_manager.check_rate_limit(None).await {
@@ -215,35 +176,6 @@ pub async fn handle_chat_completions(
             RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
             RateLimitResult::QueueFull | RateLimitResult::WaitTimeout => unreachable!(),
         }
-    };
-
-    let providers = match db_pool.list_service_providers(&service_id).await {
-        Ok(p) => p,
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                axum::Json(serde_json::json!({
-                    "error": {
-                        "message": format!("Failed to get service providers: {}", e),
-                        "type": "server_error"
-                    }
-                })),
-            )
-                .into_response();
-        }
-    };
-
-    let candidate_provider_ids: Vec<i64> = providers.iter().map(|p| p.id).collect();
-
-    let strategy = match service.strategy.as_str() {
-        "RoundRobin" => LoadBalanceStrategy::RoundRobin,
-        "LeastConnections" => LoadBalanceStrategy::LeastConnections,
-        "Random" => LoadBalanceStrategy::Random,
-        "Priority" => LoadBalanceStrategy::Priority,
-        "LatencyBased" => LoadBalanceStrategy::LatencyBased,
-        "LowestPrice" => LoadBalanceStrategy::LowestPrice,
-        "QuotaAware" => LoadBalanceStrategy::QuotaAware,
-        _ => LoadBalanceStrategy::Priority,
     };
 
     let mut req_body = request.clone();
@@ -270,98 +202,257 @@ pub async fn handle_chat_completions(
         })
         .filter(|s| !s.is_empty());
 
-    let provider_id = match pool_manager
-        .select_provider_from_candidates_with_strategy(strategy.clone(), &candidate_provider_ids, None)
-        .await
-    {
-        Some(id) => id,
-        None => {
-            return (
-                StatusCode::SERVICE_UNAVAILABLE,
-                axum::Json(serde_json::json!({
-                    "error": {
-                        "message": format!("No available model service for service {}", service_id),
-                        "type": "no_available_model_service"
-                    }
-                })),
-            )
-                .into_response();
+    let mut services_to_try = vec![service_id.clone()];
+    let mut last_error: Option<(StatusCode, serde_json::Value)> = None;
+    let mut visited: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+    while let Some(current_service_id) = services_to_try.pop() {
+        if !visited.insert(current_service_id.clone()) {
+            continue;
         }
-    };
 
-    let provider = match providers.iter().find(|p| p.id == provider_id) {
-        Some(p) => p,
-        None => {
-            return (
-                StatusCode::SERVICE_UNAVAILABLE,
-                axum::Json(serde_json::json!({
-                    "error": {
-                        "message": format!("Selected model service {} is not available", provider_id),
-                        "type": "no_available_model_service"
-                    }
-                })),
-            )
-                .into_response();
-        }
-    };
-
-    match send_to_provider(
-        provider,
-        &req_body,
-        is_stream,
-        request_content.clone(),
-        db_pool,
-        pool_manager,
-    )
-    .await
-    {
-        RequestResult::Success(response) => response,
-        RequestResult::Failure { error, .. } => {
-            let fallback_id = pool_manager
-                .select_provider_from_candidates_with_strategy(strategy, &candidate_provider_ids, Some(provider_id))
-                .await;
-
-            if let Some(fid) = fallback_id {
-                if let Some(fallback_provider) = providers.iter().find(|p| p.id == fid) {
-                    match send_to_provider(
-                        fallback_provider,
-                        &req_body,
-                        is_stream,
-                        request_content.clone(),
-                        db_pool,
-                        pool_manager,
-                    )
-                    .await
-                    {
-                        RequestResult::Success(response) => return response,
-                        RequestResult::Failure { error, .. } => {
-                            return (
-                                StatusCode::BAD_GATEWAY,
-                                axum::Json(serde_json::json!({
-                                    "error": {
-                                        "message": error,
-                                        "type": "provider_error",
-                                        "provider": fallback_provider.name
-                                    }
-                                })),
-                            )
-                                .into_response();
-                        }
-                    }
+        if let Some(key_info) = &api_key_info {
+            match db_pool.api_key_has_service_access(key_info, &current_service_id).await {
+                Ok(true) => {}
+                Ok(false) => {
+                    continue;
+                }
+                Err(e) => {
+                    last_error = Some((
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        serde_json::json!({
+                            "error": {
+                                "message": format!("Failed to check service access: {}", e),
+                                "type": "server_error"
+                            }
+                        }),
+                    ));
+                    continue;
                 }
             }
+        }
 
-            (
-                StatusCode::BAD_GATEWAY,
-                axum::Json(serde_json::json!({
+        let service = match db_pool.get_service(&current_service_id).await {
+            Ok(Some(s)) => s,
+            Ok(None) => {
+                last_error = Some((
+                    StatusCode::NOT_FOUND,
+                    serde_json::json!({
+                        "error": {
+                            "message": format!("Service with id {} not found", current_service_id),
+                            "type": "service_not_found"
+                        }
+                    }),
+                ));
+                continue;
+            }
+            Err(e) => {
+                last_error = Some((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    serde_json::json!({
+                        "error": {
+                            "message": format!("Failed to get service: {}", e),
+                            "type": "server_error"
+                        }
+                    }),
+                ));
+                continue;
+            }
+        };
+
+        if !service.enabled {
+            last_error = Some((
+                StatusCode::FORBIDDEN,
+                serde_json::json!({
                     "error": {
-                        "message": error,
-                        "type": "provider_error",
-                        "provider": provider.name
+                        "message": format!("Service {} is disabled", current_service_id),
+                        "type": "service_disabled"
                     }
-                })),
-            )
-                .into_response()
+                }),
+            ));
+            continue;
+        }
+
+        // Service hard limits (QPS + bounded queue + concurrency)
+        let _service_concurrency_permit = match pool_manager.check_service_limit(&service).await {
+            RateLimitResult::Denied { .. } => {
+                last_error = Some((
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    serde_json::json!({
+                        "error": {
+                            "message": "Service is busy. Please retry later.",
+                            "type": "service_rate_limit_exceeded"
+                        }
+                    }),
+                ));
+                continue;
+            }
+            RateLimitResult::ConcurrencyExceeded | RateLimitResult::QueueFull | RateLimitResult::WaitTimeout => {
+                last_error = Some((
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    serde_json::json!({
+                        "error": {
+                            "message": "Service is busy. Please retry later.",
+                            "type": "service_overloaded"
+                        }
+                    }),
+                ));
+                continue;
+            }
+            RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
+        };
+
+        let providers = match db_pool.list_service_providers(&current_service_id).await {
+            Ok(p) => p,
+            Err(e) => {
+                last_error = Some((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    serde_json::json!({
+                        "error": {
+                            "message": format!("Failed to get service providers: {}", e),
+                            "type": "server_error"
+                        }
+                    }),
+                ));
+                continue;
+            }
+        };
+
+        let candidate_provider_ids: Vec<i64> = providers.iter().map(|p| p.id).collect();
+        let strategy = match service.strategy.as_str() {
+            "RoundRobin" => LoadBalanceStrategy::RoundRobin,
+            "LeastConnections" => LoadBalanceStrategy::LeastConnections,
+            "Random" => LoadBalanceStrategy::Random,
+            "Priority" => LoadBalanceStrategy::Priority,
+            "LatencyBased" => LoadBalanceStrategy::LatencyBased,
+            "LowestPrice" => LoadBalanceStrategy::LowestPrice,
+            "QuotaAware" => LoadBalanceStrategy::QuotaAware,
+            _ => LoadBalanceStrategy::Priority,
+        };
+
+        let provider_id = match pool_manager
+            .select_provider_from_candidates_with_strategy(strategy.clone(), &candidate_provider_ids, None)
+            .await
+        {
+            Some(id) => id,
+            None => {
+                last_error = Some((
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    serde_json::json!({
+                        "error": {
+                            "message": format!("No available model service for service {}", current_service_id),
+                            "type": "no_available_model_service"
+                        }
+                    }),
+                ));
+
+                let mut fallbacks = parse_fallback_chain(service.fallback_chain.as_deref());
+                fallbacks.reverse();
+                for sid in fallbacks {
+                    services_to_try.push(sid);
+                }
+                continue;
+            }
+        };
+
+        let provider = match providers.iter().find(|p| p.id == provider_id) {
+            Some(p) => p,
+            None => {
+                last_error = Some((
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    serde_json::json!({
+                        "error": {
+                            "message": format!("Selected model service {} is not available", provider_id),
+                            "type": "no_available_model_service"
+                        }
+                    }),
+                ));
+                let mut fallbacks = parse_fallback_chain(service.fallback_chain.as_deref());
+                fallbacks.reverse();
+                for sid in fallbacks {
+                    services_to_try.push(sid);
+                }
+                continue;
+            }
+        };
+
+        match send_to_provider(
+            provider,
+            &req_body,
+            is_stream,
+            request_content.clone(),
+            db_pool,
+            pool_manager,
+        )
+        .await
+        {
+            RequestResult::Success(response) => return response,
+            RequestResult::Failure { error, .. } => {
+                let fallback_id = pool_manager
+                    .select_provider_from_candidates_with_strategy(strategy, &candidate_provider_ids, Some(provider_id))
+                    .await;
+
+                if let Some(fid) = fallback_id {
+                    if let Some(fallback_provider) = providers.iter().find(|p| p.id == fid) {
+                        match send_to_provider(
+                            fallback_provider,
+                            &req_body,
+                            is_stream,
+                            request_content.clone(),
+                            db_pool,
+                            pool_manager,
+                        )
+                        .await
+                        {
+                            RequestResult::Success(response) => return response,
+                            RequestResult::Failure { error, .. } => {
+                                last_error = Some((
+                                    StatusCode::BAD_GATEWAY,
+                                    serde_json::json!({
+                                        "error": {
+                                            "message": error,
+                                            "type": "provider_error",
+                                            "provider": fallback_provider.name
+                                        }
+                                    }),
+                                ));
+                            }
+                        }
+                    }
+                } else {
+                    last_error = Some((
+                        StatusCode::BAD_GATEWAY,
+                        serde_json::json!({
+                            "error": {
+                                "message": error,
+                                "type": "provider_error",
+                                "provider": provider.name
+                            }
+                        }),
+                    ));
+                }
+
+                let mut fallbacks = parse_fallback_chain(service.fallback_chain.as_deref());
+                fallbacks.reverse();
+                for sid in fallbacks {
+                    services_to_try.push(sid);
+                }
+            }
         }
     }
+
+    if let Some((status, body)) = last_error {
+        return (status, axum::Json(body)).into_response();
+    }
+
+    (
+        StatusCode::SERVICE_UNAVAILABLE,
+        axum::Json(serde_json::json!({
+            "error": {
+                "message": "No available model service",
+                "type": "no_available_model_service"
+            }
+        })),
+    )
+        .into_response()
 }

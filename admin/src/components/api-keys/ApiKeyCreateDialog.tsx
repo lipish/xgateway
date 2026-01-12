@@ -17,8 +17,6 @@ interface ApiKeyCreateDialogProps {
     name: string
     scope: string
     service_ids: string[]
-    qps_limit: number
-    concurrency_limit: number
   }
   onFormChange: (next: ApiKeyCreateDialogProps["form"]) => void
   services: Service[]
@@ -78,27 +76,6 @@ export function ApiKeyCreateDialog({
                   placeholder="e.g. My App"
                   className="h-10"
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">{t("apiKeys.qps")}</Label>
-                  <Input
-                    type="number"
-                    value={form.qps_limit}
-                    onChange={(e) => onFormChange({ ...form, qps_limit: parseFloat(e.target.value) })}
-                    className="h-10"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">{t("apiKeys.concurrency")}</Label>
-                  <Input
-                    type="number"
-                    value={form.concurrency_limit}
-                    onChange={(e) => onFormChange({ ...form, concurrency_limit: parseInt(e.target.value) })}
-                    className="h-10"
-                  />
-                </div>
               </div>
 
               <div className="space-y-2">

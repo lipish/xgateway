@@ -1,5 +1,7 @@
-import { Badge } from "@/components/ui/badge"
-import { Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Check, ChevronsUpDown, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { t } from "@/lib/i18n"
 import type { Provider } from "./types"
@@ -19,39 +21,52 @@ export function ServiceBindingsSection({
   onToggleBinding,
   error,
 }: ServiceBindingsSectionProps) {
+  const selectedNames = providers.filter((p) => boundProviderIdSet.has(p.id)).map((p) => p.name)
+
   return (
     <div className="rounded-lg border bg-background p-5">
       <div className="text-sm font-semibold">{t("services.bindings")}</div>
-      <div className="mt-3 border rounded-md p-2 max-h-64 overflow-y-auto space-y-1 bg-background">
-        {providers.length === 0 ? (
-          <div className="text-sm text-muted-foreground">-</div>
-        ) : (
-          providers.map((p) => {
-            const checked = boundProviderIdSet.has(p.id)
-            const busy = bindingBusyId === p.id
-            return (
-              <label
-                key={p.id}
-                className={cn(
-                  "flex items-center gap-2 p-2 hover:bg-accent rounded-md cursor-pointer transition-colors",
-                  busy && "opacity-70 cursor-not-allowed"
-                )}
-              >
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  disabled={busy}
-                  onChange={(e) => onToggleBinding(p.id, e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                />
-                <span className="text-sm font-medium">{p.name}</span>
-                <span className="text-xs text-muted-foreground">{p.provider_type}</span>
-                {!p.enabled && <Badge variant="outline">{t("providers.disabled")}</Badge>}
-                {busy && <Loader2 className="ml-auto h-4 w-4 animate-spin text-muted-foreground" />}
-              </label>
-            )
-          })
-        )}
+      <div className="mt-3">
+        <Popover modal={false}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" role="combobox" className="h-10 w-full justify-between font-normal" type="button">
+              <span className="flex-1 truncate text-left">
+                {selectedNames.length > 0 ? selectedNames.join(", ") : t("services.bindingsPlaceholder")}
+              </span>
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[24rem] p-0" align="start">
+            <Command>
+              <CommandInput placeholder={t("common.search")} />
+              <CommandList>
+                <CommandEmpty>{t("providers.empty")}</CommandEmpty>
+                <CommandGroup>
+                  {providers.map((p) => {
+                    const checked = boundProviderIdSet.has(p.id)
+                    const busy = bindingBusyId === p.id
+                    return (
+                      <CommandItem
+                        key={p.id}
+                        value={`${p.name} ${p.provider_type}`}
+                        onSelect={() => {
+                          if (busy) return
+                          onToggleBinding(p.id, !checked)
+                        }}
+                        className={cn(busy && "opacity-70")}
+                      >
+                        <Check className={cn("mr-2 h-4 w-4", checked ? "opacity-100" : "opacity-0")} />
+                        <span className="truncate">{p.name}</span>
+                        <span className="ml-auto text-xs text-muted-foreground">{p.provider_type}</span>
+                        {busy && <Loader2 className="ml-2 h-4 w-4 animate-spin text-muted-foreground" />}
+                      </CommandItem>
+                    )
+                  })}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {error && <p className="text-sm text-destructive mt-3 font-medium">{error}</p>}

@@ -60,14 +60,6 @@ export function ApiKeyDetailCard({
         <div className="p-5">
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-md bg-muted/30 p-4">
-              <div className="text-xs text-muted-foreground">{t("apiKeys.qps")}</div>
-              <div className="mt-1 text-lg font-semibold">{apiKey.qps_limit}</div>
-            </div>
-            <div className="rounded-md bg-muted/30 p-4">
-              <div className="text-xs text-muted-foreground">{t("apiKeys.concurrency")}</div>
-              <div className="mt-1 text-lg font-semibold">{apiKey.concurrency_limit}</div>
-            </div>
-            <div className="rounded-md bg-muted/30 p-4">
               <div className="text-xs text-muted-foreground">{t("apiKeys.created")}</div>
               <div className="mt-1 text-sm font-medium">{new Date(apiKey.created_at).toLocaleString()}</div>
             </div>

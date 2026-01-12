@@ -39,11 +39,11 @@ export interface ApiResponse<T> {
 }
 
 export const STRATEGY_OPTIONS = [
-  { value: "Priority", label: "Priority" },
-  { value: "RoundRobin", label: "RoundRobin" },
-  { value: "LeastConnections", label: "LeastConnections" },
-  { value: "LatencyBased", label: "LatencyBased" },
-  { value: "LowestPrice", label: "LowestPrice" },
-  { value: "QuotaAware", label: "QuotaAware" },
-  { value: "Random", label: "Random" },
+  { value: "Priority", labelKey: "services.strategyOptions.priority", descriptionKey: "services.strategyDescriptions.priority" },
+  { value: "RoundRobin", labelKey: "services.strategyOptions.roundRobin", descriptionKey: "services.strategyDescriptions.roundRobin" },
+  { value: "LeastConnections", labelKey: "services.strategyOptions.leastConnections", descriptionKey: "services.strategyDescriptions.leastConnections" },
+  { value: "LatencyBased", labelKey: "services.strategyOptions.latencyBased", descriptionKey: "services.strategyDescriptions.latencyBased" },
+  { value: "LowestPrice", labelKey: "services.strategyOptions.lowestPrice", descriptionKey: "services.strategyDescriptions.lowestPrice" },
+  { value: "QuotaAware", labelKey: "services.strategyOptions.quotaAware", descriptionKey: "services.strategyDescriptions.quotaAware" },
+  { value: "Random", labelKey: "services.strategyOptions.random", descriptionKey: "services.strategyDescriptions.random" },
 ]
