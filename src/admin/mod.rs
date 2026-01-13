@@ -70,6 +70,7 @@ pub fn create_admin_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -
         .route("/api/logs/latencies", get(log_handlers::get_provider_latencies_api))
         .route("/api/logs/today", get(log_handlers::get_today_stats_api))
         .route("/api/logs/performance", get(log_handlers::get_performance_stats_api))
+        .route("/api/logs/top-models", get(log_handlers::get_top_models_api))
         // API Keys management
         .route("/api/api-keys", get(api_key_handlers::list_api_keys_api).post(api_key_handlers::create_api_key_api))
         .route("/api/api-keys/:id", put(api_key_handlers::update_api_key_api).delete(api_key_handlers::delete_api_key_api))

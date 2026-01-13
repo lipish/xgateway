@@ -9,10 +9,14 @@
 
 // Get API URL from environment or use default
 const getApiUrl = (): string => {
-  // Use environment variable if set, otherwise use empty string
-  // (Vite proxy will forward /api/* requests to the backend)
-  const apiUrl = import.meta.env.VITE_API_URL || ''
-  return apiUrl
+  // Dev: always use relative paths so requests go through Vite dev server proxy
+  // (server.proxy will forward /api/* requests to the backend)
+  if (import.meta.env.DEV) {
+    return ''
+  }
+
+  // Prod: allow configuring a full base URL (optional)
+  return import.meta.env.VITE_API_URL || ''
 }
 
 export const API_URL = getApiUrl()

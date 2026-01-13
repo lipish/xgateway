@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 移除 Homebrew tap 自动更新与 PyPI 发布。
 - 停用 docs-site 的 GitHub Pages 自动部署。
 
+## [0.12.2] - 2026-01-13
+
+### 🐛 Fixed
+
+- 修复数据分析页“热门模型”无数据：新增 `/api/logs/top-models` 并接入前端。
+- 修复热门模型统计 SQL 在 PostgreSQL 下因 `make_interval(hours => bigint)` 导致查询失败的问题。
+- 热门模型统计排除 `health_check` 等非业务请求，避免污染榜单。
+
+### 🎛️ Admin
+
+- 开发环境下 API 请求强制走 Vite proxy（避免直连错误端口导致“网络错误”）。
+- Vite dev server proxy 正确读取 `VITE_API_URL`（使用 `loadEnv`）。
+
 ## [0.12.0] - 2026-01-13
 
 ### ✨ Milestone

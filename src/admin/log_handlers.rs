@@ -1,7 +1,7 @@
 use axum::Json;
 use serde::Deserialize;
 use crate::db::{DatabasePool, RequestLog};
-use crate::db::operations::request_logs::{HourlyRequestCount, ProviderLatency, TodayStats, PerformanceStats};
+use crate::db::operations::request_logs::{HourlyRequestCount, ProviderLatency, TodayStats, PerformanceStats, TopModelUsage};
 use super::ApiResponse;
 
 #[derive(Debug, Deserialize)]
@@ -14,6 +14,18 @@ pub struct ListLogsQuery {
 }
 
 fn default_logs_limit() -> i64 { 100 }
+
+fn default_top_models_limit() -> i64 { 10 }
+
+fn default_top_models_hours() -> i64 { 24 }
+
+#[derive(Debug, Deserialize)]
+pub struct TopModelsQuery {
+    #[serde(default = "default_top_models_limit")]
+    pub limit: i64,
+    #[serde(default = "default_top_models_hours")]
+    pub hours: i64,
+}
 
 /// Get logs API
 pub async fn get_logs_api(
@@ -102,6 +114,24 @@ pub async fn get_performance_stats_api(
             success: false,
             data: None,
             message: format!("Failed to retrieve performance stats: {}", e),
+        }),
+    }
+}
+
+pub async fn get_top_models_api(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::extract::Query(query): axum::extract::Query<TopModelsQuery>,
+) -> Json<ApiResponse<Vec<TopModelUsage>>> {
+    match db_pool.get_top_models(query.limit, query.hours).await {
+        Ok(models) => Json(ApiResponse {
+            success: true,
+            data: Some(models),
+            message: "Top models retrieved".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to retrieve top models: {}", e),
         }),
     }
 }

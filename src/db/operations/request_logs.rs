@@ -31,6 +31,13 @@ pub struct PerformanceStats {
     pub qps: f64,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TopModelUsage {
+    pub model: String,
+    pub requests: i64,
+    pub tokens: i64,
+}
+
 impl DatabasePool {
     // Request Log operations
     
@@ -218,6 +225,43 @@ impl DatabasePool {
                     avg_response_time: row.try_get("avg_response_time")?,
                     qps: row.try_get("qps")?,
                 })
+            }
+        }
+    }
+
+    pub async fn get_top_models(&self, limit: i64, last_hours: i64) -> Result<Vec<TopModelUsage>> {
+        match self {
+            Self::Postgres(pool) => {
+                let rows = sqlx::query(
+                    r#"
+                    SELECT
+                        model,
+                        COUNT(*)::BIGINT as requests,
+                        COALESCE(SUM(CASE WHEN status = 'success' THEN tokens_used ELSE 0 END), 0)::BIGINT as tokens
+                    FROM request_logs
+                    WHERE created_at >= NOW() - ($1::INT * INTERVAL '1 hour')
+                      AND request_type != 'health_check'
+                      AND model != 'health_check'
+                    GROUP BY model
+                    ORDER BY requests DESC, tokens DESC, model ASC
+                    LIMIT $2
+                    "#
+                )
+                .bind(last_hours)
+                .bind(limit)
+                .fetch_all(pool)
+                .await?;
+
+                let mut models = Vec::new();
+                for row in rows {
+                    models.push(TopModelUsage {
+                        model: row.try_get("model")?,
+                        requests: row.try_get("requests")?,
+                        tokens: row.try_get("tokens")?,
+                    });
+                }
+
+                Ok(models)
             }
         }
     }

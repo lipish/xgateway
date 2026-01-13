@@ -53,19 +53,23 @@ export function AnalyticsPage() {
       if (performanceResult.success) {
         const perfData = performanceResult.data
 
+        // 获取热门模型
+        const topModelsResult = await apiGet("/api/logs/top-models?limit=10&hours=24") as any
+        const topModels = topModelsResult.success ? topModelsResult.data : []
+
         // 获取错误日志
         const errorsResult = await apiGet("/api/logs?status=error&limit=10") as any
         const recentErrors = errorsResult.success ? errorsResult.data : []
 
         // 构建analytics数据
         const analyticsData: AnalyticsData = {
-          total_requests: perfData.total_requests || 0,
+          total_requests: perfData.requests_today || 0,
           success_rate: perfData.success_rate || 0,
           avg_latency_ms: perfData.avg_response_time || 0,
           tokens_used: perfData.tokens_used || 0,
-          requests_today: perfData.total_requests || 0, // 使用总请求数作为今日请求数
+          requests_today: perfData.requests_today || 0,
           failed_requests: perfData.failed_requests || 0,
-          top_models: [], // TODO: 实现top models API
+          top_models: topModels || [],
           recent_errors: recentErrors.map((error: any) => ({
             timestamp: error.created_at,
             provider: error.provider_name,
