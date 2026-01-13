@@ -12,7 +12,6 @@ const getApiUrl = (): string => {
   // Use environment variable if set, otherwise use empty string
   // (Vite proxy will forward /api/* requests to the backend)
   const apiUrl = import.meta.env.VITE_API_URL || ''
-  console.log('API_URL from env:', import.meta.env.VITE_API_URL, 'final:', apiUrl)
   return apiUrl
 }
 

@@ -179,7 +179,9 @@ async fn handle_stream_request(
                     request_content,
                     response_content,
                 };
-                let _ = db.create_request_log(log).await;
+                if let Err(e) = db.create_request_log(log).await {
+                    tracing::error!("Failed to write request log (streaming): {}", e);
+                }
             });
 
             let stream = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
@@ -237,7 +239,9 @@ async fn handle_non_stream_request(
                 request_content,
                 response_content,
             };
-            let _ = db_pool.create_request_log(log).await;
+            if let Err(e) = db_pool.create_request_log(log).await {
+                tracing::error!("Failed to write request log (non-streaming success): {}", e);
+            }
 
             RequestResult::Success(axum::Json(response_json).into_response())
         }
@@ -257,7 +261,9 @@ async fn handle_non_stream_request(
                 request_content,
                 response_content: None,
             };
-            let _ = db_pool.create_request_log(log).await;
+            if let Err(e) = db_pool.create_request_log(log).await {
+                tracing::error!("Failed to write request log (non-streaming error): {}", e);
+            }
 
             RequestResult::Failure {
                 error: format!("API error: {}", e),

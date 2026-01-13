@@ -141,7 +141,7 @@ impl DatabasePool {
                     r#"
                     SELECT 
                         provider_name,
-                        AVG(latency_ms) as avg_latency_ms
+                        AVG(latency_ms)::DOUBLE PRECISION as avg_latency_ms
                     FROM request_logs 
                     WHERE status = 'success' AND created_at >= NOW() - INTERVAL '24 hours'
                     GROUP BY provider_name

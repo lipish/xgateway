@@ -21,8 +21,19 @@ export function AnalyticsChart({ maxHours }: AnalyticsChartProps) {
     const fetchData = async () => {
       try {
         const result = await apiGet('/api/logs/hourly') as any
-        if (result.success && result.data) {
-          setData(result.data)
+        const raw = result?.data
+        const parsed: HourlyRequestCount[] = Array.isArray(raw)
+          ? raw
+              .map((item: any) => ({
+                hour: String(item?.hour ?? ''),
+                requests: Number(item?.requests ?? 0),
+              }))
+              .filter((item: HourlyRequestCount) => item.hour.length > 0)
+              .sort((a, b) => a.hour.localeCompare(b.hour))
+          : []
+
+        if (result?.success) {
+          setData(parsed)
         }
       } catch (error) {
         console.error('Failed to fetch hourly requests:', error)
@@ -68,7 +79,7 @@ export function AnalyticsChart({ maxHours }: AnalyticsChartProps) {
               {displayData.map((item, index) => {
                 const height = displayData.length > 0 ? (item.requests / maxValue) * 100 : 0
                 return (
-                  <div key={index} className="flex-1 min-w-0 flex flex-col items-center gap-1.5">
+                  <div key={index} className="flex-1 min-w-0 flex flex-col items-center gap-1.5 h-full">
                     <div className="w-full flex items-end justify-center h-full min-w-0">
                       <div
                         className="w-full bg-gradient-to-t from-primary to-primary/60 rounded-t transition-all hover:opacity-80 cursor-pointer"
