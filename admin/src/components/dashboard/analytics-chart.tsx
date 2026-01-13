@@ -89,7 +89,7 @@ export function AnalyticsChart({ maxHours }: AnalyticsChartProps) {
                 {displayData.reduce((acc, curr) => acc + curr.requests, 0).toLocaleString()}
               </div>
             </div>
-            <div className="flex items-center gap-2 text-green-600">
+            <div className="flex items-center gap-2 text-violet-600">
               <TrendingUp className="h-4 w-4" />
               <span className="text-sm font-medium">+12.5%</span>
             </div>

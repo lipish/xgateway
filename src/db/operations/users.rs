@@ -19,6 +19,36 @@ impl DatabasePool {
         }
     }
 
+    pub async fn create_auth_token(&self, token: &str, user_id: i64) -> Result<()> {
+        match self {
+            Self::Postgres(pool) => {
+                sqlx::query(
+                    "INSERT INTO auth_tokens (token, user_id) VALUES ($1, $2) ON CONFLICT (token) DO UPDATE SET user_id = EXCLUDED.user_id",
+                )
+                .bind(token)
+                .bind(user_id)
+                .execute(pool)
+                .await?;
+                Ok(())
+            }
+        }
+    }
+
+    pub async fn get_user_by_token(&self, token: &str) -> Result<Option<User>> {
+        match self {
+            Self::Postgres(pool) => {
+                Ok(sqlx::query_as::<_, User>(
+                    "SELECT u.id, u.username, u.password_hash, u.role_id, u.status, (u.created_at AT TIME ZONE 'UTC') as created_at, (u.updated_at AT TIME ZONE 'UTC') as updated_at \
+                     FROM auth_tokens t JOIN users u ON u.id = t.user_id \
+                     WHERE t.token = $1",
+                )
+                .bind(token)
+                .fetch_optional(pool)
+                .await?)
+            }
+        }
+    }
+
     pub async fn get_user_by_username(&self, username: &str) -> Result<Option<User>> {
         match self {
             Self::Postgres(pool) => {

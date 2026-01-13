@@ -79,7 +79,7 @@ export function ProviderList({
               {providers.map((provider) => (
                 <TableRow
                   key={provider.id}
-                  className={`cursor-pointer hover:bg-muted/50 ${selectedProvider?.id === provider.id ? "bg-muted" : ""}`}
+                  className={`cursor-pointer hover:bg-muted/50 ${selectedProvider?.id === provider.id ? "bg-violet-50 border-l-2 border-l-violet-400" : ""}`}
                   onClick={() => onSelectProvider(provider)}
                 >
                   <TableCell className="text-left pl-6">
@@ -91,7 +91,7 @@ export function ProviderList({
                   <TableCell className="text-center">
                     <Badge
                       variant="outline"
-                      className={provider.enabled ? "bg-primary/10 text-primary border-0" : "bg-muted text-muted-foreground border-0"}
+                      className={provider.enabled ? "bg-violet-50 text-violet-700 border border-violet-200" : "bg-muted text-muted-foreground border-0"}
                     >
                       {provider.enabled
                         ? t("providers.enabled")

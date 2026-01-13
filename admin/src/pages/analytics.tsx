@@ -245,15 +245,15 @@ export function AnalyticsPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span>{t("dashboard.apiStatus")}</span>
-                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">{t("dashboard.connected")}</span>
+                  <span className="px-2 py-1 bg-violet-50 text-violet-700 rounded-full text-xs">{t("dashboard.connected")}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>{t("dashboard.database")}</span>
-                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">{t("dashboard.connected")}</span>
+                  <span className="px-2 py-1 bg-violet-50 text-violet-700 rounded-full text-xs">{t("dashboard.connected")}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>{t("dashboard.cache")}</span>
-                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">{t("dashboard.active")}</span>
+                  <span className="px-2 py-1 bg-violet-50 text-violet-700 rounded-full text-xs">{t("dashboard.active")}</span>
                 </div>
                 <div className="mt-6 p-4 bg-muted/50 rounded-lg">
                   <div className="text-sm text-muted-foreground mb-2">{t("dashboard.uptime")}</div>

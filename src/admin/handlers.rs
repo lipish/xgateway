@@ -143,7 +143,7 @@ pub async fn create_provider_api(
                     // Backward-compatible default: create a service with id = provider.name and bind it.
                     // (If already exists, ignore.)
                     if let Err(e) = db_pool
-                        .create_service(&provider.name, &provider.name, true, "Priority", None)
+                        .create_service(&provider.name, &provider.name, true, "Priority", None, None, None, None, None)
                         .await
                     {
                         tracing::warn!("Failed to create default service for provider: {}", e);

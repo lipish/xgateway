@@ -38,6 +38,14 @@ pub async fn login_api(
             if user.password_hash == req.password {
                 // Generate a simple token (in production, use JWT)
                 let token = format!("token_{}", uuid::Uuid::new_v4());
+
+                if let Err(e) = db_pool.create_auth_token(&token, user.id).await {
+                    return Json(ApiResponse {
+                        success: false,
+                        data: None,
+                        message: format!("Failed to persist auth token: {}", e),
+                    });
+                }
                 
                 let response = LoginResponse {
                     user: serde_json::json!({

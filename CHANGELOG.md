@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-01-13
+
+### ✨ Milestone
+
+- 统一服务端口为单一入口（默认 `:3000`），同时提供 Admin API 与对外 `/v1/*` 代理能力。
+- 对外接口引入 `service_id` 维度的访问控制：API Key 只能访问绑定的服务，未授权返回 `service_access_denied`。
+
+### 🎛️ Admin
+
+- 服务与限流相关 UI/交互改进。
+
+### 🧹 Docs
+
+- 文档目录结构整理与历史内容清理。
+
 ## [0.11.0] - 2026-01-10
 
 ### 💥 Breaking Changes
@@ -139,8 +154,7 @@ This release focuses on complete Zed editor compatibility, fixing all known issu
 
 - Added comprehensive Zed integration guides:
   - `README_ZED.md` - Complete Zed setup guide
-  - `docs/guides/ZED_ZHIPU_SETUP.md` - Zhipu GLM setup
-  - `docs/guides/ZED_SWITCH_PROVIDERS.md` - Provider switching guide
+  - (Consolidated) Zed setup and provider switching notes are now maintained in `docs/USER_GUIDE.md`
   - `docs/fixes/zed-tools-detection.md` - Tool detection fix details
   - `docs/fixes/tool-call-arguments-format.md` - Arguments format fix
   - `docs/fixes/think-tags-filtering.md` - Reasoning content filtering
@@ -259,9 +273,9 @@ This release focuses on complete Zed editor compatibility, fixing all known issu
 
 #### Documentation Restructuring
 - **Organized Documentation Hierarchy** - Clear and maintainable documentation structure
-  - Created `docs/guides/` for user guides (Quick Start, Integration, Configuration)
-  - Created `docs/api/` for API documentation (Providers, Hot Reload, Config Update)
-  - Created `docs/development/` for development docs (File Structure, Release Checklist)
+  - Documentation is now kept flat under `docs/` (see `docs/README.md`)
+  - User docs are consolidated in `docs/USER_GUIDE.md`
+  - Development/ops docs are consolidated in `docs/DEVELOPMENT.md`
   - Created `docs/archive/` for historical documents (old releases, test reports)
   - Merged duplicate integration guides (Zed and Claude Code) into unified documentation
   - Updated main README.md with improved documentation links

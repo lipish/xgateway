@@ -1,9 +1,10 @@
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"
+import React, { Suspense } from "react"
 import { Bot } from "lucide-react"
 import type { ChatMessage as ChatMessageType } from "./types"
+
+const ChatMessageMarkdown = React.lazy(() =>
+  import("./ChatMessageMarkdown").then((m) => ({ default: m.ChatMessageMarkdown }))
+)
 
 interface ChatMessageProps {
   message: ChatMessageType
@@ -26,33 +27,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
           {isUser ? (
             <p className="whitespace-pre-wrap break-words leading-relaxed">{message.content}</p>
           ) : (
-            <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-pre:my-3 prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border/50">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  code({ className, children, ...props }) {
-                    const match = /language-(\w+)/.exec(className || '')
-                    const isInline = !match && !String(children).includes('\n')
-                    return isInline ? (
-                      <code className="bg-muted px-1.5 py-0.5 rounded text-primary font-mono text-[0.85em]" {...props}>
-                        {children}
-                      </code>
-                    ) : (
-                      <SyntaxHighlighter
-                        style={oneDark}
-                        language={match?.[1] || 'text'}
-                        PreTag="div"
-                        className="rounded-lg text-[0.85rem] !my-3 border border-border/50 !bg-[#1e1e1e]"
-                      >
-                        {String(children).replace(/\n$/, '')}
-                      </SyntaxHighlighter>
-                    )
-                  }
-                }}
-              >
-                {message.content}
-              </ReactMarkdown>
-            </div>
+            <Suspense fallback={<p className="whitespace-pre-wrap break-words leading-relaxed">{message.content}</p>}>
+              <ChatMessageMarkdown content={message.content} />
+            </Suspense>
           )}
         </div>
       </div>

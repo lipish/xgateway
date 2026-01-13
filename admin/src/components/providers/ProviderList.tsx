@@ -15,8 +15,8 @@ export function ProviderList({ providers, selectedProvider, onSelectProvider }: 
       {providers.map(pt => (
         <div
           key={pt.id}
-          className={`p-4 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors ${
-            selectedProvider?.id === pt.id ? 'bg-muted' : 'bg-white'
+          className={`p-4 rounded-lg border cursor-pointer hover:bg-violet-50 transition-colors ${
+            selectedProvider?.id === pt.id ? 'bg-violet-50 border-violet-300' : 'bg-white border-border'
           }`}
           onClick={() => onSelectProvider(pt)}
         >
@@ -25,7 +25,7 @@ export function ProviderList({ providers, selectedProvider, onSelectProvider }: 
               {getProviderIcon(pt.id) ? (
                 <img src={getProviderIcon(pt.id)!} alt={pt.label} className="h-5 w-5 shrink-0 mt-0.5" />
               ) : (
-                <Box className={`h-5 w-5 shrink-0 mt-0.5 ${selectedProvider?.id === pt.id ? 'text-primary' : 'text-muted-foreground'}`} />
+                <Box className={`h-5 w-5 shrink-0 mt-0.5 ${selectedProvider?.id === pt.id ? 'text-violet-600' : 'text-muted-foreground'}`} />
               )}
               <div className="flex-1 min-w-0">
                 <div className="font-semibold truncate">{getLocalizedProviderName(pt.id, pt.label)}</div>

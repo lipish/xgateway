@@ -29,6 +29,10 @@ pub struct Service {
     pub enabled: bool,
     pub strategy: String,
     pub fallback_chain: Option<String>,
+    pub qps_limit: f64,
+    pub concurrency_limit: i32,
+    pub max_queue_size: i32,
+    pub max_queue_wait_ms: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

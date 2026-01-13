@@ -117,6 +117,9 @@ The backend serves the frontend static files directly, so you only need to start
 # Build the frontend (first time or after frontend changes)
 cd admin && npm install && npx vite build && cd ..
 
+# Local demo (PostgreSQL)
+export DATABASE_URL="postgresql://xinference@localhost:5432/llm_link"
+
 # Start the unified service (default port 3000)
 cargo run
 ```

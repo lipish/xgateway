@@ -30,7 +30,7 @@ function StatCard({ title, value, subtitle, icon: Icon, trend }: StatCardProps) 
         <div className="flex justify-start min-w-0">
           {trend ? (
             <span
-              className={`text-xs font-medium flex items-center gap-1 min-w-0 whitespace-nowrap ${trend.isPositive ? 'text-green-600' : 'text-red-500'}`}
+              className={`text-xs font-medium flex items-center gap-1 min-w-0 whitespace-nowrap ${trend.isPositive ? 'text-violet-600' : 'text-red-500'}`}
             >
               {trend.isPositive ? <TrendingUp className="h-3 w-3 shrink-0" /> : <TrendingDown className="h-3 w-3 shrink-0" />}
               <span className="shrink-0">{trend.value}</span>
