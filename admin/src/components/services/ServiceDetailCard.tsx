@@ -25,7 +25,6 @@ export function ServiceDetailCard({ service, toggleBusy, onToggleEnabled }: Serv
                 {service.strategy || "Priority"}
               </Badge>
             </div>
-            <div className="mt-1 text-xs text-muted-foreground">{service.id}</div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">

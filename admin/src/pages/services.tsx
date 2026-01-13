@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { TwoPanelLayout } from "@/components/layout/two-panel-layout"
 import { DetailPanel } from "@/components/layout/detail-panel"
 import { t } from "@/lib/i18n"
+import { useAuth } from "@/lib/auth"
 import { Plus } from "lucide-react"
 import { ApiKeyCreateDialog } from "@/components/services/ApiKeyCreateDialog"
 import { DeleteApiKeyConfirmDialog } from "@/components/services/DeleteApiKeyConfirmDialog"
@@ -17,6 +18,7 @@ import { ServiceListCard } from "@/components/services/ServiceListCard"
 import type { ApiKey, ApiResponse, Provider, Service } from "@/components/services/types"
 
 export function ServicesPage() {
+  const { user } = useAuth()
   const [services, setServices] = useState<Service[]>([])
   const [providers, setProviders] = useState<Provider[]>([])
   const [boundProviders, setBoundProviders] = useState<Provider[]>([])
@@ -94,6 +96,44 @@ export function ServicesPage() {
       return ids.includes(selectedServiceId)
     })
   }, [apiKeys, selectedServiceId])
+
+  const isAdmin = user?.role_id === "admin"
+
+  const exportServicesAndApiKeys = async () => {
+    try {
+      const exported = services.map((svc) => {
+        const keys = apiKeys
+          .filter((k) => k.scope === "instance")
+          .filter((k) => {
+            const ids = (k.service_ids || []).filter((v): v is string => typeof v === "string" && v.length > 0)
+            return ids.includes(svc.id)
+          })
+          .map((k) => ({
+            id: k.id,
+            name: k.name,
+            api_key: k.key_hash || null,
+          }))
+
+        return {
+          service_id: svc.id,
+          service_name: svc.name,
+          api_keys: keys,
+        }
+      })
+
+      const blob = new Blob([JSON.stringify(exported, null, 2)], { type: "application/json;charset=utf-8" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = "services-api-keys.json"
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch {
+      setError(t("common.networkError"))
+    }
+  }
 
   useEffect(() => {
     fetchAll()
@@ -564,10 +604,17 @@ export function ServicesPage() {
         title={t("services.title")}
         subtitle={t("services.description")}
         action={
-          <Button size="sm" onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            {t("services.create")}
-          </Button>
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Button size="sm" variant="outline" onClick={exportServicesAndApiKeys}>
+                {t("logs.export")}
+              </Button>
+            )}
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              {t("services.create")}
+            </Button>
+          </div>
         }
       />
 

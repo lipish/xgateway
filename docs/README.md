@@ -2,26 +2,19 @@
 
 ## 📚 Documentation Index
 
-### User Guides
-- **[Models & Providers](MODELS.md)** - Supported LLM providers and models
-- **[Quick Start](guides/QUICK_START.md)** - Get started with LLM Link
-- **[Configuration](guides/CONFIGURATION.md)** - Configuration options
-- **[User Permission System](guides/USER_PERMISSION_SYSTEM.md)** - User, role, and API key management
-- **[Zed IDE Setup](guides/ZED_SETUP.md)** - Zed IDE integration
+### Core
 
-### Development
-- **[Architecture](development/ARCHITECTURE.md)** - System architecture overview
-- **[File Structure](development/FILE_STRUCTURE.md)** - Project structure
-
-### Publishing
-- **[Publishing Guide](PUBLISHING.md)** - Publishing to crates.io
+- **[产品说明（XGateway）](xgateway.md)** - 面向客户/售前/交付的产品口径
+- **[用户指南](USER_GUIDE.md)** - 快速上手、调用方式、权限与常见客户端接入
+- **[开发与运维](DEVELOPMENT.md)** - 架构、核心链路、调度与限流、发布与运维要点
+- **[UI 设计规范](DESIGN_SPEC.md)** - Admin UI/UX 设计规范
 
 ---
 
 ## Quick Navigation
 
-**New Users**: Start with [Quick Start](guides/QUICK_START.md) → [Models](MODELS.md)
+**New Users**: Start with [用户指南](USER_GUIDE.md) → [产品说明](xgateway.md)
 
-**Developers**: Read [Architecture](development/ARCHITECTURE.md) → [File Structure](development/FILE_STRUCTURE.md)
+**Developers**: Read [开发与运维](DEVELOPMENT.md)
 
-**Publishing**: Follow [Publishing Guide](PUBLISHING.md)
+**UI**: Follow [UI 设计规范](DESIGN_SPEC.md)

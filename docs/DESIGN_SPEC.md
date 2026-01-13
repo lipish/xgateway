@@ -42,6 +42,16 @@ This document defines the core UI/UX standards for the LLM-Link project
 - **Field Grids**: Use `grid grid-cols-2 gap-4` for paired fields (e.g., Name/Model).
 - **Metric Grids**: Use `grid grid-cols-3 gap-4` for numeric inputs or pricing fields.
 - **Required Fields**: Indicate with a red asterisk `*` (`text-destructive`).
+
+### Toolbar Spacing (Top Tools vs Content)
+
+- When you do not use a page-level title header (e.g. `PageHeader`) and place actions in a top-right toolbar, standardize spacing by using `mb-3` on the toolbar container.
+- Do not add extra `mt-*` on the content container to avoid inconsistent spacing across pages and conditional branches.
+
+Recommended structure:
+
+- Toolbar container: `className="flex items-center justify-end mb-3"`
+- Content container: `className="flex-1 min-h-0 flex flex-col"`
 ## 4. Standardized Card Style (XGateway Style)
 
 All dashboard and monitoring cards must adhere to the following visual hierarchy:

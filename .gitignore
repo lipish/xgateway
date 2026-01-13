@@ -1,9 +1,6 @@
 # shadcn
 shadcn
 
-# web-skeleton
-web-skeleton
-
 # admin node modules
 /admin/node_modules
 
@@ -66,6 +63,8 @@ logs/
 /tmp/stream-response.txt
 debug.log
 llm-link-debug.log
+
+llm-link.db
 
 # OS generated files
 .DS_Store

@@ -19,7 +19,7 @@ echo ""
 
 # 检查文档
 echo "📋 检查文档支持..."
-if grep -q "glm-4.6" docs/guides/ZED_ZHIPU_SETUP.md; then
+if grep -q "glm-4.6" docs/USER_GUIDE.md; then
     echo "✅ 文档中找到 glm-4.6 支持"
 else
     echo "❌ 文档中未找到 glm-4.6 支持"

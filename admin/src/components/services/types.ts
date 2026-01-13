@@ -22,6 +22,7 @@ export interface Provider {
 
 export interface ApiKey {
   id: number
+  key_hash?: string
   name: string
   scope: string
   service_ids?: string[] | null
