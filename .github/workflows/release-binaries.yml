@@ -14,10 +14,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - target: aarch64-apple-darwin
-            os: macos-13
-          - target: x86_64-apple-darwin
-            os: macos-13
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-22.04
 
@@ -74,48 +70,6 @@ jobs:
       - name: Display artifacts
         run: ls -R dist
 
-      - name: Extract shasums
-        id: shas
-        run: |
-          ARM64_SHA=$(cat dist/llm-link-aarch64-apple-darwin/llm-link-*.tar.gz.sha256 | awk '{print $1}')
-          INTEL_SHA=$(cat dist/llm-link-x86_64-apple-darwin/llm-link-*.tar.gz.sha256 | awk '{print $1}')
-          LINUX_SHA=$(cat dist/llm-link-x86_64-unknown-linux-gnu/llm-link-*.tar.gz.sha256 | awk '{print $1}')
-          echo "arm64_sha=$ARM64_SHA" >> $GITHUB_OUTPUT
-          echo "intel_sha=$INTEL_SHA" >> $GITHUB_OUTPUT
-          echo "linux_sha=$LINUX_SHA" >> $GITHUB_OUTPUT
-
-      - name: Checkout Homebrew tap
-        uses: actions/checkout@v4
-        with:
-          repository: lipish/homebrew-llm-link
-          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          path: tap-repo
-
-      - name: Update Homebrew formula
-        env:
-          ARM64_SHA: ${{ steps.shas.outputs.arm64_sha }}
-          INTEL_SHA: ${{ steps.shas.outputs.intel_sha }}
-          LINUX_SHA: ${{ steps.shas.outputs.linux_sha }}
-        run: |
-          FORMULA_PATH=tap-repo/Formula/llm-link.rb
-          chmod +x scripts/update-homebrew-formula.sh
-          ./scripts/update-homebrew-formula.sh "${GITHUB_REF_NAME#v}" "$FORMULA_PATH" "$ARM64_SHA" "$INTEL_SHA" "$LINUX_SHA"
-
-      - name: Commit & push tap update
-        env:
-          VERSION: ${GITHUB_REF_NAME#v}
-        run: |
-          cd tap-repo
-          if git status --porcelain | grep .; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add Formula/llm-link.rb
-            git commit -m "llm-link ${VERSION}"
-            git push origin HEAD:main
-          else
-            echo "No changes to tap repo"
-          fi
-
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
@@ -124,34 +78,3 @@ jobs:
             dist/**/llm-link-*.tar.gz.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-pypi:
-    needs: publish-release
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: read
-    env:
-      PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Build wheel
-        working-directory: python
-        run: |
-          python -m pip install --upgrade pip build
-          python -m build
-
-      - name: Upload to PyPI
-        working-directory: python
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ env.PYPI_API_TOKEN }}
-        run: |
-          python -m pip install --upgrade twine
-          python -m twine upload --non-interactive dist/*
