@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { apiGet } from "@/lib/api"
 import { PageHeader } from "@/components/layout/page-header"
 import { t } from "@/lib/i18n"
@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select } from "@/components/ui/select"
-import { Search, Download, Clock, Server } from "lucide-react"
+import { Search, Download, Clock, Server, Pause, Play } from "lucide-react"
 
 interface RequestLog {
   id: number
   created_at: string
+  service_id: string | null
   provider_id: number | null
   provider_name: string
   model: string
@@ -27,37 +28,94 @@ interface RequestLog {
 export function LogsPage() {
   const [logs, setLogs] = useState<RequestLog[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [selectedLog, setSelectedLog] = useState<RequestLog | null>(null)
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
+  const refreshTimerRef = useRef<number | null>(null)
+  const fetchInFlightRef = useRef(false)
+  const mountedRef = useRef(false)
 
   useEffect(() => {
-    fetchLogs()
+    mountedRef.current = true
+    fetchLogs({ initial: true })
+
+    return () => {
+      mountedRef.current = false
+      if (refreshTimerRef.current) {
+        window.clearInterval(refreshTimerRef.current)
+        refreshTimerRef.current = null
+      }
+    }
   }, [])
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async ({ initial }: { initial: boolean }) => {
+    if (fetchInFlightRef.current) return
+    fetchInFlightRef.current = true
     try {
-      setLoading(true)
+      if (initial) {
+        setLoading(true)
+      } else {
+        setRefreshing(true)
+      }
       const data = await apiGet('/api/logs?limit=100') as any
       if (data.success) {
         const logsData = data.data || []
         setLogs(logsData)
-        // Default select the first log
-        if (logsData.length > 0 && !selectedLog) {
-          setSelectedLog(logsData[0])
-        }
+        setSelectedLog((prev) => {
+          if (logsData.length === 0) return null
+          if (!prev) return logsData[0]
+          return logsData.find((l: RequestLog) => l.id === prev.id) || logsData[0]
+        })
       }
     } catch (err) {
       console.error('Failed to fetch logs:', err)
-      setLogs([])
+      if (initial) {
+        setLogs([])
+      }
     } finally {
-      setLoading(false)
+      if (!mountedRef.current) return
+      if (initial) {
+        setLoading(false)
+      } else {
+        setRefreshing(false)
+      }
+      fetchInFlightRef.current = false
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (!autoRefreshEnabled) {
+      if (refreshTimerRef.current) {
+        window.clearInterval(refreshTimerRef.current)
+        refreshTimerRef.current = null
+      }
+      return
+    }
+
+    if (refreshTimerRef.current) {
+      window.clearInterval(refreshTimerRef.current)
+      refreshTimerRef.current = null
+    }
+
+    refreshTimerRef.current = window.setInterval(() => {
+      fetchLogs({ initial: false })
+    }, 3000)
+
+    return () => {
+      if (refreshTimerRef.current) {
+        window.clearInterval(refreshTimerRef.current)
+        refreshTimerRef.current = null
+      }
+    }
+  }, [autoRefreshEnabled, fetchLogs])
 
   const filteredLogs = logs.filter(log => {
-    const matchesSearch = log.provider_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.model.toLowerCase().includes(searchQuery.toLowerCase())
+    const q = searchQuery.toLowerCase()
+    const matchesSearch = log.provider_name.toLowerCase().includes(q) ||
+      log.model.toLowerCase().includes(q) ||
+      (log.service_id || "").toLowerCase().includes(q)
     const matchesStatus = statusFilter === "all" || log.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -91,6 +149,27 @@ export function LogsPage() {
       <PageHeader
         title={t('logs.title')}
         subtitle={t('logs.description')}
+        onRefresh={() => fetchLogs({ initial: false })}
+        loading={refreshing}
+        action={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAutoRefreshEnabled((v) => !v)}
+          >
+            {autoRefreshEnabled ? (
+              <>
+                <Pause className="mr-2 h-4 w-4" />
+                {t('logs.stopAutoRefresh')}
+              </>
+            ) : (
+              <>
+                <Play className="mr-2 h-4 w-4" />
+                {t('logs.autoRefresh')}
+              </>
+            )}
+          </Button>
+        }
       />
       <div className="flex-1 max-w-[1400px] mx-auto w-full overflow-hidden">
         <div className="flex items-center gap-2 mb-4">
@@ -128,6 +207,7 @@ export function LogsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="pl-6">{t('logs.timestamp')}</TableHead>
+                      <TableHead>{t('logs.service')}</TableHead>
                       <TableHead>{t('logs.provider')}</TableHead>
                       <TableHead>{t('logs.model')}</TableHead>
                       <TableHead>{t('logs.status')}</TableHead>
@@ -143,8 +223,19 @@ export function LogsPage() {
                         onClick={() => setSelectedLog(log)}
                       >
                         <TableCell className="text-sm whitespace-nowrap pl-6">{new Date(log.created_at).toLocaleString()}</TableCell>
+                        <TableCell>{log.service_id || '-'}</TableCell>
                         <TableCell>{log.provider_name}</TableCell>
-                        <TableCell><Badge variant="outline">{log.model}</Badge></TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">{log.model}</Badge>
+                            {log.request_type === 'health_check' && (
+                              <Badge variant="secondary">{t('logs.healthCheck')}</Badge>
+                            )}
+                            {log.request_type === 'provider_disabled' && (
+                              <Badge variant="destructive">{t('logs.providerDisabled')}</Badge>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>{getStatusBadge(log.status)}</TableCell>
                         <TableCell>{log.latency_ms} ms</TableCell>
                         <TableCell>{log.tokens_used}</TableCell>
@@ -171,7 +262,15 @@ export function LogsPage() {
                       </div>
                       <div>
                         <h4 className="font-semibold">{selectedLog.provider_name}</h4>
-                        <Badge variant="outline">{selectedLog.model}</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">{selectedLog.model}</Badge>
+                          {selectedLog.request_type === 'health_check' && (
+                            <Badge variant="secondary">{t('logs.healthCheck')}</Badge>
+                          )}
+                          {selectedLog.request_type === 'provider_disabled' && (
+                            <Badge variant="destructive">{t('logs.providerDisabled')}</Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2">

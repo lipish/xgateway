@@ -312,6 +312,7 @@ pub struct ConversationListItem {
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct RequestLog {
     pub id: i64,
+    pub service_id: Option<String>,
     pub provider_id: Option<i64>,
     pub provider_name: String,
     pub model: String,
@@ -328,6 +329,7 @@ pub struct RequestLog {
 /// New request log
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewRequestLog {
+    pub service_id: Option<String>,
     pub provider_id: Option<i64>,
     pub provider_name: String,
     pub model: String,

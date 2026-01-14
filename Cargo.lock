@@ -1148,7 +1148,7 @@ dependencies = [
 
 [[package]]
 name = "llm-link"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "anyhow",
  "axum",

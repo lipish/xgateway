@@ -1,4 +1,6 @@
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -12,6 +14,9 @@ import {
 import {
   Search,
   Server,
+  MoreVertical,
+  Pencil,
+  Trash2,
 } from "lucide-react"
 import { t } from "@/lib/i18n"
 import type { Provider } from "./types"
@@ -24,6 +29,9 @@ interface ProviderListProps {
   onSelectProvider: (provider: Provider) => void
   onToggleProvider: (id: number, nextEnabled: boolean) => void
   togglingProviderIds: number[]
+  onEdit: (provider: Provider) => void
+  onDelete: (id: number) => void
+  isAdmin?: boolean
 }
 
 export function ProviderList({
@@ -34,6 +42,9 @@ export function ProviderList({
   onSelectProvider,
   onToggleProvider,
   togglingProviderIds,
+  onEdit,
+  onDelete,
+  isAdmin = true,
 }: ProviderListProps) {
   return (
     <div className="bg-card rounded-xl border p-6 flex flex-col w-[65%]">
@@ -73,6 +84,7 @@ export function ProviderList({
                 <TableHead className="text-center w-[80px]">
                   {t("providers.enableDisable")}
                 </TableHead>
+                {isAdmin && <TableHead className="text-center w-[64px]"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -108,6 +120,41 @@ export function ProviderList({
                       />
                     </div>
                   </TableCell>
+                  {isAdmin && (
+                    <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu modal={false}>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            aria-label={t("common.actions") || "Actions"}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              onEdit(provider)
+                            }}
+                          >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            {t("common.edit")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              onDelete(provider.id)
+                            }}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            {t("common.delete")}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>

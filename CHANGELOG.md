@@ -13,6 +13,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 移除 Homebrew tap 自动更新与 PyPI 发布。
 - 停用 docs-site 的 GitHub Pages 自动部署。
 
+## [0.12.3] - 2026-01-14
+
+### 🧪 Testing
+
+- 新增整体冒烟测试脚本：支持按 service_id + API Key 随机调用 2-6 次，并支持多样化 prompt。
+
+### 📈 Observability
+
+- request_logs 增加 service_id 字段，所有请求（包含网关早退失败）均落日志并带上 service_id（如可获取）。
+- 管理台日志页支持展示/搜索对外服务（service_id），并补充相关多语言文案。
+
+### 🩺 Health Check
+
+- 健康检查失败会写入 request_logs（request_type=health_check），并修正 model 字段为真实 endpoint。
+- 当检测到余额不足（1008）或健康状态达到 Unhealthy（默认 3 次失败）时，自动禁用对应模型服务并写入 provider_disabled 事件日志。
+
 ## [0.12.2] - 2026-01-13
 
 ### 🐛 Fixed

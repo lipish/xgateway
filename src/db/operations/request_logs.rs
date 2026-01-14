@@ -46,18 +46,27 @@ impl DatabasePool {
             Self::Postgres(pool) => {
                 let row = sqlx::query(
                     r#"
-                    INSERT INTO request_logs (provider_id, provider_name, model, status, latency_ms, tokens_used, error_message, request_type, request_content, response_content)
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                       RETURNING id::BIGINT as id, provider_id::BIGINT as provider_id, provider_name, model, status,
+                    INSERT INTO request_logs (service_id, provider_id, provider_name, model, status, latency_ms, tokens_used, error_message, request_type, request_content, response_content)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                       RETURNING id::BIGINT as id, service_id, provider_id::BIGINT as provider_id, provider_name, model, status,
                                  latency_ms::BIGINT as latency_ms, tokens_used::BIGINT as tokens_used,
                                  error_message, request_type, request_content, response_content, created_at"#
                 )
-                .bind(log.provider_id).bind(&log.provider_name).bind(&log.model).bind(&log.status)
-                .bind(log.latency_ms).bind(log.tokens_used).bind(&log.error_message).bind(&log.request_type)
-                .bind(&log.request_content).bind(&log.response_content)
+                .bind(&log.service_id)
+                .bind(log.provider_id)
+                .bind(&log.provider_name)
+                .bind(&log.model)
+                .bind(&log.status)
+                .bind(log.latency_ms)
+                .bind(log.tokens_used)
+                .bind(&log.error_message)
+                .bind(&log.request_type)
+                .bind(&log.request_content)
+                .bind(&log.response_content)
                 .fetch_one(pool).await?;
                 Ok(RequestLog {
                     id: row.try_get("id")?,
+                    service_id: row.try_get("service_id")?,
                     provider_id: row.try_get("provider_id")?,
                     provider_name: row.try_get("provider_name")?,
                     model: row.try_get("model")?,
@@ -79,14 +88,14 @@ impl DatabasePool {
             Self::Postgres(pool) => {
                 if let Some(status) = status_filter {
                     Ok(sqlx::query_as::<_, RequestLog>(
-                        r#"SELECT id::BIGINT as id, provider_id::BIGINT as provider_id, provider_name, model, status,
+                        r#"SELECT id::BIGINT as id, service_id, provider_id::BIGINT as provider_id, provider_name, model, status,
                            latency_ms::BIGINT as latency_ms, tokens_used::BIGINT as tokens_used,
                            error_message, request_type, request_content, response_content, created_at
                            FROM request_logs WHERE status = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3"#
                     ).bind(status).bind(limit).bind(offset).fetch_all(pool).await?)
                 } else {
                     Ok(sqlx::query_as::<_, RequestLog>(
-                        r#"SELECT id::BIGINT as id, provider_id::BIGINT as provider_id, provider_name, model, status,
+                        r#"SELECT id::BIGINT as id, service_id, provider_id::BIGINT as provider_id, provider_name, model, status,
                            latency_ms::BIGINT as latency_ms, tokens_used::BIGINT as tokens_used,
                            error_message, request_type, request_content, response_content, created_at
                            FROM request_logs ORDER BY created_at DESC LIMIT $1 OFFSET $2"#
@@ -101,7 +110,7 @@ impl DatabasePool {
         match self {
             Self::Postgres(pool) => {
                 Ok(sqlx::query_as::<_, RequestLog>(
-                    r#"SELECT id::BIGINT as id, provider_id::BIGINT as provider_id, provider_name, model, status,
+                    r#"SELECT id::BIGINT as id, service_id, provider_id::BIGINT as provider_id, provider_name, model, status,
                        latency_ms::BIGINT as latency_ms, tokens_used::BIGINT as tokens_used,
                        error_message, request_type, request_content, response_content, created_at
                        FROM request_logs WHERE id = $1"#

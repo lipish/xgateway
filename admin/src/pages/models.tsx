@@ -512,18 +512,18 @@ export function ProvidersPage() {
                   onSelectProvider={setSelectedProvider}
                   onToggleProvider={setProviderEnabled}
                   togglingProviderIds={togglingProviderIds}
+                  onEdit={openEditDialog}
+                  onDelete={deleteProvider}
+                  isAdmin={isAdmin}
                 />
 
                 <ProviderDetail
                   provider={selectedProvider}
                   providerTypeConfig={selectedProvider ? getProviderTypeConfig(selectedProvider.provider_type) : undefined}
-                  onEdit={openEditDialog}
-                  onDelete={deleteProvider}
                   onTest={testProvider}
                   onNavigateToChat={(id) => navigate(`/chat?provider=${id}`)}
                   testingId={testingId}
                   testResult={testResult}
-                  isAdmin={isAdmin}
                 />
               </div>
             )}

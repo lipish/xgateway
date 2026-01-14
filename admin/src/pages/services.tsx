@@ -387,6 +387,11 @@ export function ServicesPage() {
       setSaving(true)
       setError(null)
 
+      if (!createForm.bound_provider_ids || createForm.bound_provider_ids.length === 0) {
+        setError(t("services.bindingsRequired"))
+        return
+      }
+
       const qpsLimit = Number(createForm.qps_limit)
       const concurrencyLimit = Number(createForm.concurrency_limit)
       const maxQueueSize = Number(createForm.max_queue_size)
@@ -411,6 +416,7 @@ export function ServicesPage() {
         enabled: createForm.enabled,
         strategy: createForm.strategy,
         fallback_chain: createForm.fallback_chain || null,
+        bound_provider_ids: createForm.bound_provider_ids,
         qps_limit: qpsLimit,
         concurrency_limit: Math.floor(concurrencyLimit),
         max_queue_size: Math.floor(maxQueueSize),
@@ -433,24 +439,6 @@ export function ServicesPage() {
       if (!createdId) {
         setError(t("common.saveFailed"))
         return
-      }
-
-      if (createForm.bound_provider_ids.length > 0) {
-        const results = await Promise.all(
-          createForm.bound_provider_ids.map(async (providerId) => {
-            const r = await fetch(`/api/services/${createdId}/model-services`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ provider_id: providerId }),
-            })
-            const d = await r.json()
-            return { ok: Boolean(d?.success), message: d?.message as string | undefined }
-          })
-        )
-        const failed = results.find((x) => !x.ok)
-        if (failed) {
-          setError(failed.message || t("common.saveFailed"))
-        }
       }
 
       setShowCreateDialog(false)

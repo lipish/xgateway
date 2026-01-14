@@ -12,6 +12,7 @@ pub struct CreateServiceRequest {
     pub enabled: Option<bool>,
     pub strategy: Option<String>,
     pub fallback_chain: Option<String>,
+    pub bound_provider_ids: Option<Vec<i64>>,
     pub qps_limit: Option<f64>,
     pub concurrency_limit: Option<i32>,
     pub max_queue_size: Option<i32>,
@@ -92,6 +93,22 @@ pub async fn create_service_api(
         });
     }
 
+    let bound_provider_ids = req
+        .bound_provider_ids
+        .as_deref()
+        .unwrap_or(&[])
+        .iter()
+        .copied()
+        .collect::<Vec<i64>>();
+
+    if bound_provider_ids.is_empty() {
+        return Json(ApiResponse {
+            success: false,
+            data: None,
+            message: "bound_provider_ids is required".to_string(),
+        });
+    }
+
     let enabled = req.enabled.unwrap_or(true);
     let strategy = req.strategy.unwrap_or_else(|| "Priority".to_string());
 
@@ -139,6 +156,16 @@ pub async fn create_service_api(
             .await
         {
             Ok(true) => {
+                for provider_id in &bound_provider_ids {
+                    if let Err(e) = db_pool.bind_service_provider(&id_to_use, *provider_id).await {
+                        let _ = db_pool.delete_service(&id_to_use).await;
+                        return Json(ApiResponse {
+                            success: false,
+                            data: None,
+                            message: format!("Failed to bind model service: {}", e),
+                        });
+                    }
+                }
                 return match db_pool.get_service(&id_to_use).await {
                     Ok(Some(service)) => Json(ApiResponse {
                         success: true,

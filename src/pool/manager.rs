@@ -273,23 +273,87 @@ impl PoolManager {
                     tracing::debug!("Provider {} healthy ({}ms)", provider.name, latency_ms);
                 }
                 Err(e) => {
-                    self.pool.record_failure(provider.id, Some(&e.to_string())).await;
-                    tracing::warn!("Provider {} unhealthy: {}", provider.name, e);
+                    let err_str = e.to_string();
+                    self.pool.record_failure(provider.id, Some(&err_str)).await;
+                    let status = self.pool.health_checker().get_status(provider.id).await;
+                    tracing::warn!(
+                        "Provider {} health check failed: {}, status={:?}",
+                        provider.name,
+                        err_str,
+                        status
+                    );
                     
                     // Record health check failure to request logs
+                    let model_for_log = provider
+                        .endpoint
+                        .clone()
+                        .unwrap_or_else(|| "unknown".to_string());
                     let error_log = crate::db::NewRequestLog {
+                        service_id: None,
                         provider_id: Some(provider.id),
                         provider_name: provider.name.clone(),
-                        model: "health_check".to_string(),
+                        model: model_for_log.clone(),
                         status: "error".to_string(),
                         latency_ms: 0,
                         tokens_used: 0,
-                        error_message: Some(format!("Health check failed: {}", e)),
+                        error_message: Some(format!("Health check failed: {}", err_str)),
                         request_type: "health_check".to_string(),
                         request_content: None,
                         response_content: None,
                     };
                     let _ = self.db_pool.create_request_log(error_log).await;
+
+                    let should_disable_immediately = err_str.contains("insufficient balance")
+                        || err_str.contains("(1008)")
+                        || err_str.contains("1008");
+
+                    let status = self.pool.health_checker().get_status(provider.id).await;
+                    let should_disable_by_threshold = status == HealthStatus::Unhealthy;
+
+                    if should_disable_immediately || should_disable_by_threshold {
+                        let reason = if should_disable_immediately {
+                            "insufficient_balance_1008"
+                        } else {
+                            "health_check_unhealthy_threshold"
+                        };
+
+                        if let Err(e) = self.db_pool.set_provider_enabled(provider.id, false).await {
+                            tracing::error!(
+                                "Failed to auto-disable provider {} ({}): {}",
+                                provider.name,
+                                provider.id,
+                                e
+                            );
+                        } else {
+                            tracing::warn!(
+                                "Auto-disabled provider {} ({}), reason={}",
+                                provider.name,
+                                provider.id,
+                                reason
+                            );
+                        }
+
+                        let disabled_log = crate::db::NewRequestLog {
+                            service_id: None,
+                            provider_id: Some(provider.id),
+                            provider_name: provider.name.clone(),
+                            model: model_for_log,
+                            status: "error".to_string(),
+                            latency_ms: 0,
+                            tokens_used: 0,
+                            error_message: Some(format!(
+                                "Provider auto-disabled: reason={}, last_error={}",
+                                reason, err_str
+                            )),
+                            request_type: "provider_disabled".to_string(),
+                            request_content: None,
+                            response_content: None,
+                        };
+                        let _ = self.db_pool.create_request_log(disabled_log).await;
+
+                        // Stop scheduling/health-checking this provider in the running pool.
+                        self.pool.remove_provider(provider.id).await;
+                    }
                 }
             }
         }

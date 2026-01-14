@@ -4,6 +4,7 @@ use crate::adapter::{send_to_provider, RequestResult};
 use crate::pool::LoadBalanceStrategy;
 use crate::pool::RateLimitResult;
 use super::types::ProxyState;
+use crate::db::NewRequestLog;
 
 fn parse_fallback_chain(chain: Option<&str>) -> Vec<String> {
     chain
@@ -15,6 +16,30 @@ fn parse_fallback_chain(chain: Option<&str>) -> Vec<String> {
         .collect()
 }
 
+async fn write_gateway_log(
+    db_pool: &crate::db::DatabasePool,
+    service_id: Option<String>,
+    requested_model: String,
+    request_content: Option<String>,
+    status: &str,
+    error_message: Option<String>,
+) {
+    let log = NewRequestLog {
+        service_id,
+        provider_id: None,
+        provider_name: "gateway".to_string(),
+        model: requested_model,
+        status: status.to_string(),
+        latency_ms: 0,
+        tokens_used: 0,
+        error_message,
+        request_type: "chat".to_string(),
+        request_content,
+        response_content: None,
+    };
+    let _ = db_pool.create_request_log(log).await;
+}
+
 pub async fn handle_chat_completions(
     axum::extract::State(state): axum::extract::State<ProxyState>,
     headers: axum::http::HeaderMap,
@@ -22,6 +47,36 @@ pub async fn handle_chat_completions(
 ) -> axum::response::Response {
     let db_pool = &state.db_pool;
     let pool_manager = &state.pool_manager;
+
+    let request_content = request
+        .get("messages")
+        .and_then(|m| m.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|m| {
+                    let role = m.get("role").and_then(|r| r.as_str()).unwrap_or("unknown");
+                    let content = m.get("content").and_then(|c| c.as_str()).unwrap_or("");
+                    if content.is_empty() {
+                        None
+                    } else {
+                        Some(format!("[{}]: {}", role, content))
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n\n")
+        })
+        .filter(|s| !s.is_empty());
+
+    let requested_service_id_for_log = request
+        .get("service_id")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
+    let requested_model_for_log = request
+        .get("model")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown")
+        .to_string();
 
     // 1. Extract and Validate API Key
     let api_key = headers.get(axum::http::header::AUTHORIZATION)
@@ -32,6 +87,14 @@ pub async fn handle_chat_completions(
         match db_pool.get_api_key_by_hash(key).await {
             Ok(Some(info)) => Some(info),
             _ => {
+                write_gateway_log(
+                    db_pool,
+                    requested_service_id_for_log.clone(),
+                    requested_model_for_log.clone(),
+                    request_content.clone(),
+                    "error",
+                    Some("invalid_api_key".to_string()),
+                ).await;
                 return (
                     StatusCode::UNAUTHORIZED,
                     axum::Json(serde_json::json!({
@@ -72,6 +135,14 @@ pub async fn handle_chat_completions(
                         if service_ids.len() == 1 {
                             service_ids[0].clone()
                         } else if service_ids.is_empty() {
+                            write_gateway_log(
+                                db_pool,
+                                None,
+                                requested_model_for_log.clone(),
+                                request_content.clone(),
+                                "error",
+                                Some("missing_service_id".to_string()),
+                            ).await;
                             return (
                                 StatusCode::BAD_REQUEST,
                                 axum::Json(serde_json::json!({
@@ -83,6 +154,14 @@ pub async fn handle_chat_completions(
                                 }))
                             ).into_response();
                         } else {
+                            write_gateway_log(
+                                db_pool,
+                                None,
+                                requested_model_for_log.clone(),
+                                request_content.clone(),
+                                "error",
+                                Some("missing_service_id".to_string()),
+                            ).await;
                             return (
                                 StatusCode::BAD_REQUEST,
                                 axum::Json(serde_json::json!({
@@ -96,6 +175,14 @@ pub async fn handle_chat_completions(
                         }
                     }
                     Err(e) => {
+                        write_gateway_log(
+                            db_pool,
+                            None,
+                            requested_model_for_log.clone(),
+                            request_content.clone(),
+                            "error",
+                            Some(format!("Failed to infer service_id: {}", e)),
+                        ).await;
                         return (
                             StatusCode::INTERNAL_SERVER_ERROR,
                             axum::Json(serde_json::json!({
@@ -108,6 +195,14 @@ pub async fn handle_chat_completions(
                     }
                 }
             } else {
+                write_gateway_log(
+                    db_pool,
+                    None,
+                    requested_model_for_log.clone(),
+                    request_content.clone(),
+                    "error",
+                    Some("missing_service_id".to_string()),
+                ).await;
                 return (
                     StatusCode::BAD_REQUEST,
                     axum::Json(serde_json::json!({
@@ -126,6 +221,14 @@ pub async fn handle_chat_completions(
         match db_pool.api_key_has_service_access(key_info, &service_id).await {
             Ok(true) => {}
             Ok(false) => {
+                write_gateway_log(
+                    db_pool,
+                    Some(service_id.clone()),
+                    requested_model_for_log.clone(),
+                    request_content.clone(),
+                    "error",
+                    Some("service_access_denied".to_string()),
+                ).await;
                 return (
                     StatusCode::FORBIDDEN,
                     axum::Json(serde_json::json!({
@@ -138,6 +241,14 @@ pub async fn handle_chat_completions(
                     .into_response();
             }
             Err(e) => {
+                write_gateway_log(
+                    db_pool,
+                    Some(service_id.clone()),
+                    requested_model_for_log.clone(),
+                    request_content.clone(),
+                    "error",
+                    Some(format!("Failed to check service access: {}", e)),
+                ).await;
                 return (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     axum::Json(serde_json::json!({
@@ -183,25 +294,6 @@ pub async fn handle_chat_completions(
         obj.remove("service_id");
     }
 
-    let request_content = req_body
-        .get("messages")
-        .and_then(|m| m.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|m| {
-                    let role = m.get("role").and_then(|r| r.as_str()).unwrap_or("unknown");
-                    let content = m.get("content").and_then(|c| c.as_str()).unwrap_or("");
-                    if content.is_empty() {
-                        None
-                    } else {
-                        Some(format!("[{}]: {}", role, content))
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join("\n\n")
-        })
-        .filter(|s| !s.is_empty());
-
     let mut services_to_try = vec![service_id.clone()];
     let mut last_error: Option<(StatusCode, serde_json::Value)> = None;
     let mut visited: std::collections::HashSet<String> = std::collections::HashSet::new();
@@ -235,11 +327,19 @@ pub async fn handle_chat_completions(
         let service = match db_pool.get_service(&current_service_id).await {
             Ok(Some(s)) => s,
             Ok(None) => {
+                write_gateway_log(
+                    db_pool,
+                    Some(current_service_id.clone()),
+                    requested_model_for_log.clone(),
+                    request_content.clone(),
+                    "error",
+                    Some("service_not_found".to_string()),
+                ).await;
                 last_error = Some((
                     StatusCode::NOT_FOUND,
                     serde_json::json!({
                         "error": {
-                            "message": format!("Service with id {} not found", current_service_id),
+                            "message": format!("Service {} not found", current_service_id),
                             "type": "service_not_found"
                         }
                     }),
@@ -247,6 +347,14 @@ pub async fn handle_chat_completions(
                 continue;
             }
             Err(e) => {
+                write_gateway_log(
+                    db_pool,
+                    Some(current_service_id.clone()),
+                    requested_model_for_log.clone(),
+                    request_content.clone(),
+                    "error",
+                    Some(format!("Failed to get service: {}", e)),
+                ).await;
                 last_error = Some((
                     StatusCode::INTERNAL_SERVER_ERROR,
                     serde_json::json!({
@@ -261,8 +369,16 @@ pub async fn handle_chat_completions(
         };
 
         if !service.enabled {
+            write_gateway_log(
+                db_pool,
+                Some(current_service_id.clone()),
+                requested_model_for_log.clone(),
+                request_content.clone(),
+                "error",
+                Some("service_disabled".to_string()),
+            ).await;
             last_error = Some((
-                StatusCode::FORBIDDEN,
+                StatusCode::NOT_FOUND,
                 serde_json::json!({
                     "error": {
                         "message": format!("Service {} is disabled", current_service_id),
@@ -276,6 +392,14 @@ pub async fn handle_chat_completions(
         // Service hard limits (QPS + bounded queue + concurrency)
         let _service_concurrency_permit = match pool_manager.check_service_limit(&service).await {
             RateLimitResult::Denied { .. } => {
+                write_gateway_log(
+                    db_pool,
+                    Some(current_service_id.clone()),
+                    requested_model_for_log.clone(),
+                    request_content.clone(),
+                    "error",
+                    Some("service_rate_limit_exceeded".to_string()),
+                ).await;
                 last_error = Some((
                     StatusCode::SERVICE_UNAVAILABLE,
                     serde_json::json!({
@@ -288,6 +412,14 @@ pub async fn handle_chat_completions(
                 continue;
             }
             RateLimitResult::ConcurrencyExceeded | RateLimitResult::QueueFull | RateLimitResult::WaitTimeout => {
+                write_gateway_log(
+                    db_pool,
+                    Some(current_service_id.clone()),
+                    requested_model_for_log.clone(),
+                    request_content.clone(),
+                    "error",
+                    Some("service_overloaded".to_string()),
+                ).await;
                 last_error = Some((
                     StatusCode::SERVICE_UNAVAILABLE,
                     serde_json::json!({
@@ -305,11 +437,19 @@ pub async fn handle_chat_completions(
         let providers = match db_pool.list_service_providers(&current_service_id).await {
             Ok(p) => p,
             Err(e) => {
+                write_gateway_log(
+                    db_pool,
+                    Some(current_service_id.clone()),
+                    requested_model_for_log.clone(),
+                    request_content.clone(),
+                    "error",
+                    Some(format!("Failed to get providers for service: {}", e)),
+                ).await;
                 last_error = Some((
                     StatusCode::INTERNAL_SERVER_ERROR,
                     serde_json::json!({
                         "error": {
-                            "message": format!("Failed to get service providers: {}", e),
+                            "message": format!("Failed to get providers for service: {}", e),
                             "type": "server_error"
                         }
                     }),
@@ -377,6 +517,7 @@ pub async fn handle_chat_completions(
         };
 
         match send_to_provider(
+            Some(&current_service_id),
             provider,
             &req_body,
             is_stream,
@@ -395,6 +536,7 @@ pub async fn handle_chat_completions(
                 if let Some(fid) = fallback_id {
                     if let Some(fallback_provider) = providers.iter().find(|p| p.id == fid) {
                         match send_to_provider(
+                            Some(&current_service_id),
                             fallback_provider,
                             &req_body,
                             is_stream,
