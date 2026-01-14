@@ -60,6 +60,9 @@ impl<S: Stream + Unpin> Stream for LoggingStream<S> {
 
                 let log = NewRequestLog {
                     service_id: self.service_id.clone(),
+                    api_key_id: None,
+                    project_id: None,
+                    org_id: None,
                     provider_id: Some(self.provider_id),
                     provider_name: self.provider_name.clone(),
                     model: self.model.clone(),

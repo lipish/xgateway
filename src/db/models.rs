@@ -3,6 +3,25 @@ use sqlx::FromRow;
 use chrono::{DateTime, Utc};
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct Organization {
+    pub id: i64,
+    pub name: String,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct Project {
+    pub id: i64,
+    pub org_id: i64,
+    pub name: String,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Provider {
     pub id: i64,
     pub name: String,
@@ -25,6 +44,7 @@ pub struct Provider {
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Service {
     pub id: String,
+    pub project_id: i64,
     pub name: String,
     pub enabled: bool,
     pub strategy: String,
@@ -313,6 +333,9 @@ pub struct ConversationListItem {
 pub struct RequestLog {
     pub id: i64,
     pub service_id: Option<String>,
+    pub api_key_id: Option<i64>,
+    pub project_id: Option<i64>,
+    pub org_id: Option<i64>,
     pub provider_id: Option<i64>,
     pub provider_name: String,
     pub model: String,
@@ -330,6 +353,9 @@ pub struct RequestLog {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewRequestLog {
     pub service_id: Option<String>,
+    pub api_key_id: Option<i64>,
+    pub project_id: Option<i64>,
+    pub org_id: Option<i64>,
     pub provider_id: Option<i64>,
     pub provider_name: String,
     pub model: String,
@@ -398,6 +424,7 @@ pub struct NewUserInstance {
 pub struct ApiKey {
     pub id: i64,
     pub owner_id: Option<i64>,
+    pub project_id: i64,
     pub key_hash: String,
     pub name: String,
     pub scope: String,
@@ -416,6 +443,7 @@ pub struct ApiKey {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewApiKey {
     pub owner_id: Option<i64>,
+    pub project_id: i64,
     pub key_hash: String,
     pub name: String,
     pub scope: String, // "global" or "instance"

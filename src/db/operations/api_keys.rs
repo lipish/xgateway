@@ -11,9 +11,10 @@ impl DatabasePool {
         match self {
             Self::Postgres(pool) => {
                 let row = sqlx::query(
-                    "INSERT INTO api_keys (owner_id, key_hash, name, scope, provider_id, provider_ids, qps_limit, concurrency_limit, expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id"
+                    "INSERT INTO api_keys (owner_id, project_id, key_hash, name, scope, provider_id, provider_ids, qps_limit, concurrency_limit, expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id"
                 )
                 .bind(api_key.owner_id)
+                .bind(api_key.project_id)
                 .bind(&api_key.key_hash)
                 .bind(&api_key.name)
                 .bind(&api_key.scope)
@@ -30,7 +31,7 @@ impl DatabasePool {
     }
 
     pub async fn get_api_key_by_hash(&self, key_hash: &str) -> Result<Option<ApiKey>> {
-        let pg_query = "SELECT id, owner_id, key_hash, name, scope, provider_id::BIGINT as provider_id, provider_ids, qps_limit, concurrency_limit, status, (expires_at AT TIME ZONE 'UTC') as expires_at, (created_at AT TIME ZONE 'UTC') as created_at, (updated_at AT TIME ZONE 'UTC') as updated_at FROM api_keys WHERE key_hash = $1 AND status = 'active'";
+        let pg_query = "SELECT id, owner_id, project_id::BIGINT as project_id, key_hash, name, scope, provider_id::BIGINT as provider_id, provider_ids, qps_limit, concurrency_limit, status, (expires_at AT TIME ZONE 'UTC') as expires_at, (created_at AT TIME ZONE 'UTC') as created_at, (updated_at AT TIME ZONE 'UTC') as updated_at FROM api_keys WHERE key_hash = $1 AND status = 'active'";
 
         match self {
             Self::Postgres(pool) => {
@@ -43,14 +44,54 @@ impl DatabasePool {
     }
 
     pub async fn list_api_keys(&self) -> Result<Vec<ApiKey>> {
-        let query = "SELECT id, owner_id, key_hash, name, scope, provider_id::BIGINT as provider_id, provider_ids, qps_limit, concurrency_limit, status, (expires_at AT TIME ZONE 'UTC') as expires_at, (created_at AT TIME ZONE 'UTC') as created_at, (updated_at AT TIME ZONE 'UTC') as updated_at FROM api_keys ORDER BY created_at DESC";
+        let query = "SELECT id, owner_id, project_id::BIGINT as project_id, key_hash, name, scope, provider_id::BIGINT as provider_id, provider_ids, qps_limit, concurrency_limit, status, (expires_at AT TIME ZONE 'UTC') as expires_at, (created_at AT TIME ZONE 'UTC') as created_at, (updated_at AT TIME ZONE 'UTC') as updated_at FROM api_keys ORDER BY created_at DESC";
         match self {
             Self::Postgres(pool) => Ok(sqlx::query_as::<_, ApiKey>(query).fetch_all(pool).await?),
         }
     }
 
+    pub async fn list_api_keys_filtered(
+        &self,
+        project_id: Option<i64>,
+        org_id: Option<i64>,
+    ) -> Result<Vec<ApiKey>> {
+        let query_all = "SELECT id, owner_id, project_id::BIGINT as project_id, key_hash, name, scope, provider_id::BIGINT as provider_id, provider_ids, qps_limit, concurrency_limit, status, (expires_at AT TIME ZONE 'UTC') as expires_at, (created_at AT TIME ZONE 'UTC') as created_at, (updated_at AT TIME ZONE 'UTC') as updated_at FROM api_keys ORDER BY created_at DESC";
+
+        let query_by_project = "SELECT id, owner_id, project_id::BIGINT as project_id, key_hash, name, scope, provider_id::BIGINT as provider_id, provider_ids, qps_limit, concurrency_limit, status, (expires_at AT TIME ZONE 'UTC') as expires_at, (created_at AT TIME ZONE 'UTC') as created_at, (updated_at AT TIME ZONE 'UTC') as updated_at FROM api_keys WHERE project_id = $1 ORDER BY created_at DESC";
+
+        let query_by_org = r#"
+            SELECT ak.id, ak.owner_id, ak.project_id::BIGINT as project_id, ak.key_hash, ak.name, ak.scope,
+                   ak.provider_id::BIGINT as provider_id, ak.provider_ids, ak.qps_limit, ak.concurrency_limit, ak.status,
+                   (ak.expires_at AT TIME ZONE 'UTC') as expires_at, (ak.created_at AT TIME ZONE 'UTC') as created_at, (ak.updated_at AT TIME ZONE 'UTC') as updated_at
+            FROM api_keys ak
+            JOIN projects p ON p.id = ak.project_id
+            WHERE p.org_id = $1
+            ORDER BY ak.created_at DESC
+        "#;
+
+        match self {
+            Self::Postgres(pool) => {
+                if let Some(pid) = project_id {
+                    Ok(sqlx::query_as::<_, ApiKey>(query_by_project)
+                        .bind(pid)
+                        .fetch_all(pool)
+                        .await?)
+                } else if let Some(oid) = org_id {
+                    Ok(sqlx::query_as::<_, ApiKey>(query_by_org)
+                        .bind(oid)
+                        .fetch_all(pool)
+                        .await?)
+                } else {
+                    Ok(sqlx::query_as::<_, ApiKey>(query_all)
+                        .fetch_all(pool)
+                        .await?)
+                }
+            }
+        }
+    }
+
     pub async fn get_api_key_by_id(&self, id: i64) -> Result<Option<ApiKey>> {
-        let pg_query = "SELECT id, owner_id, key_hash, name, scope, provider_id::BIGINT as provider_id, provider_ids, qps_limit, concurrency_limit, status, (expires_at AT TIME ZONE 'UTC') as expires_at, (created_at AT TIME ZONE 'UTC') as created_at, (updated_at AT TIME ZONE 'UTC') as updated_at FROM api_keys WHERE id = $1";
+        let pg_query = "SELECT id, owner_id, project_id::BIGINT as project_id, key_hash, name, scope, provider_id::BIGINT as provider_id, provider_ids, qps_limit, concurrency_limit, status, (expires_at AT TIME ZONE 'UTC') as expires_at, (created_at AT TIME ZONE 'UTC') as created_at, (updated_at AT TIME ZONE 'UTC') as updated_at FROM api_keys WHERE id = $1";
         match self {
             Self::Postgres(pool) => Ok(sqlx::query_as::<_, ApiKey>(pg_query).bind(id).fetch_optional(pool).await?),
         }

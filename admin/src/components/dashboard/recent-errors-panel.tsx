@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { AlertTriangle, XCircle, Clock, ArrowRight } from "lucide-react"
 import { t } from "@/lib/i18n"
+import { useNavigate } from "react-router-dom"
 
 interface ErrorLog {
   timestamp: string
@@ -17,6 +18,8 @@ interface RecentErrorsPanelProps {
 }
 
 export function RecentErrorsPanel({ recentErrors = [] }: RecentErrorsPanelProps) {
+  const navigate = useNavigate()
+
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp)
     const now = new Date()
@@ -50,7 +53,7 @@ export function RecentErrorsPanel({ recentErrors = [] }: RecentErrorsPanelProps)
         <Button
           variant="outline"
           size="sm"
-          onClick={() => window.location.href = '/logs'}
+          onClick={() => navigate('/logs')}
           className="text-xs"
         >
           <ArrowRight className="mr-1 h-3 w-3" />

@@ -11,6 +11,9 @@ pub struct ListLogsQuery {
     #[serde(default)]
     pub offset: i64,
     pub status: Option<String>,
+    pub request_type: Option<String>,
+    #[serde(default)]
+    pub exclude_health_checks: bool,
 }
 
 fn default_logs_limit() -> i64 { 100 }
@@ -32,7 +35,16 @@ pub async fn get_logs_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
     axum::extract::Query(query): axum::extract::Query<ListLogsQuery>,
 ) -> Json<ApiResponse<Vec<RequestLog>>> {
-    match db_pool.list_request_logs(query.limit, query.offset, query.status.as_deref()).await {
+    match db_pool
+        .list_request_logs(
+            query.limit,
+            query.offset,
+            query.status.as_deref(),
+            query.request_type.as_deref(),
+            query.exclude_health_checks,
+        )
+        .await
+    {
         Ok(logs) => Json(ApiResponse {
             success: true,
             data: Some(logs),

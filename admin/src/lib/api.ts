@@ -29,12 +29,15 @@ export async function apiCall<T>(
   options?: RequestInit
 ): Promise<T> {
   const url = `${API_URL}${endpoint}`
+
+  const token = localStorage.getItem("auth_token")
   
   try {
     const response = await fetch(url, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options?.headers,
       },
     })

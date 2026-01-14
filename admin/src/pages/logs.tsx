@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { Search, Download, Clock, Server, Pause, Play } from "lucide-react"
 
 interface RequestLog {
@@ -31,6 +32,8 @@ export function LogsPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [requestTypeFilter, setRequestTypeFilter] = useState<string>("all")
+  const [hideHealthChecks, setHideHealthChecks] = useState(true)
   const [selectedLog, setSelectedLog] = useState<RequestLog | null>(null)
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
   const refreshTimerRef = useRef<number | null>(null)
@@ -59,7 +62,11 @@ export function LogsPage() {
       } else {
         setRefreshing(true)
       }
-      const data = await apiGet('/api/logs?limit=100') as any
+      const params = new URLSearchParams({ limit: '100' })
+      if (statusFilter !== 'all') params.set('status', statusFilter)
+      if (requestTypeFilter !== 'all') params.set('request_type', requestTypeFilter)
+      if (hideHealthChecks) params.set('exclude_health_checks', 'true')
+      const data = await apiGet(`/api/logs?${params.toString()}`) as any
       if (data.success) {
         const logsData = data.data || []
         setLogs(logsData)
@@ -84,6 +91,11 @@ export function LogsPage() {
       fetchInFlightRef.current = false
     }
   }, [])
+
+  useEffect(() => {
+    if (!mountedRef.current) return
+    fetchLogs({ initial: true })
+  }, [statusFilter, requestTypeFilter, hideHealthChecks, fetchLogs])
 
   useEffect(() => {
     if (!autoRefreshEnabled) {
@@ -111,13 +123,30 @@ export function LogsPage() {
     }
   }, [autoRefreshEnabled, fetchLogs])
 
+  const requestTypeOptions = (() => {
+    const types = Array.from(new Set(logs.map((l) => l.request_type).filter(Boolean))).sort()
+    const toLabel = (tpe: string) => {
+      if (tpe === "health_check") return t("logs.healthCheck")
+      if (tpe === "provider_disabled") return t("logs.providerDisabled")
+      if (tpe === "chat") return t("logs.chat")
+      return tpe
+    }
+    return [
+      { value: "all", label: t("logs.allTypes") },
+      ...types.map((tpe) => ({ value: tpe, label: toLabel(tpe) })),
+    ]
+  })()
+
   const filteredLogs = logs.filter(log => {
     const q = searchQuery.toLowerCase()
     const matchesSearch = log.provider_name.toLowerCase().includes(q) ||
       log.model.toLowerCase().includes(q) ||
-      (log.service_id || "").toLowerCase().includes(q)
+      (log.service_id || "").toLowerCase().includes(q) ||
+      (log.request_type || "").toLowerCase().includes(q)
     const matchesStatus = statusFilter === "all" || log.status === statusFilter
-    return matchesSearch && matchesStatus
+    const matchesType = requestTypeFilter === "all" || log.request_type === requestTypeFilter
+    const matchesHideHealthChecks = !hideHealthChecks || log.request_type !== "health_check"
+    return matchesSearch && matchesStatus && matchesType && matchesHideHealthChecks
   })
 
   const getStatusBadge = (status: string) => {
@@ -188,6 +217,16 @@ export function LogsPage() {
             ]}
             className="w-[120px]"
           />
+          <Select
+            value={requestTypeFilter}
+            onChange={(value) => setRequestTypeFilter(value)}
+            options={requestTypeOptions}
+            className="w-[160px]"
+          />
+          <div className="flex items-center gap-2">
+            <div className="text-sm text-muted-foreground whitespace-nowrap">{t("logs.hideHealthChecks")}</div>
+            <Switch checked={hideHealthChecks} onCheckedChange={setHideHealthChecks} />
+          </div>
           <div className="flex items-center gap-2 ml-auto">
             <Button variant="outline" size="sm" onClick={exportLogs}>
               <Download className="mr-2 h-4 w-4" />
@@ -234,6 +273,9 @@ export function LogsPage() {
                             {log.request_type === 'provider_disabled' && (
                               <Badge variant="destructive">{t('logs.providerDisabled')}</Badge>
                             )}
+                            {log.request_type === 'chat' && (
+                              <Badge variant="secondary">{t('logs.chat')}</Badge>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>{getStatusBadge(log.status)}</TableCell>
@@ -269,6 +311,9 @@ export function LogsPage() {
                           )}
                           {selectedLog.request_type === 'provider_disabled' && (
                             <Badge variant="destructive">{t('logs.providerDisabled')}</Badge>
+                          )}
+                          {selectedLog.request_type === 'chat' && (
+                            <Badge variant="secondary">{t('logs.chat')}</Badge>
                           )}
                         </div>
                       </div>

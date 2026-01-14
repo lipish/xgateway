@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { TwoPanelLayout } from "@/components/layout/two-panel-layout"
 import { DetailPanel } from "@/components/layout/detail-panel"
 import { t } from "@/lib/i18n"
+import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import { Plus } from "lucide-react"
 import { ApiKeyCreateDialog } from "@/components/services/ApiKeyCreateDialog"
@@ -174,13 +175,7 @@ export function ServicesPage() {
     try {
       setApiKeyLoading(true)
       setApiKeyError(null)
-      const resp = await fetch('/api/api-keys')
-      if (!resp.ok) {
-        setApiKeyError(`Failed to fetch API keys: ${resp.status} ${resp.statusText}`)
-        setApiKeys([])
-        return
-      }
-      const data = await resp.json()
+      const data = await apiGet<ApiResponse<ApiKey[]>>('/api/api-keys')
       if (!data.success) {
         setApiKeyError(data.message || t('common.networkError'))
         setApiKeys([])
@@ -218,30 +213,13 @@ export function ServicesPage() {
         provider_ids: null,
       }
 
-      const resp = await fetch('/api/api-keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-
-      const raw = await resp.text().catch(() => "")
-      let data: any = null
-      if (raw) {
-        try {
-          data = JSON.parse(raw)
-        } catch {
-          data = null
-        }
-      }
-
-      if (!resp.ok || !data?.success) {
-        const fallback = `HTTP ${resp.status} ${resp.statusText}`
-        const details = data && typeof data === 'object' ? JSON.stringify(data) : raw
-        setApiKeyCreateError(data?.message || (details ? `${fallback}: ${details}` : fallback) || t('common.saveFailed'))
+      const data = await apiPost<ApiResponse<any>>('/api/api-keys', payload)
+      if (!data.success) {
+        setApiKeyCreateError(data.message || t('common.networkError'))
         return
       }
 
-      setCreatedApiKey(data?.data?.full_key || null)
+      setCreatedApiKey(data.data?.full_key || null)
       await fetchApiKeys()
     } catch {
       setApiKeyCreateError(t('common.networkError'))
@@ -253,8 +231,7 @@ export function ServicesPage() {
   const toggleApiKeyStatus = async (id: number) => {
     try {
       setApiKeyStatusUpdatingId(id)
-      const resp = await fetch(`/api/api-keys/${id}/toggle`, { method: 'POST' })
-      const data = await resp.json()
+      const data = await apiPost<ApiResponse<unknown>>(`/api/api-keys/${id}/toggle`)
       if (!data.success) {
         setApiKeyError(data.message || t('common.networkError'))
         return
@@ -272,8 +249,7 @@ export function ServicesPage() {
       setRotatingKeyId(id)
       setRotateError(null)
       setRotatedApiKey(null)
-      const resp = await fetch(`/api/api-keys/${id}/rotate`, { method: 'POST' })
-      const data = await resp.json()
+      const data = await apiPost<ApiResponse<any>>(`/api/api-keys/${id}/rotate`)
       if (!data.success) {
         setRotateError(data.message || t('common.networkError'))
         return
@@ -290,8 +266,7 @@ export function ServicesPage() {
   const handleDeleteApiKey = async () => {
     if (!apiKeyToDelete) return
     try {
-      const resp = await fetch(`/api/api-keys/${apiKeyToDelete}`, { method: 'DELETE' })
-      const data = await resp.json()
+      const data = await apiDelete<ApiResponse<unknown>>(`/api/api-keys/${apiKeyToDelete}`)
       if (!data.success) {
         setApiKeyError(data.message || t('common.networkError'))
         return
@@ -306,8 +281,7 @@ export function ServicesPage() {
 
   const fetchServices = async () => {
     try {
-      const resp = await fetch("/api/services")
-      const data = (await resp.json()) as ApiResponse<Service[]>
+      const data = await apiGet<ApiResponse<Service[]>>("/api/services")
       if (!data.success) {
         setServices([])
         setError(data.message || t("common.networkError"))
@@ -322,8 +296,7 @@ export function ServicesPage() {
 
   const fetchProviders = async () => {
     try {
-      const resp = await fetch("/api/instances")
-      const data = await resp.json()
+      const data = await apiGet<ApiResponse<Provider[]>>("/api/instances")
       if (!data.success) {
         setProviders([])
         setError(data.message || t("common.networkError"))
@@ -338,15 +311,16 @@ export function ServicesPage() {
 
   const fetchServiceModelServices = async (serviceId: string) => {
     try {
-      const resp = await fetch(`/api/services/${serviceId}/model-services`)
-      const data = (await resp.json()) as ApiResponse<Provider[]>
+      const data = await apiGet<ApiResponse<Provider[]>>(`/api/services/${serviceId}/model-services`)
       if (!data.success) {
         setBoundProviders([])
+        setError(data.message || t("common.networkError"))
         return
       }
       setBoundProviders(data.data || [])
     } catch {
       setBoundProviders([])
+      setError(t("common.networkError"))
     }
   }
 
@@ -413,7 +387,7 @@ export function ServicesPage() {
 
       const payload = {
         name: createForm.name,
-        enabled: createForm.enabled,
+        enabled: !!createForm.enabled,
         strategy: createForm.strategy,
         fallback_chain: createForm.fallback_chain || null,
         bound_provider_ids: createForm.bound_provider_ids,
@@ -423,15 +397,9 @@ export function ServicesPage() {
         max_queue_wait_ms: Math.floor(maxQueueWaitMs),
       }
 
-      const resp = await fetch("/api/services", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-
-      const data = (await resp.json()) as ApiResponse<Service>
+      const data = await apiPost<ApiResponse<Service>>("/api/services", payload)
       if (!data.success) {
-        setError(data.message || t("common.saveFailed"))
+        setError(data.message || t("common.networkError"))
         return
       }
 
@@ -478,7 +446,7 @@ export function ServicesPage() {
 
       const payload = {
         name: editForm.name,
-        enabled: editForm.enabled,
+        enabled: !!editForm.enabled,
         strategy: editForm.strategy,
         fallback_chain: editForm.fallback_chain || null,
         qps_limit: qpsLimit,
@@ -487,15 +455,9 @@ export function ServicesPage() {
         max_queue_wait_ms: Math.floor(maxQueueWaitMs),
       }
 
-      const resp = await fetch(`/api/services/${editingServiceId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-
-      const data = (await resp.json()) as ApiResponse<Service>
+      const data = await apiPut<ApiResponse<Service>>(`/api/services/${editingServiceId}`, payload)
       if (!data.success) {
-        setEditError(data.message || t("common.saveFailed"))
+        setEditError(data.message || t("common.networkError"))
         return
       }
 
@@ -512,8 +474,7 @@ export function ServicesPage() {
   const handleDelete = async () => {
     if (!serviceToDelete) return
     try {
-      const resp = await fetch(`/api/services/${serviceToDelete}`, { method: "DELETE" })
-      const data = (await resp.json()) as ApiResponse<unknown>
+      const data = await apiDelete<ApiResponse<unknown>>(`/api/services/${serviceToDelete}`)
       if (data.success) {
         if (selectedServiceId === serviceToDelete) {
           setSelectedServiceId(null)
@@ -534,12 +495,7 @@ export function ServicesPage() {
     if (!selectedService) return
     try {
       setToggleBusy(true)
-      const resp = await fetch(`/api/services/${selectedService.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled: !selectedService.enabled }),
-      })
-      const data = (await resp.json()) as ApiResponse<Service>
+      const data = await apiPut<ApiResponse<Service>>(`/api/services/${selectedService.id}`, { enabled: !selectedService.enabled })
       if (!data.success) {
         setError(data.message || t("common.networkError"))
         return
@@ -557,21 +513,13 @@ export function ServicesPage() {
     try {
       setBindingBusyId(providerId)
       if (nextBound) {
-        const resp = await fetch(`/api/services/${selectedService.id}/model-services`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ provider_id: providerId }),
-        })
-        const data = await resp.json()
+        const data = await apiPost<ApiResponse<unknown>>(`/api/services/${selectedService.id}/model-services`, { provider_id: providerId })
         if (!data.success) {
           setError(data.message || t("common.networkError"))
           return
         }
       } else {
-        const resp = await fetch(`/api/services/${selectedService.id}/model-services/${providerId}`, {
-          method: "DELETE",
-        })
-        const data = await resp.json()
+        const data = await apiDelete<ApiResponse<unknown>>(`/api/services/${selectedService.id}/model-services/${providerId}`)
         if (!data.success) {
           setError(data.message || t("common.networkError"))
           return

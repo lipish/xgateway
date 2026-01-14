@@ -10,8 +10,15 @@ import { GrantInstanceDialog } from "@/components/users/GrantInstanceDialog"
 import { UserDetailCard } from "@/components/users/UserDetailCard"
 import { UserListCard } from "@/components/users/UserListCard"
 import type { Provider, User, UserInstance } from "@/components/users/types"
+import { apiDelete, apiGet, apiPost } from "@/lib/api"
 import { t } from "@/lib/i18n"
 import { RefreshCw, UserPlus } from "lucide-react"
+
+type ApiResponse<T> = {
+    success: boolean
+    data?: T
+    message: string
+}
 
 export function UsersPage() {
     const [users, setUsers] = useState<User[]>([])
@@ -34,12 +41,7 @@ export function UsersPage() {
     const fetchUsers = async (): Promise<User[]> => {
         try {
             setLoading(true)
-            const response = await fetch('/api/users')
-            if (!response.ok) {
-                setError(`Failed to fetch users: ${response.status} ${response.statusText}`)
-                return []
-            }
-            const data = await response.json()
+            const data = await apiGet<ApiResponse<User[]>>('/api/users')
             if (!data.success) {
                 setError(data.message || 'Failed to fetch users')
                 return []
@@ -70,12 +72,7 @@ export function UsersPage() {
 
     const fetchProviders = async () => {
         try {
-            const response = await fetch('/api/instances')
-            if (!response.ok) {
-                setError(`Failed to fetch providers: ${response.status} ${response.statusText}`)
-                return
-            }
-            const data = await response.json()
+            const data = await apiGet<ApiResponse<Provider[]>>('/api/instances')
             if (!data.success) {
                 setError(data.message || 'Failed to fetch providers')
                 return
@@ -89,12 +86,7 @@ export function UsersPage() {
 
     const fetchUserInstances = async (userId: number) => {
         try {
-            const response = await fetch(`/api/users/${userId}/instances`)
-            if (!response.ok) {
-                setError(`Failed to fetch user instances: ${response.status} ${response.statusText}`)
-                return
-            }
-            const data = await response.json()
+            const data = await apiGet<ApiResponse<UserInstance[]>>(`/api/users/${userId}/instances`)
             if (!data.success) {
                 setError(data.message || 'Failed to fetch user instances')
                 return
@@ -112,20 +104,15 @@ export function UsersPage() {
         try {
             setCreating(true)
             setError(null)
-            const response = await fetch('/api/users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: newUser.username,
-                    password_hash: newUser.password, // In real app, hash this
-                    role_id: newUser.role_id
-                })
+            const data = await apiPost<ApiResponse<unknown>>('/api/users', {
+                username: newUser.username,
+                password_hash: newUser.password, // In real app, hash this
+                role_id: newUser.role_id,
             })
-            const data = await response.json()
             if (data.success) {
                 setShowCreateDialog(false)
                 setNewUser({ username: '', password: '', role_id: 'user' })
-                const createdUserId: number | null = typeof data.data === 'number' ? data.data : null
+                const createdUserId: number | null = typeof data.data === 'number' ? (data.data as number) : null
                 const updatedUsers = await fetchUsers()
                 if (createdUserId != null) {
                     const createdUser = updatedUsers.find(u => u.id === createdUserId) || null
@@ -146,10 +133,7 @@ export function UsersPage() {
 
     const toggleUserStatus = async (user: User) => {
         try {
-            const response = await fetch(`/api/users/${user.id}/toggle`, {
-                method: 'POST'
-            })
-            const data = await response.json()
+            const data = await apiPost<ApiResponse<unknown>>(`/api/users/${user.id}/toggle`)
             if (data.success) {
                 fetchUsers()
             }
@@ -163,10 +147,7 @@ export function UsersPage() {
     const handleDelete = async () => {
         if (!userToDelete) return
         try {
-            const response = await fetch(`/api/users/${userToDelete}`, {
-                method: 'DELETE'
-            })
-            const data = await response.json()
+            const data = await apiDelete<ApiResponse<unknown>>(`/api/users/${userToDelete}`)
             if (data.success) {
                 fetchUsers()
             }
@@ -180,14 +161,9 @@ export function UsersPage() {
     const handleGrantInstance = async () => {
         if (!selectedUser || !grantData.provider_id) return
         try {
-            const response = await fetch(`/api/users/${selectedUser.id}/instances`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    provider_id: parseInt(grantData.provider_id)
-                })
+            const data = await apiPost<ApiResponse<unknown>>(`/api/users/${selectedUser.id}/instances`, {
+                provider_id: parseInt(grantData.provider_id),
             })
-            const data = await response.json()
             if (data.success) {
                 fetchUserInstances(selectedUser.id)
                 setGrantData({ provider_id: '' })
@@ -200,10 +176,7 @@ export function UsersPage() {
     const handleRevokeInstance = async (providerId: number) => {
         if (!selectedUser) return
         try {
-            const response = await fetch(`/api/users/${selectedUser.id}/instances/${providerId}`, {
-                method: 'DELETE'
-            })
-            const data = await response.json()
+            const data = await apiDelete<ApiResponse<unknown>>(`/api/users/${selectedUser.id}/instances/${providerId}`)
             if (data.success) {
                 fetchUserInstances(selectedUser.id)
             }

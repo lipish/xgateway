@@ -2,6 +2,19 @@ use axum::Json;
 use serde::Deserialize;
 use crate::db::DatabasePool;
 use super::ApiResponse;
+use crate::admin::auth_middleware::AdminUserContext;
+
+async fn api_key_belongs_to_org(db_pool: &DatabasePool, api_key_id: i64, org_id: i64) -> Result<bool, String> {
+    match db_pool.get_api_key_by_id(api_key_id).await {
+        Ok(Some(k)) => match db_pool.get_project_by_id(k.project_id).await {
+            Ok(Some(p)) => Ok(p.org_id == org_id),
+            Ok(None) => Err("project_not_found".to_string()),
+            Err(e) => Err(format!("Failed to check project: {}", e)),
+        },
+        Ok(None) => Err("api_key_not_found".to_string()),
+        Err(e) => Err(format!("Failed to get API key: {}", e)),
+    }
+}
 
 fn unique_strings(mut v: Vec<String>) -> Vec<String> {
     v.sort();
@@ -45,8 +58,11 @@ async fn derive_service_ids_from_legacy(
 /// List API keys
 pub async fn list_api_keys_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::extract::Query(q): axum::extract::Query<ListApiKeysQuery>,
+    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
 ) -> Json<ApiResponse<Vec<serde_json::Value>>> {
-    match db_pool.list_api_keys().await {
+    let effective_org_id = if ctx.is_admin { q.org_id } else { Some(ctx.org_id) };
+    match db_pool.list_api_keys_filtered(q.project_id, effective_org_id).await {
         Ok(keys) => {
             let mut keys_with_parsed_ids: Vec<serde_json::Value> = Vec::new();
 
@@ -83,6 +99,12 @@ pub async fn list_api_keys_api(
 }
 
 #[derive(Debug, Deserialize)]
+pub struct ListApiKeysQuery {
+    pub project_id: Option<i64>,
+    pub org_id: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct UpdateApiKeyRequest {
     pub name: String,
     pub scope: String,
@@ -97,8 +119,27 @@ pub struct UpdateApiKeyRequest {
 pub async fn update_api_key_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
     axum::extract::Path(id): axum::extract::Path<i64>,
+    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
     Json(req): Json<UpdateApiKeyRequest>,
 ) -> Json<ApiResponse<()>> {
+    if !ctx.is_admin {
+        match api_key_belongs_to_org(&db_pool, id, ctx.org_id).await {
+            Ok(true) => {}
+            Ok(false) => {
+                return Json(ApiResponse { success: false, data: None, message: "forbidden".to_string() });
+            }
+            Err(msg) => {
+                if msg == "api_key_not_found" {
+                    return Json(ApiResponse { success: false, data: None, message: "API key not found".to_string() });
+                }
+                return Json(ApiResponse { success: false, data: None, message: msg });
+            }
+        }
+        if ctx.org_role.as_deref() != Some("admin") {
+            return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+        }
+    }
+
     if req.scope != "global" && req.scope != "instance" {
         return Json(ApiResponse {
             success: false,
@@ -200,6 +241,7 @@ pub async fn update_api_key_api(
 pub struct CreateApiKeyRequest {
     pub name: String,
     pub scope: String,
+    pub project_id: Option<i64>,
     pub provider_id: Option<i64>,
     pub provider_ids: Option<Vec<i64>>,
     pub service_ids: Option<Vec<String>>,
@@ -211,8 +253,13 @@ pub struct CreateApiKeyRequest {
 /// Create API key
 pub async fn create_api_key_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
     Json(req): Json<CreateApiKeyRequest>,
 ) -> Json<ApiResponse<serde_json::Value>> {
+    if !ctx.is_admin && ctx.org_role.as_deref() != Some("admin") {
+        return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+    }
+
     let key = format!("sk-link-{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
     // In a real system, we'd hash the key before storing
     let key_hash = key.clone(); 
@@ -232,8 +279,33 @@ pub async fn create_api_key_api(
     let qps_limit = req.qps_limit.unwrap_or(1_000_000.0);
     let concurrency_limit = req.concurrency_limit.unwrap_or(1_000_000);
 
+    let project_id = if let Some(pid) = req.project_id {
+        pid
+    } else if ctx.is_admin {
+        1
+    } else {
+        match db_pool.get_default_project_id_for_org(ctx.org_id).await {
+            Ok(Some(pid)) => pid,
+            _ => 1,
+        }
+    };
+
+    if !ctx.is_admin {
+        match db_pool.get_project_by_id(project_id).await {
+            Ok(Some(p)) => {
+                if p.org_id != ctx.org_id {
+                    return Json(ApiResponse { success: false, data: None, message: "forbidden".to_string() });
+                }
+            }
+            _ => {
+                return Json(ApiResponse { success: false, data: None, message: "project_not_found".to_string() });
+            }
+        }
+    }
+
     let new_key = crate::db::NewApiKey {
-        owner_id: None, // TODO: Get from auth context
+        owner_id: Some(ctx.user.id),
+        project_id,
         key_hash,
         name: req.name,
         scope: scope.clone(),
@@ -281,12 +353,12 @@ pub async fn create_api_key_api(
             }
 
             Json(ApiResponse {
-            success: true,
-            data: Some(serde_json::json!({
-                "full_key": key,
-                "message": "Please copy this key now, as it will not be shown again."
-            })),
-            message: "API key created successfully".to_string(),
+                success: true,
+                data: Some(serde_json::json!({
+                    "full_key": key,
+                    "message": "Please copy this key now, as it will not be shown again."
+                })),
+                message: "API key created successfully".to_string(),
             })
         }
         Err(e) => Json(ApiResponse {
@@ -301,7 +373,27 @@ pub async fn create_api_key_api(
 pub async fn delete_api_key_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
     axum::extract::Path(id): axum::extract::Path<i64>,
+    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
 ) -> Json<ApiResponse<()>> {
+    if !ctx.is_admin && ctx.org_role.as_deref() != Some("admin") {
+        return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+    }
+
+    if !ctx.is_admin {
+        match api_key_belongs_to_org(&db_pool, id, ctx.org_id).await {
+            Ok(true) => {}
+            Ok(false) => {
+                return Json(ApiResponse { success: false, data: None, message: "forbidden".to_string() });
+            }
+            Err(msg) => {
+                if msg == "api_key_not_found" {
+                    return Json(ApiResponse { success: false, data: None, message: "API key not found".to_string() });
+                }
+                return Json(ApiResponse { success: false, data: None, message: msg });
+            }
+        }
+    }
+
     match db_pool.delete_api_key(id).await {
         Ok(true) => Json(ApiResponse {
             success: true,
@@ -325,7 +417,26 @@ pub async fn delete_api_key_api(
 pub async fn toggle_api_key_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
     axum::extract::Path(id): axum::extract::Path<i64>,
+    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
 ) -> Json<ApiResponse<()>> {
+    if !ctx.is_admin {
+        if ctx.org_role.as_deref() != Some("admin") {
+            return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+        }
+        match api_key_belongs_to_org(&db_pool, id, ctx.org_id).await {
+            Ok(true) => {}
+            Ok(false) => {
+                return Json(ApiResponse { success: false, data: None, message: "forbidden".to_string() });
+            }
+            Err(msg) => {
+                if msg == "api_key_not_found" {
+                    return Json(ApiResponse { success: false, data: None, message: "API key not found".to_string() });
+                }
+                return Json(ApiResponse { success: false, data: None, message: msg });
+            }
+        }
+    }
+
     // Get current status first
     match db_pool.get_api_key_by_id(id).await {
         Ok(Some(key)) => {
@@ -359,7 +470,26 @@ pub async fn toggle_api_key_api(
 pub async fn rotate_api_key_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
     axum::extract::Path(id): axum::extract::Path<i64>,
+    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
 ) -> Json<ApiResponse<serde_json::Value>> {
+    if !ctx.is_admin {
+        if ctx.org_role.as_deref() != Some("admin") {
+            return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+        }
+        match api_key_belongs_to_org(&db_pool, id, ctx.org_id).await {
+            Ok(true) => {}
+            Ok(false) => {
+                return Json(ApiResponse { success: false, data: None, message: "forbidden".to_string() });
+            }
+            Err(msg) => {
+                if msg == "api_key_not_found" {
+                    return Json(ApiResponse { success: false, data: None, message: "API key not found".to_string() });
+                }
+                return Json(ApiResponse { success: false, data: None, message: msg });
+            }
+        }
+    }
+
     match db_pool.get_api_key_by_id(id).await {
         Ok(Some(_)) => {}
         Ok(None) => {

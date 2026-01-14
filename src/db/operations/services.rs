@@ -6,7 +6,7 @@ use crate::db::{ApiKey, DatabasePool, Provider, Service};
 impl DatabasePool {
     pub async fn list_services(&self) -> Result<Vec<Service>> {
         let query = r#"
-            SELECT id, name, enabled, strategy, fallback_chain, qps_limit, concurrency_limit, max_queue_size, max_queue_wait_ms, created_at, updated_at
+            SELECT id, project_id::BIGINT as project_id, name, enabled, strategy, fallback_chain, qps_limit, concurrency_limit, max_queue_size, max_queue_wait_ms, created_at, updated_at
             FROM services
             ORDER BY created_at DESC
         "#;
@@ -15,6 +15,53 @@ impl DatabasePool {
             Self::Postgres(pool) => Ok(sqlx::query_as::<_, Service>(query)
                 .fetch_all(pool)
                 .await?),
+        }
+    }
+
+    pub async fn list_services_filtered(
+        &self,
+        project_id: Option<i64>,
+        org_id: Option<i64>,
+    ) -> Result<Vec<Service>> {
+        let query_all = r#"
+            SELECT id, project_id::BIGINT as project_id, name, enabled, strategy, fallback_chain, qps_limit, concurrency_limit, max_queue_size, max_queue_wait_ms, created_at, updated_at
+            FROM services
+            ORDER BY created_at DESC
+        "#;
+
+        let query_by_project = r#"
+            SELECT id, project_id::BIGINT as project_id, name, enabled, strategy, fallback_chain, qps_limit, concurrency_limit, max_queue_size, max_queue_wait_ms, created_at, updated_at
+            FROM services
+            WHERE project_id = $1
+            ORDER BY created_at DESC
+        "#;
+
+        let query_by_org = r#"
+            SELECT s.id, s.project_id::BIGINT as project_id, s.name, s.enabled, s.strategy, s.fallback_chain, s.qps_limit, s.concurrency_limit, s.max_queue_size, s.max_queue_wait_ms, s.created_at, s.updated_at
+            FROM services s
+            JOIN projects p ON p.id = s.project_id
+            WHERE p.org_id = $1
+            ORDER BY s.created_at DESC
+        "#;
+
+        match self {
+            Self::Postgres(pool) => {
+                if let Some(pid) = project_id {
+                    Ok(sqlx::query_as::<_, Service>(query_by_project)
+                        .bind(pid)
+                        .fetch_all(pool)
+                        .await?)
+                } else if let Some(oid) = org_id {
+                    Ok(sqlx::query_as::<_, Service>(query_by_org)
+                        .bind(oid)
+                        .fetch_all(pool)
+                        .await?)
+                } else {
+                    Ok(sqlx::query_as::<_, Service>(query_all)
+                        .fetch_all(pool)
+                        .await?)
+                }
+            }
         }
     }
 
@@ -33,6 +80,7 @@ impl DatabasePool {
         let query = r#"
             INSERT INTO services (
                 id,
+                project_id,
                 name,
                 enabled,
                 strategy,
@@ -44,6 +92,7 @@ impl DatabasePool {
             )
             VALUES (
                 $1,
+                1,
                 $2,
                 $3,
                 $4,
@@ -60,6 +109,67 @@ impl DatabasePool {
             Self::Postgres(pool) => {
                 let result = sqlx::query(query)
                     .bind(id)
+                    .bind(name)
+                    .bind(enabled)
+                    .bind(strategy)
+                    .bind(fallback_chain)
+                    .bind(qps_limit)
+                    .bind(concurrency_limit)
+                    .bind(max_queue_size)
+                    .bind(max_queue_wait_ms)
+                    .execute(pool)
+                    .await?;
+                Ok(result.rows_affected() > 0)
+            }
+        }
+    }
+
+    pub async fn create_service_with_project_id(
+        &self,
+        project_id: i64,
+        id: &str,
+        name: &str,
+        enabled: bool,
+        strategy: &str,
+        fallback_chain: Option<&str>,
+        qps_limit: Option<f64>,
+        concurrency_limit: Option<i32>,
+        max_queue_size: Option<i32>,
+        max_queue_wait_ms: Option<i32>,
+    ) -> Result<bool> {
+        let query = r#"
+            INSERT INTO services (
+                id,
+                project_id,
+                name,
+                enabled,
+                strategy,
+                fallback_chain,
+                qps_limit,
+                concurrency_limit,
+                max_queue_size,
+                max_queue_wait_ms
+            )
+            VALUES (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5,
+                $6,
+                COALESCE($7, 100.0),
+                COALESCE($8, 50),
+                COALESCE($9, 100),
+                COALESCE($10, 30000)
+            )
+            ON CONFLICT (id) DO NOTHING
+        "#;
+
+        match self {
+            Self::Postgres(pool) => {
+                let result = sqlx::query(query)
+                    .bind(id)
+                    .bind(project_id)
                     .bind(name)
                     .bind(enabled)
                     .bind(strategy)
@@ -187,7 +297,7 @@ impl DatabasePool {
 
     pub async fn get_service(&self, service_id: &str) -> Result<Option<Service>> {
         let query = r#"
-            SELECT id, name, enabled, strategy, fallback_chain, qps_limit, concurrency_limit, max_queue_size, max_queue_wait_ms, created_at, updated_at
+            SELECT id, project_id::BIGINT as project_id, name, enabled, strategy, fallback_chain, qps_limit, concurrency_limit, max_queue_size, max_queue_wait_ms, created_at, updated_at
             FROM services
             WHERE id = $1
         "#;

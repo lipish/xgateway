@@ -8,6 +8,10 @@ pub mod user_handlers;
 pub mod log_handlers;
 pub mod service_handlers;
 pub mod chat_handlers;
+pub mod organization_handlers;
+pub mod project_handlers;
+pub mod org_user_handlers;
+pub mod auth_middleware;
 
 
 
@@ -44,7 +48,7 @@ pub fn create_admin_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -
         pool_manager,
     };
 
-    Router::new()
+    let app = Router::new()
         // Auth API
         .route("/api/auth/login", post(auth_handlers::login_api))
         .route("/api/auth/register", post(auth_handlers::register_api))
@@ -58,6 +62,13 @@ pub fn create_admin_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -
         // Provider types API (CRUD)
         .route("/api/provider-types", get(provider_type_handlers::get_provider_types_api).post(provider_type_handlers::create_provider_type_api))
         .route("/api/provider-types/:id", put(provider_type_handlers::update_provider_type_api).delete(provider_type_handlers::delete_provider_type_api))
+        // Organizations / Projects (Tenancy)
+        .route("/api/organizations", get(organization_handlers::list_organizations_api).post(organization_handlers::create_organization_api))
+        .route("/api/organizations/:id", delete(organization_handlers::delete_organization_api))
+        .route("/api/organizations/:id/users", get(org_user_handlers::list_org_users_api).post(org_user_handlers::add_org_user_api))
+        .route("/api/organizations/:id/users/:user_id", delete(org_user_handlers::remove_org_user_api))
+        .route("/api/projects", get(project_handlers::list_projects_api).post(project_handlers::create_project_api))
+        .route("/api/projects/:id", delete(project_handlers::delete_project_api))
         // Pool management API
         .route("/api/pool/status", get(pool_handlers::get_pool_status_api))
         .route("/api/pool/health", get(pool_handlers::get_pool_health_api))
@@ -95,7 +106,11 @@ pub fn create_admin_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -
         // User-Instance grants
         .route("/api/users/:user_id/instances", get(user_handlers::list_user_instances_api).post(user_handlers::grant_user_instance_api))
         .route("/api/users/:user_id/instances/:provider_id", delete(user_handlers::revoke_user_instance_api))
-        .with_state(state)
+
+        .layer(axum::middleware::from_fn_with_state(state.clone(), auth_middleware::admin_auth_middleware))
+        .with_state(state);
+
+    app
 }
 
 #[derive(Serialize)]

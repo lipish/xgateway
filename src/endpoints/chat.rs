@@ -19,6 +19,9 @@ fn parse_fallback_chain(chain: Option<&str>) -> Vec<String> {
 async fn write_gateway_log(
     db_pool: &crate::db::DatabasePool,
     service_id: Option<String>,
+    api_key_id: Option<i64>,
+    project_id: Option<i64>,
+    org_id: Option<i64>,
     requested_model: String,
     request_content: Option<String>,
     status: &str,
@@ -26,6 +29,9 @@ async fn write_gateway_log(
 ) {
     let log = NewRequestLog {
         service_id,
+        api_key_id,
+        project_id,
+        org_id,
         provider_id: None,
         provider_name: "gateway".to_string(),
         model: requested_model,
@@ -90,6 +96,9 @@ pub async fn handle_chat_completions(
                 write_gateway_log(
                     db_pool,
                     requested_service_id_for_log.clone(),
+                    None,
+                    None,
+                    None,
                     requested_model_for_log.clone(),
                     request_content.clone(),
                     "error",
@@ -108,6 +117,17 @@ pub async fn handle_chat_completions(
         }
     } else {
         None
+    };
+
+    let (api_key_id, project_id, org_id) = if let Some(key_info) = &api_key_info {
+        let org_id = db_pool
+            .get_org_id_by_project_id(key_info.project_id)
+            .await
+            .ok()
+            .flatten();
+        (Some(key_info.id), Some(key_info.project_id), org_id)
+    } else {
+        (None, None, None)
     };
 
     let is_stream = request
@@ -138,6 +158,9 @@ pub async fn handle_chat_completions(
                             write_gateway_log(
                                 db_pool,
                                 None,
+                                api_key_id,
+                                project_id,
+                                org_id,
                                 requested_model_for_log.clone(),
                                 request_content.clone(),
                                 "error",
@@ -157,6 +180,9 @@ pub async fn handle_chat_completions(
                             write_gateway_log(
                                 db_pool,
                                 None,
+                                api_key_id,
+                                project_id,
+                                org_id,
                                 requested_model_for_log.clone(),
                                 request_content.clone(),
                                 "error",
@@ -178,6 +204,9 @@ pub async fn handle_chat_completions(
                         write_gateway_log(
                             db_pool,
                             None,
+                            api_key_id,
+                            project_id,
+                            org_id,
                             requested_model_for_log.clone(),
                             request_content.clone(),
                             "error",
@@ -198,6 +227,9 @@ pub async fn handle_chat_completions(
                 write_gateway_log(
                     db_pool,
                     None,
+                    api_key_id,
+                    project_id,
+                    org_id,
                     requested_model_for_log.clone(),
                     request_content.clone(),
                     "error",
@@ -224,6 +256,9 @@ pub async fn handle_chat_completions(
                 write_gateway_log(
                     db_pool,
                     Some(service_id.clone()),
+                    api_key_id,
+                    project_id,
+                    org_id,
                     requested_model_for_log.clone(),
                     request_content.clone(),
                     "error",
@@ -244,6 +279,9 @@ pub async fn handle_chat_completions(
                 write_gateway_log(
                     db_pool,
                     Some(service_id.clone()),
+                    api_key_id,
+                    project_id,
+                    org_id,
                     requested_model_for_log.clone(),
                     request_content.clone(),
                     "error",
@@ -330,6 +368,9 @@ pub async fn handle_chat_completions(
                 write_gateway_log(
                     db_pool,
                     Some(current_service_id.clone()),
+                    api_key_id,
+                    project_id,
+                    org_id,
                     requested_model_for_log.clone(),
                     request_content.clone(),
                     "error",
@@ -350,6 +391,9 @@ pub async fn handle_chat_completions(
                 write_gateway_log(
                     db_pool,
                     Some(current_service_id.clone()),
+                    api_key_id,
+                    project_id,
+                    org_id,
                     requested_model_for_log.clone(),
                     request_content.clone(),
                     "error",
@@ -368,10 +412,40 @@ pub async fn handle_chat_completions(
             }
         };
 
+        if let Some(key_info) = &api_key_info {
+            if key_info.project_id != service.project_id {
+                write_gateway_log(
+                    db_pool,
+                    Some(current_service_id.clone()),
+                    api_key_id,
+                    project_id,
+                    org_id,
+                    requested_model_for_log.clone(),
+                    request_content.clone(),
+                    "error",
+                    Some("cross_project_service_access_denied".to_string()),
+                )
+                .await;
+                return (
+                    StatusCode::FORBIDDEN,
+                    axum::Json(serde_json::json!({
+                        "error": {
+                            "message": "API key cannot access services across projects",
+                            "type": "cross_project_service_access_denied"
+                        }
+                    })),
+                )
+                    .into_response();
+            }
+        }
+
         if !service.enabled {
             write_gateway_log(
                 db_pool,
                 Some(current_service_id.clone()),
+                api_key_id,
+                project_id,
+                org_id,
                 requested_model_for_log.clone(),
                 request_content.clone(),
                 "error",
@@ -395,6 +469,9 @@ pub async fn handle_chat_completions(
                 write_gateway_log(
                     db_pool,
                     Some(current_service_id.clone()),
+                    api_key_id,
+                    project_id,
+                    org_id,
                     requested_model_for_log.clone(),
                     request_content.clone(),
                     "error",
@@ -415,6 +492,9 @@ pub async fn handle_chat_completions(
                 write_gateway_log(
                     db_pool,
                     Some(current_service_id.clone()),
+                    api_key_id,
+                    project_id,
+                    org_id,
                     requested_model_for_log.clone(),
                     request_content.clone(),
                     "error",
@@ -440,6 +520,9 @@ pub async fn handle_chat_completions(
                 write_gateway_log(
                     db_pool,
                     Some(current_service_id.clone()),
+                    api_key_id,
+                    project_id,
+                    org_id,
                     requested_model_for_log.clone(),
                     request_content.clone(),
                     "error",
@@ -518,6 +601,9 @@ pub async fn handle_chat_completions(
 
         match send_to_provider(
             Some(&current_service_id),
+            api_key_id,
+            project_id,
+            org_id,
             provider,
             &req_body,
             is_stream,
@@ -537,6 +623,9 @@ pub async fn handle_chat_completions(
                     if let Some(fallback_provider) = providers.iter().find(|p| p.id == fid) {
                         match send_to_provider(
                             Some(&current_service_id),
+                            api_key_id,
+                            project_id,
+                            org_id,
                             fallback_provider,
                             &req_body,
                             is_stream,

@@ -15,6 +15,8 @@ const UsersPage = React.lazy(() => import("@/pages/users").then((m) => ({ defaul
 const HelpPage = React.lazy(() => import("@/pages/help").then((m) => ({ default: m.HelpPage })))
 const ChatPage = React.lazy(() => import("@/pages/chat").then((m) => ({ default: m.ChatPage })))
 const ModelTypesPage = React.lazy(() => import("@/pages/providers").then((m) => ({ default: m.ModelTypesPage })))
+const OrganizationsPage = React.lazy(() => import("@/pages/organizations").then((m) => ({ default: m.OrganizationsPage })))
+const ProjectsPage = React.lazy(() => import("@/pages/projects").then((m) => ({ default: m.ProjectsPage })))
 const LoginPage = React.lazy(() => import("@/pages/login").then((m) => ({ default: m.LoginPage })))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -41,6 +43,8 @@ function AppRoutes() {
           <Route path="logs" element={<LogsPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="users" element={<UsersPage />} />
+          <Route path="organizations" element={<OrganizationsPage />} />
+          <Route path="projects" element={<ProjectsPage />} />
           <Route path="services" element={<ServicesPage />} />
           <Route path="apikeys" element={<ApiKeysPage />} />
           <Route path="help" element={<HelpPage />} />

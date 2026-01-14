@@ -31,6 +31,9 @@ fn parse_messages(req_body: &serde_json::Value) -> Vec<Message> {
 
 pub async fn send_to_provider(
     service_id: Option<&str>,
+    api_key_id: Option<i64>,
+    project_id: Option<i64>,
+    org_id: Option<i64>,
     provider: &db::Provider,
     req_body: &serde_json::Value,
     is_stream: bool,
@@ -85,6 +88,9 @@ pub async fn send_to_provider(
             chat_request,
             provider,
             service_id.map(|s| s.to_string()),
+            api_key_id,
+            project_id,
+            org_id,
             request_content,
             db_pool,
             pool_manager,
@@ -98,6 +104,9 @@ pub async fn send_to_provider(
             provider,
             model,
             service_id.map(|s| s.to_string()),
+            api_key_id,
+            project_id,
+            org_id,
             request_content,
             db_pool,
             pool_manager,
@@ -111,6 +120,9 @@ async fn handle_stream_request(
     chat_request: ChatRequest,
     provider: &db::Provider,
     service_id: Option<String>,
+    api_key_id: Option<i64>,
+    project_id: Option<i64>,
+    org_id: Option<i64>,
     request_content: Option<String>,
     db_pool: &DatabasePool,
     pool_manager: &Arc<PoolManager>,
@@ -130,6 +142,9 @@ async fn handle_stream_request(
             let provider_name = provider.name.clone();
             let model_str = chat_request.model.clone();
             let service_id_clone = service_id.clone();
+            let api_key_id_clone = api_key_id;
+            let project_id_clone = project_id;
+            let org_id_clone = org_id;
             let db = db_pool.clone();
             let pm = pool_manager.clone();
 
@@ -174,6 +189,9 @@ async fn handle_stream_request(
 
                 let log = NewRequestLog {
                     service_id: service_id_clone,
+                    api_key_id: api_key_id_clone,
+                    project_id: project_id_clone,
+                    org_id: org_id_clone,
                     provider_id: Some(provider_id),
                     provider_name,
                     model: model_str,
@@ -219,6 +237,9 @@ async fn handle_non_stream_request(
     provider: &db::Provider,
     model: &str,
     service_id: Option<String>,
+    api_key_id: Option<i64>,
+    project_id: Option<i64>,
+    org_id: Option<i64>,
     request_content: Option<String>,
     db_pool: &DatabasePool,
     pool_manager: &Arc<PoolManager>,
@@ -236,6 +257,9 @@ async fn handle_non_stream_request(
 
             let log = NewRequestLog {
                 service_id: service_id.clone(),
+                api_key_id,
+                project_id,
+                org_id,
                 provider_id: Some(provider.id),
                 provider_name: provider.name.clone(),
                 model: model.to_string(),
@@ -259,6 +283,9 @@ async fn handle_non_stream_request(
 
             let log = NewRequestLog {
                 service_id,
+                api_key_id,
+                project_id,
+                org_id,
                 provider_id: Some(provider.id),
                 provider_name: provider.name.clone(),
                 model: model.to_string(),

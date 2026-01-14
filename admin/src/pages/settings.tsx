@@ -6,9 +6,16 @@ import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { t } from "@/lib/i18n"
+import { apiGet, apiPost } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { Settings, Save, RotateCcw, RefreshCw, Loader2, Shield, Zap, Heart } from "lucide-react"
 import { PageHeader } from "@/components/layout/page-header"
+
+type ApiResponse<T> = {
+  success: boolean
+  data?: T
+  message: string
+}
 
 interface PoolSettings {
   load_balance_strategy: string
@@ -50,12 +57,9 @@ export function SettingsPage() {
   const fetchSettings = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/pool/settings')
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.data) {
-          setSettings(data.data)
-        }
+      const data = await apiGet<ApiResponse<PoolSettings>>('/api/pool/settings')
+      if (data.success && data.data) {
+        setSettings(data.data)
       }
     } catch {
       console.error('Failed to fetch settings')
@@ -67,12 +71,7 @@ export function SettingsPage() {
   const saveSettings = async () => {
     try {
       setSaving(true)
-      const response = await fetch('/api/pool/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
-      })
-      const data = await response.json()
+      const data = await apiPost<ApiResponse<unknown>>('/api/pool/settings', settings)
       if (data.success) {
         setMessage({ type: 'success', text: t('settings.settingsSaved') })
       } else {

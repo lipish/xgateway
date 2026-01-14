@@ -24,3 +24,13 @@ pub mod user_instances;
 
 // Service operations module
 pub mod services;
+
+// Tenancy operations module
+pub mod tenancy;
+
+// Organizations/Projects operations module
+pub mod organizations;
+pub mod projects;
+
+// Org-User membership operations module
+pub mod org_users;

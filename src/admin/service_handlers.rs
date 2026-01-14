@@ -2,12 +2,28 @@ use axum::Json;
 use serde::Deserialize;
 use uuid::Uuid;
 
+use crate::admin::auth_middleware::AdminUserContext;
 use crate::db::{DatabasePool, Service};
 use super::ApiResponse;
+
+async fn service_belongs_to_org(db_pool: &DatabasePool, service: &Service, org_id: i64) -> Result<bool, String> {
+    match db_pool.get_project_by_id(service.project_id).await {
+        Ok(Some(p)) => Ok(p.org_id == org_id),
+        Ok(None) => Err("project_not_found".to_string()),
+        Err(e) => Err(format!("Failed to check project: {}", e)),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ListServicesQuery {
+    pub project_id: Option<i64>,
+    pub org_id: Option<i64>,
+}
 
 #[derive(Debug, Deserialize)]
 pub struct CreateServiceRequest {
     pub id: Option<String>,
+    pub project_id: Option<i64>,
     pub name: String,
     pub enabled: Option<bool>,
     pub strategy: Option<String>,
@@ -43,8 +59,11 @@ pub struct SetApiKeyServicesRequest {
 
 pub async fn list_services_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::extract::Query(q): axum::extract::Query<ListServicesQuery>,
+    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
 ) -> Json<ApiResponse<Vec<Service>>> {
-    match db_pool.list_services().await {
+    let effective_org_id = if ctx.is_admin { q.org_id } else { Some(ctx.org_id) };
+    match db_pool.list_services_filtered(q.project_id, effective_org_id).await {
         Ok(services) => Json(ApiResponse {
             success: true,
             data: Some(services),
@@ -61,13 +80,27 @@ pub async fn list_services_api(
 pub async fn get_service_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
     axum::extract::Path(service_id): axum::extract::Path<String>,
+    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
 ) -> Json<ApiResponse<Service>> {
     match db_pool.get_service(&service_id).await {
-        Ok(Some(service)) => Json(ApiResponse {
-            success: true,
-            data: Some(service),
-            message: "Service retrieved".to_string(),
-        }),
+        Ok(Some(service)) => {
+            if !ctx.is_admin {
+                match service_belongs_to_org(&db_pool, &service, ctx.org_id).await {
+                    Ok(true) => {}
+                    Ok(false) => {
+                        return Json(ApiResponse { success: false, data: None, message: "forbidden".to_string() });
+                    }
+                    Err(msg) => {
+                        return Json(ApiResponse { success: false, data: None, message: msg });
+                    }
+                }
+            }
+            Json(ApiResponse {
+                success: true,
+                data: Some(service),
+                message: "Service retrieved".to_string(),
+            })
+        }
         Ok(None) => Json(ApiResponse {
             success: false,
             data: None,
@@ -83,8 +116,17 @@ pub async fn get_service_api(
 
 pub async fn create_service_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
     Json(req): Json<CreateServiceRequest>,
 ) -> Json<ApiResponse<Service>> {
+    if !ctx.is_admin && ctx.org_role.as_deref() != Some("admin") {
+        return Json(ApiResponse {
+            success: false,
+            data: None,
+            message: "org_admin_required".to_string(),
+        });
+    }
+
     if req.name.trim().is_empty() {
         return Json(ApiResponse {
             success: false,
@@ -135,6 +177,58 @@ pub async fn create_service_api(
     let mut id_to_use = base_id.clone();
     let max_attempts: usize = if explicit_id.is_some() { 1 } else { 5 };
 
+    let project_id = if let Some(pid) = req.project_id {
+        pid
+    } else if ctx.is_admin {
+        1
+    } else {
+        match db_pool.get_default_project_id_for_org(ctx.org_id).await {
+            Ok(Some(pid)) => pid,
+            Ok(None) => {
+                return Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: "no_default_project".to_string(),
+                })
+            }
+            Err(e) => {
+                return Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: format!("Failed to resolve default project: {}", e),
+                })
+            }
+        }
+    };
+
+    if !ctx.is_admin {
+        match db_pool.get_project_by_id(project_id).await {
+            Ok(Some(p)) => {
+                if p.org_id != ctx.org_id {
+                    return Json(ApiResponse {
+                        success: false,
+                        data: None,
+                        message: "forbidden".to_string(),
+                    });
+                }
+            }
+            Ok(None) => {
+                return Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: "project_not_found".to_string(),
+                })
+            }
+            Err(e) => {
+                return Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: format!("Failed to check project: {}", e),
+                })
+            }
+        }
+    }
+
     for attempt in 0..max_attempts {
         if attempt > 0 {
             let suffix = Uuid::new_v4().simple().to_string();
@@ -142,7 +236,8 @@ pub async fn create_service_api(
         }
 
         match db_pool
-            .create_service(
+            .create_service_with_project_id(
+                project_id,
                 &id_to_use,
                 &req.name,
                 enabled,
@@ -214,8 +309,35 @@ pub async fn create_service_api(
 pub async fn update_service_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
     axum::extract::Path(service_id): axum::extract::Path<String>,
+    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
     Json(req): Json<UpdateServiceRequest>,
 ) -> Json<ApiResponse<Service>> {
+    if !ctx.is_admin && ctx.org_role.as_deref() != Some("admin") {
+        return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+    }
+
+    if !ctx.is_admin {
+        match db_pool.get_service(&service_id).await {
+            Ok(Some(service)) => {
+                match service_belongs_to_org(&db_pool, &service, ctx.org_id).await {
+                    Ok(true) => {}
+                    Ok(false) => {
+                        return Json(ApiResponse { success: false, data: None, message: "forbidden".to_string() });
+                    }
+                    Err(msg) => {
+                        return Json(ApiResponse { success: false, data: None, message: msg });
+                    }
+                }
+            }
+            Ok(None) => {
+                return Json(ApiResponse { success: false, data: None, message: "Service not found".to_string() });
+            }
+            Err(e) => {
+                return Json(ApiResponse { success: false, data: None, message: format!("Failed to get service: {}", e) });
+            }
+        }
+    }
+
     match db_pool
         .update_service(
             &service_id,
@@ -263,7 +385,32 @@ pub async fn update_service_api(
 pub async fn delete_service_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
     axum::extract::Path(service_id): axum::extract::Path<String>,
+    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
 ) -> Json<ApiResponse<()>> {
+    if !ctx.is_admin && ctx.org_role.as_deref() != Some("admin") {
+        return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+    }
+
+    if !ctx.is_admin {
+        match db_pool.get_service(&service_id).await {
+            Ok(Some(service)) => {
+                match service_belongs_to_org(&db_pool, &service, ctx.org_id).await {
+                    Ok(true) => {}
+                    Ok(false) => {
+                        return Json(ApiResponse { success: false, data: None, message: "forbidden".to_string() });
+                    }
+                    Err(msg) => {
+                        return Json(ApiResponse { success: false, data: None, message: msg });
+                    }
+                }
+            }
+            Ok(None) => {}
+            Err(e) => {
+                return Json(ApiResponse { success: false, data: None, message: format!("Failed to get service: {}", e) });
+            }
+        }
+    }
+
     match db_pool.delete_service(&service_id).await {
         Ok(true) => Json(ApiResponse {
             success: true,
@@ -286,7 +433,28 @@ pub async fn delete_service_api(
 pub async fn list_service_model_services_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
     axum::extract::Path(service_id): axum::extract::Path<String>,
+    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
 ) -> Json<ApiResponse<Vec<crate::db::Provider>>> {
+    if !ctx.is_admin {
+        match db_pool.get_service(&service_id).await {
+            Ok(Some(service)) => {
+                match service_belongs_to_org(&db_pool, &service, ctx.org_id).await {
+                    Ok(true) => {}
+                    Ok(false) => {
+                        return Json(ApiResponse { success: false, data: None, message: "forbidden".to_string() });
+                    }
+                    Err(msg) => {
+                        return Json(ApiResponse { success: false, data: None, message: msg });
+                    }
+                }
+            }
+            Ok(None) => {}
+            Err(e) => {
+                return Json(ApiResponse { success: false, data: None, message: format!("Failed to get service: {}", e) });
+            }
+        }
+    }
+
     match db_pool.list_service_providers(&service_id).await {
         Ok(providers) => Json(ApiResponse {
             success: true,
@@ -304,8 +472,33 @@ pub async fn list_service_model_services_api(
 pub async fn bind_service_model_service_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
     axum::extract::Path(service_id): axum::extract::Path<String>,
+    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
     Json(req): Json<BindProviderRequest>,
 ) -> Json<ApiResponse<()>> {
+    if !ctx.is_admin && ctx.org_role.as_deref() != Some("admin") {
+        return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+    }
+
+    if !ctx.is_admin {
+        match db_pool.get_service(&service_id).await {
+            Ok(Some(service)) => {
+                match service_belongs_to_org(&db_pool, &service, ctx.org_id).await {
+                    Ok(true) => {}
+                    Ok(false) => {
+                        return Json(ApiResponse { success: false, data: None, message: "forbidden".to_string() });
+                    }
+                    Err(msg) => {
+                        return Json(ApiResponse { success: false, data: None, message: msg });
+                    }
+                }
+            }
+            Ok(None) => {}
+            Err(e) => {
+                return Json(ApiResponse { success: false, data: None, message: format!("Failed to get service: {}", e) });
+            }
+        }
+    }
+
     match db_pool.bind_service_provider(&service_id, req.provider_id).await {
         Ok(_) => Json(ApiResponse {
             success: true,
@@ -323,7 +516,32 @@ pub async fn bind_service_model_service_api(
 pub async fn unbind_service_model_service_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
     axum::extract::Path((service_id, provider_id)): axum::extract::Path<(String, i64)>,
+    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
 ) -> Json<ApiResponse<()>> {
+    if !ctx.is_admin && ctx.org_role.as_deref() != Some("admin") {
+        return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+    }
+
+    if !ctx.is_admin {
+        match db_pool.get_service(&service_id).await {
+            Ok(Some(service)) => {
+                match service_belongs_to_org(&db_pool, &service, ctx.org_id).await {
+                    Ok(true) => {}
+                    Ok(false) => {
+                        return Json(ApiResponse { success: false, data: None, message: "forbidden".to_string() });
+                    }
+                    Err(msg) => {
+                        return Json(ApiResponse { success: false, data: None, message: msg });
+                    }
+                }
+            }
+            Ok(None) => {}
+            Err(e) => {
+                return Json(ApiResponse { success: false, data: None, message: format!("Failed to get service: {}", e) });
+            }
+        }
+    }
+
     match db_pool.unbind_service_provider(&service_id, provider_id).await {
         Ok(true) => Json(ApiResponse {
             success: true,

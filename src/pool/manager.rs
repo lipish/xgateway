@@ -290,6 +290,9 @@ impl PoolManager {
                         .unwrap_or_else(|| "unknown".to_string());
                     let error_log = crate::db::NewRequestLog {
                         service_id: None,
+                        api_key_id: None,
+                        project_id: None,
+                        org_id: None,
                         provider_id: Some(provider.id),
                         provider_name: provider.name.clone(),
                         model: model_for_log.clone(),
@@ -335,6 +338,9 @@ impl PoolManager {
 
                         let disabled_log = crate::db::NewRequestLog {
                             service_id: None,
+                            api_key_id: None,
+                            project_id: None,
+                            org_id: None,
                             provider_id: Some(provider.id),
                             provider_name: provider.name.clone(),
                             model: model_for_log,

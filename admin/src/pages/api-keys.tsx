@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { TwoPanelLayout } from "@/components/layout/two-panel-layout"
 import { DetailPanel } from "@/components/layout/detail-panel"
 import { t } from "@/lib/i18n"
+import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api"
 import { Plus } from "lucide-react"
 import { ApiKeyCreateDialog } from "@/components/api-keys/ApiKeyCreateDialog"
 import { ApiKeyEditDialog } from "@/components/api-keys/ApiKeyEditDialog"
@@ -12,6 +13,16 @@ import { ApiKeyRotateResultDialog } from "@/components/api-keys/ApiKeyRotateResu
 import { ApiKeysListCard } from "@/components/api-keys/ApiKeysListCard"
 import { ApiKeyDetailCard } from "@/components/api-keys/ApiKeyDetailCard"
 import type { ApiKey, Provider, Service } from "@/components/api-keys/types"
+
+type ApiResponse<T> = {
+  success: boolean
+  data?: T
+  message: string
+}
+
+type ApiKeyFullKeyResult = {
+  full_key: string
+}
 
 export function ApiKeysPage() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
@@ -57,12 +68,9 @@ export function ApiKeysPage() {
       setRotateError(null)
       setRotatedKey(null)
 
-      const response = await fetch(`/api/api-keys/${id}/rotate`, {
-        method: 'POST'
-      })
-      const data = await response.json()
+      const data = await apiPost<ApiResponse<ApiKeyFullKeyResult>>(`/api/api-keys/${id}/rotate`)
       if (data.success) {
-        setRotatedKey(data.data.full_key)
+        setRotatedKey(data.data?.full_key || null)
       } else {
         setRotateError(data.message || t('common.networkError'))
       }
@@ -95,13 +103,7 @@ export function ApiKeysPage() {
 
   const fetchServices = async () => {
     try {
-      const response = await fetch('/api/services')
-      if (!response.ok) {
-        setError(`Failed to fetch services: ${response.status} ${response.statusText}`)
-        setServices([])
-        return
-      }
-      const data = await response.json()
+      const data = await apiGet<ApiResponse<Service[]>>('/api/services')
       if (data.success) {
         setServices(data.data || [])
       } else {
@@ -158,13 +160,7 @@ export function ApiKeysPage() {
   const fetchApiKeys = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/api-keys')
-      if (!response.ok) {
-        setError(`Failed to fetch API keys: ${response.status} ${response.statusText}`)
-        setApiKeys([])
-        return
-      }
-      const data = await response.json()
+      const data = await apiGet<ApiResponse<ApiKey[]>>('/api/api-keys')
       if (data.success) {
         console.log('API Keys Response:', data.data)
         setApiKeys(data.data || [])
@@ -214,18 +210,12 @@ export function ApiKeysPage() {
         service_ids: editKeyData.scope === 'global' ? null : editKeyData.service_ids,
       }
 
-      const response = await fetch(`/api/api-keys/${editingApiKeyId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      const data = await response.json()
+      const data = await apiPut<ApiResponse<unknown>>(`/api/api-keys/${editingApiKeyId}`, payload)
       if (data.success) {
-        setShowEditDialog(false)
-        setEditingApiKeyId(null)
         fetchApiKeys()
+        setShowEditDialog(false)
       } else {
-        setEditError(data.message || t('common.networkError'))
+        setEditError(data.message || t('common.saveFailed'))
       }
     } catch {
       setEditError(t('common.networkError'))
@@ -236,13 +226,7 @@ export function ApiKeysPage() {
 
   const fetchProviders = async () => {
     try {
-      const response = await fetch('/api/instances')
-      if (!response.ok) {
-        setError(`Failed to fetch instances: ${response.status} ${response.statusText}`)
-        setProviders([])
-        return
-      }
-      const data = await response.json()
+      const data = await apiGet<ApiResponse<Provider[]>>('/api/instances')
       if (data.success) {
         setProviders(data.data || [])
       } else {
@@ -256,6 +240,7 @@ export function ApiKeysPage() {
   }
 
   const handleCreate = async () => {
+    if (!newKeyData.name) return
     try {
       setError(null)
 
@@ -266,18 +251,13 @@ export function ApiKeysPage() {
 
       const payload = {
         ...newKeyData,
-        service_ids: newKeyData.scope === 'global' ? null : newKeyData.service_ids,
         provider_id: null,
         provider_ids: null,
+        service_ids: newKeyData.scope === 'global' ? null : newKeyData.service_ids,
       }
-      const response = await fetch('/api/api-keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      const data = await response.json()
+      const data = await apiPost<ApiResponse<ApiKeyFullKeyResult>>('/api/api-keys', payload)
       if (data.success) {
-        setCreatedKey(data.data.full_key)
+        setCreatedKey(data.data?.full_key || null)
         fetchApiKeys()
       } else {
         setError(data.message || t('apiKeys.createFailed'))
@@ -296,12 +276,12 @@ export function ApiKeysPage() {
   const toggleApiKeyStatus = async (id: number) => {
     try {
       setStatusUpdatingId(id)
-      const response = await fetch(`/api/api-keys/${id}/toggle`, {
-        method: 'POST'
-      })
-      const data = await response.json()
+
+      const data = await apiPost<ApiResponse<unknown>>(`/api/api-keys/${id}/toggle`)
       if (data.success) {
         fetchApiKeys()
+      } else {
+        setError(data.message || t('common.networkError'))
       }
     } catch (err) {
       console.error('Failed to toggle API key status:', err)
@@ -313,10 +293,7 @@ export function ApiKeysPage() {
   const handleDelete = async () => {
     if (!apiKeyToDelete) return
     try {
-      const response = await fetch(`/api/api-keys/${apiKeyToDelete}`, {
-        method: 'DELETE'
-      })
-      const data = await response.json()
+      const data = await apiDelete<ApiResponse<unknown>>(`/api/api-keys/${apiKeyToDelete}`)
       if (data.success) {
         fetchApiKeys()
       }
@@ -348,12 +325,7 @@ export function ApiKeysPage() {
         service_ids: legacyServiceIds,
       }
 
-      const response = await fetch(`/api/api-keys/${key.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      const data = await response.json()
+      const data = await apiPut<ApiResponse<unknown>>(`/api/api-keys/${key.id}`, payload)
       if (data.success) {
         await fetchApiKeys()
       } else {

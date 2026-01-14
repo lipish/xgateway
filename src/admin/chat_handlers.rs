@@ -125,7 +125,19 @@ pub async fn handle_admin_chat_completions(
         }
     };
 
-    match send_to_provider(None, &provider, &request, is_stream, None, &db_pool, &pool_manager).await {
+    match send_to_provider(
+        None,
+        None,
+        None,
+        None,
+        &provider,
+        &request,
+        is_stream,
+        None,
+        &db_pool,
+        &pool_manager,
+    )
+    .await {
         RequestResult::Success(response) => response,
         RequestResult::Failure { error, .. } => (
             StatusCode::BAD_GATEWAY,
