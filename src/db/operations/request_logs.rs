@@ -38,6 +38,20 @@ pub struct TopModelUsage {
     pub tokens: i64,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenUsageByOrg {
+    pub org_id: i64,
+    pub requests: i64,
+    pub tokens: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenUsageByService {
+    pub service_id: String,
+    pub requests: i64,
+    pub tokens: i64,
+}
+
 impl DatabasePool {
     // Request Log operations
     
@@ -313,4 +327,100 @@ impl DatabasePool {
             }
         }
     }
+
+    pub async fn get_token_usage_by_org(
+        &self,
+        last_hours: i64,
+        top: i64,
+        org_id_filter: Option<i64>,
+    ) -> Result<Vec<TokenUsageByOrg>> {
+        match self {
+            Self::Postgres(pool) => {
+                let mut qb = sqlx::QueryBuilder::new(
+                    r#"
+                    SELECT
+                        org_id::BIGINT as org_id,
+                        COUNT(*)::BIGINT as requests,
+                        COALESCE(SUM(tokens_used), 0)::BIGINT as tokens
+                    FROM request_logs
+                    WHERE created_at >= NOW() - ("#,
+                );
+                qb.push_bind(last_hours);
+                qb.push("::INT * INTERVAL '1 hour')");
+                qb.push(" AND status = 'success'");
+                qb.push(" AND request_type <> 'health_check'");
+                qb.push(" AND org_id IS NOT NULL");
+
+                if let Some(org_id) = org_id_filter {
+                    qb.push(" AND org_id = ").push_bind(org_id);
+                }
+
+                qb.push(" GROUP BY org_id");
+                qb.push(" ORDER BY tokens DESC, requests DESC, org_id ASC");
+                qb.push(" LIMIT ").push_bind(top);
+
+                let rows = qb.build().fetch_all(pool).await?;
+
+                let mut result = Vec::new();
+                for row in rows {
+                    result.push(TokenUsageByOrg {
+                        org_id: row.try_get("org_id")?,
+                        requests: row.try_get("requests")?,
+                        tokens: row.try_get("tokens")?,
+                    });
+                }
+
+                Ok(result)
+            }
+        }
+    }
+
+    pub async fn get_token_usage_by_service(
+        &self,
+        last_hours: i64,
+        top: i64,
+        org_id_filter: Option<i64>,
+    ) -> Result<Vec<TokenUsageByService>> {
+        match self {
+            Self::Postgres(pool) => {
+                let mut qb = sqlx::QueryBuilder::new(
+                    r#"
+                    SELECT
+                        service_id,
+                        COUNT(*)::BIGINT as requests,
+                        COALESCE(SUM(tokens_used), 0)::BIGINT as tokens
+                    FROM request_logs
+                    WHERE created_at >= NOW() - ("#,
+                );
+                qb.push_bind(last_hours);
+                qb.push("::INT * INTERVAL '1 hour')");
+                qb.push(" AND status = 'success'");
+                qb.push(" AND request_type <> 'health_check'");
+                qb.push(" AND service_id IS NOT NULL");
+
+                if let Some(org_id) = org_id_filter {
+                    qb.push(" AND org_id = ").push_bind(org_id);
+                }
+
+                qb.push(" GROUP BY service_id");
+                qb.push(" ORDER BY tokens DESC, requests DESC, service_id ASC");
+                qb.push(" LIMIT ").push_bind(top);
+
+                let rows = qb.build().fetch_all(pool).await?;
+
+                let mut result = Vec::new();
+                for row in rows {
+                    result.push(TokenUsageByService {
+                        service_id: row.try_get::<Option<String>, _>("service_id")?.unwrap_or_default(),
+                        requests: row.try_get("requests")?,
+                        tokens: row.try_get("tokens")?,
+                    });
+                }
+
+                Ok(result)
+            }
+        }
+    }
 }
+
+ 

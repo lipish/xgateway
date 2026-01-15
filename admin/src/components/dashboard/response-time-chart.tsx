@@ -9,22 +9,17 @@ interface ProviderLatency {
   avg_latency_ms: number
 }
 
-const colors = [
-  "bg-blue-500",
-  "bg-purple-500",
-  "bg-violet-500",
-  "bg-orange-500",
-  "bg-red-500",
-  "bg-yellow-500",
-  "bg-pink-500",
-  "bg-indigo-500",
-  "bg-teal-500",
-  "bg-cyan-500"
-]
-
 export function ResponseTimeChart() {
   const [services, setServices] = useState<ProviderLatency[]>([])
   const [loading, setLoading] = useState(true)
+
+  const getLatencyColor = (avgLatencyMs: number, bestLatencyMs: number) => {
+    if (!Number.isFinite(avgLatencyMs)) return "bg-muted"
+    if (!Number.isFinite(bestLatencyMs) || bestLatencyMs <= 0) return "bg-violet-400"
+
+    if (avgLatencyMs <= bestLatencyMs * 1.1) return "bg-emerald-500"
+    return "bg-violet-400"
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,6 +57,7 @@ export function ResponseTimeChart() {
   }
 
   const maxLatency = services.length > 0 ? Math.max(...services.map(s => s.avg_latency_ms)) : 1
+  const minLatency = services.length > 0 ? Math.min(...services.map(s => s.avg_latency_ms)) : 0
 
   return (
     <Card className="rounded-xl border bg-card h-80">
@@ -73,7 +69,7 @@ export function ResponseTimeChart() {
         <div className="space-y-1">
           {services.map((service, index) => {
             const width = services.length > 0 ? (service.avg_latency_ms / maxLatency) * 100 : 0
-            const color = colors[index % colors.length]
+            const color = getLatencyColor(service.avg_latency_ms, minLatency)
             return (
               <div key={index} className="space-y-1">
                 <div className="flex items-center justify-between">

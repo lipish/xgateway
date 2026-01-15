@@ -36,6 +36,9 @@ interface AnalyticsData {
     error_type: string
     error_message: string
   }>
+
+  token_by_org: Array<{ org_id: number; tokens: number; requests: number }>
+  token_by_service: Array<{ service_id: string; tokens: number; requests: number }>
 }
 
 export function AnalyticsPage() {
@@ -48,42 +51,54 @@ export function AnalyticsPage() {
       setLoading(true)
       setError(null)
 
-      // 获取性能统计数据（包含今日统计）
-      const performanceResult = await apiGet("/api/logs/performance") as any
-      if (performanceResult.success) {
-        const perfData = performanceResult.data
+      const [performanceResult, topModelsResult, errorsResult, byOrgResult, byServiceResult] = await Promise.all([
+        apiGet("/api/logs/performance"),
+        apiGet("/api/logs/top-models?limit=10&hours=24"),
+        apiGet("/api/logs?status=error&limit=10"),
+        apiGet("/api/logs/tokens/by-org?hours=24&top=20"),
+        apiGet("/api/logs/tokens/by-service?hours=24&top=20"),
+      ]) as any
 
-        // 获取热门模型
-        const topModelsResult = await apiGet("/api/logs/top-models?limit=10&hours=24") as any
-        const topModels = topModelsResult.success ? topModelsResult.data : []
-
-        // 获取错误日志
-        const errorsResult = await apiGet("/api/logs?status=error&limit=10") as any
-        const recentErrors = errorsResult.success ? errorsResult.data : []
-
-        // 构建analytics数据
-        const analyticsData: AnalyticsData = {
-          total_requests: perfData.requests_today || 0,
-          success_rate: perfData.success_rate || 0,
-          avg_latency_ms: perfData.avg_response_time || 0,
-          tokens_used: perfData.tokens_used || 0,
-          requests_today: perfData.requests_today || 0,
-          failed_requests: perfData.failed_requests || 0,
-          top_models: topModels || [],
-          recent_errors: recentErrors.map((error: any) => ({
-            timestamp: error.created_at,
-            provider: error.provider_name,
-            model: error.model,
-            error_type: error.error_message?.includes('timeout') ? 'Timeout' :
-              error.error_message?.includes('rate') ? 'Rate Limit' : 'Error',
-            error_message: error.error_message
-          }))
-        }
-
-        setData(analyticsData)
-      } else {
+      if (!performanceResult.success) {
         setError(performanceResult.message || t('common.error'))
+        return
       }
+
+      const perfData = performanceResult.data
+      const topModels = topModelsResult?.success ? topModelsResult.data : []
+      const recentErrors = errorsResult?.success ? errorsResult.data : []
+      const tokenByOrg = byOrgResult?.success ? byOrgResult.data : []
+      const tokenByService = byServiceResult?.success ? byServiceResult.data : []
+
+      const analyticsData: AnalyticsData = {
+        total_requests: perfData.requests_today || 0,
+        success_rate: perfData.success_rate || 0,
+        avg_latency_ms: perfData.avg_response_time || 0,
+        tokens_used: perfData.tokens_used || 0,
+        requests_today: perfData.requests_today || 0,
+        failed_requests: perfData.failed_requests || 0,
+        top_models: topModels || [],
+        recent_errors: recentErrors.map((error: any) => ({
+          timestamp: error.created_at,
+          provider: error.provider_name,
+          model: error.model,
+          error_type: error.error_message?.includes('timeout') ? 'Timeout' :
+            error.error_message?.includes('rate') ? 'Rate Limit' : 'Error',
+          error_message: error.error_message
+        })),
+        token_by_org: (tokenByOrg || []).map((r: any) => ({
+          org_id: r.org_id,
+          tokens: r.tokens,
+          requests: r.requests,
+        })),
+        token_by_service: (tokenByService || []).map((r: any) => ({
+          service_id: r.service_id,
+          tokens: r.tokens,
+          requests: r.requests,
+        })),
+      }
+
+      setData(analyticsData)
     } catch (err) {
       console.error("Error fetching analytics:", err)
       setError(t('common.networkError'))
@@ -263,6 +278,45 @@ export function AnalyticsPage() {
                   <div className="text-sm text-muted-foreground mb-2">{t("dashboard.uptime")}</div>
                   <div className="text-2xl font-bold">99.9%</div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2 items-start">
+            <div className="rounded-xl border bg-card p-6 h-80 flex flex-col min-h-0">
+              <h3 className="text-lg font-semibold mb-4">{t("organizations.title")} Tokens (24h)</h3>
+              <div className="space-y-2 flex-1 min-h-0 overflow-auto scrollbar-hover">
+                {(data.token_by_org || []).length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-sm text-muted-foreground">—</div>
+                ) : (
+                  data.token_by_org.slice(0, 10).map((row, idx) => (
+                    <div key={idx} className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-lg gap-3">
+                      <div className="text-sm">org #{row.org_id}</div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium">{Number(row.tokens).toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">{row.requests} req</div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="rounded-xl border bg-card p-6 h-80 flex flex-col min-h-0">
+              <h3 className="text-lg font-semibold mb-4">{t("services.title")} Tokens (24h)</h3>
+              <div className="space-y-2 flex-1 min-h-0 overflow-auto scrollbar-hover">
+                {(data.token_by_service || []).length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-sm text-muted-foreground">—</div>
+                ) : (
+                  data.token_by_service.slice(0, 10).map((row, idx) => (
+                    <div key={idx} className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-lg gap-3">
+                      <div className="text-sm truncate min-w-0">{row.service_id || "-"}</div>
+                      <div className="text-right shrink-0">
+                        <div className="text-sm font-medium">{Number(row.tokens).toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">{row.requests} req</div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

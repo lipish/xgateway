@@ -138,7 +138,7 @@ export function SettingsPage() {
                     <Select
                       value={settings.load_balance_strategy}
                       onChange={(value) => setSettings({ ...settings, load_balance_strategy: value })}
-                      options={STRATEGIES.map(s => ({ value: s.value, label: t(`scheduling.strategies.${s.value}`) || s.label }))}
+                      options={STRATEGIES.map(s => ({ value: s.value, label: t(`common.scheduling.strategies.${s.value}`) || s.label }))}
                       triggerClassName="h-10"
                     />
                   </div>
@@ -155,7 +155,7 @@ export function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">{t('settings.interval')} ({t('common.seconds')})</Label>
+                    <Label className="text-sm font-medium">{t('settings.interval')}</Label>
                     <Input
                       type="number"
                       value={settings.health_check_interval_secs}
@@ -186,7 +186,7 @@ export function SettingsPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">{t('settings.timeout')} ({t('common.seconds')})</Label>
+                      <Label className="text-sm font-medium">{t('settings.timeout')}</Label>
                       <Input
                         type="number"
                         value={settings.circuit_breaker_timeout_secs}
@@ -218,7 +218,7 @@ export function SettingsPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">{t('settings.retryDelay')} (ms)</Label>
+                      <Label className="text-sm font-medium">{t('settings.retryDelay')}</Label>
                       <Input
                         type="number"
                         value={settings.retry_delay_ms}
@@ -240,7 +240,7 @@ export function SettingsPage() {
                   className="h-10 px-6 gap-2"
                 >
                   <RefreshCw className="h-4 w-4" />
-                  {t('settings.resetToDefaults')}
+                  {t('settings.reset')}
                 </Button>
               </div>
               <div className="flex items-center gap-3">
