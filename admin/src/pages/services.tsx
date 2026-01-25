@@ -38,7 +38,8 @@ export function ServicesPage() {
 
   const [serviceToDelete, setServiceToDelete] = useState<string | null>(null)
   const [bindingBusyId, setBindingBusyId] = useState<number | null>(null)
-  const [toggleBusy, setToggleBusy] = useState(false)
+  const [toggleBusyId, setToggleBusyId] = useState<string | null>(null)
+  const [fallbackBusy, setFallbackBusy] = useState(false)
 
   const [showCreateApiKeyDialog, setShowCreateApiKeyDialog] = useState(false)
   const [apiKeyCreateError, setApiKeyCreateError] = useState<string | null>(null)
@@ -491,11 +492,10 @@ export function ServicesPage() {
     }
   }
 
-  const toggleServiceEnabled = async () => {
-    if (!selectedService) return
+  const toggleServiceEnabled = async (service: Service) => {
     try {
-      setToggleBusy(true)
-      const data = await apiPut<ApiResponse<Service>>(`/api/services/${selectedService.id}`, { enabled: !selectedService.enabled })
+      setToggleBusyId(service.id)
+      const data = await apiPut<ApiResponse<Service>>(`/api/services/${service.id}`, { enabled: !service.enabled })
       if (!data.success) {
         setError(data.message || t("common.networkError"))
         return
@@ -504,7 +504,7 @@ export function ServicesPage() {
     } catch {
       setError(t("common.networkError"))
     } finally {
-      setToggleBusy(false)
+      setToggleBusyId((current) => (current === service.id ? null : current))
     }
   }
 
@@ -531,6 +531,24 @@ export function ServicesPage() {
       setError(t("common.networkError"))
     } finally {
       setBindingBusyId(null)
+    }
+  }
+
+  const updateFallbackChain = async (nextChain: string) => {
+    if (!selectedService) return
+    try {
+      setFallbackBusy(true)
+      const payload = { fallback_chain: nextChain.length > 0 ? nextChain : null }
+      const data = await apiPut<ApiResponse<Service>>(`/api/services/${selectedService.id}`, payload)
+      if (!data.success) {
+        setError(data.message || t("common.networkError"))
+        return
+      }
+      await fetchServices()
+    } catch {
+      setError(t("common.networkError"))
+    } finally {
+      setFallbackBusy(false)
     }
   }
 
@@ -591,6 +609,8 @@ export function ServicesPage() {
                 services={services}
                 selectedServiceId={selectedServiceId}
                 onSelectServiceId={setSelectedServiceId}
+                onToggleEnabled={toggleServiceEnabled}
+                toggleBusyId={toggleBusyId}
                 onEdit={openEdit}
                 onRequestDelete={setServiceToDelete}
               />
@@ -605,14 +625,16 @@ export function ServicesPage() {
                   <div className="space-y-4">
                     <ServiceDetailCard
                       service={selectedService}
-                      toggleBusy={toggleBusy}
-                      onToggleEnabled={toggleServiceEnabled}
                     />
 
                     <ServiceBindingsSection
+                      service={selectedService}
+                      services={services}
                       providers={providers}
                       boundProviderIdSet={boundProviderIdSet}
                       bindingBusyId={bindingBusyId}
+                      fallbackBusy={fallbackBusy}
+                      onUpdateFallbackChain={updateFallbackChain}
                       onToggleBinding={setBinding}
                       error={error}
                     />

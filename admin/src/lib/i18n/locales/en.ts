@@ -32,10 +32,10 @@ export const en = {
     empty: 'No organizations',
     select: 'Select an organization from the list',
     id: 'ID',
-    status: 'Status',
-    statusLabel: {
-      active: 'Active',
-      disabled: 'Disabled',
+    label: 'Label',
+    labelText: {
+      active: 'Available',
+      disabled: 'Unavailable',
     },
     updatedAt: 'Updated At',
     confirmDelete: 'Delete Organization',
@@ -73,10 +73,10 @@ export const en = {
     select: 'Select a project from the list',
     id: 'ID',
     orgId: 'Organization ID',
-    status: 'Status',
-    statusLabel: {
-      active: 'Active',
-      disabled: 'Disabled',
+    label: 'Label',
+    labelText: {
+      active: 'Available',
+      disabled: 'Unavailable',
     },
     updatedAt: 'Updated At',
     confirmDelete: 'Delete Project',
@@ -95,6 +95,8 @@ export const en = {
     status: 'Status',
     enabled: 'Enabled',
     disabled: 'Disabled',
+    enable: 'Enable',
+    disable: 'Disable',
     strategy: 'Strategy',
     strategyOptions: {
       priority: 'Priority',

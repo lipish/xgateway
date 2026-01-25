@@ -35,7 +35,7 @@ export function UserListCard({ users, organizations, selectedUserId, onSelectUse
             </div>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border">
+          <div className="overflow-hidden rounded-lg">
             <Table>
               <TableHeader className="sticky top-0 bg-white">
                 <TableRow>

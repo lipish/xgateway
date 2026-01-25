@@ -1,11 +1,10 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { t } from "@/lib/i18n"
-import { MoreVertical, Pencil, Trash2 } from "lucide-react"
+import { MoreVertical, Pencil, Power, Trash2 } from "lucide-react"
 import type { Service } from "./types"
 
 interface ServiceListCardProps {
@@ -13,6 +12,8 @@ interface ServiceListCardProps {
   services: Service[]
   selectedServiceId: string | null
   onSelectServiceId: (id: string) => void
+  onToggleEnabled: (service: Service) => void
+  toggleBusyId: string | null
   onEdit: (svc: Service) => void
   onRequestDelete: (id: string) => void
 }
@@ -22,6 +23,8 @@ export function ServiceListCard({
   services,
   selectedServiceId,
   onSelectServiceId,
+  onToggleEnabled,
+  toggleBusyId,
   onEdit,
   onRequestDelete,
 }: ServiceListCardProps) {
@@ -62,10 +65,8 @@ export function ServiceListCard({
                 >
                   <TableCell className="font-medium">{svc.name}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{svc.id}</TableCell>
-                  <TableCell>
-                    <Badge variant={svc.enabled ? "success" : "outline"}>
-                      {svc.enabled ? t("services.enabled") : t("services.disabled")}
-                    </Badge>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {svc.enabled ? t("services.enabled") : t("services.disabled")}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu modal={false}>
@@ -80,21 +81,31 @@ export function ServiceListCard({
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onEdit(svc)
-                          }}
-                        >
-                          <Pencil className="h-4 w-4 mr-2" />
-                          {t("common.edit")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onRequestDelete(svc.id)
-                          }}
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onEdit(svc)
+                            }}
+                          >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            {t("common.edit")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onToggleEnabled(svc)
+                            }}
+                            disabled={toggleBusyId === svc.id}
+                          >
+                            <Power className="h-4 w-4 mr-2" />
+                            {svc.enabled ? t("services.disable") : t("services.enable")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onRequestDelete(svc.id)
+                            }}
                           className="text-destructive focus:text-destructive"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />

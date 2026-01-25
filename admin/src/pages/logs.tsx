@@ -126,8 +126,7 @@ export function LogsPage() {
   const requestTypeOptions = (() => {
     const types = Array.from(new Set(logs.map((l) => l.request_type).filter(Boolean))).sort()
     const toLabel = (tpe: string) => {
-      if (tpe === "health_check") return t("logs.healthCheck")
-      if (tpe === "provider_disabled") return t("logs.providerDisabled")
+      if (tpe === "health_check" || tpe === "provider_disabled") return t("logs.healthCheck")
       if (tpe === "chat") return t("logs.chat")
       return tpe
     }
@@ -204,7 +203,12 @@ export function LogsPage() {
         <div className="flex items-center gap-2 mb-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder={t('logs.search')} className="pl-9" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+            <Input
+              placeholder={t('logs.search')}
+              className="pl-9 focus-visible:ring-0 focus-visible:ring-offset-0"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
           <Select
             value={statusFilter}
@@ -271,7 +275,9 @@ export function LogsPage() {
                               <Badge variant="secondary">{t('logs.healthCheck')}</Badge>
                             )}
                             {log.request_type === 'provider_disabled' && (
-                              <Badge variant="destructive">{t('logs.providerDisabled')}</Badge>
+                              <Badge className="bg-destructive text-destructive-foreground border-0" variant="destructive">
+                                {t('logs.providerDisabled')}
+                              </Badge>
                             )}
                             {log.request_type === 'chat' && (
                               <Badge variant="secondary">{t('logs.chat')}</Badge>
@@ -310,7 +316,9 @@ export function LogsPage() {
                             <Badge variant="secondary">{t('logs.healthCheck')}</Badge>
                           )}
                           {selectedLog.request_type === 'provider_disabled' && (
-                            <Badge variant="destructive">{t('logs.providerDisabled')}</Badge>
+                            <Badge className="bg-destructive text-destructive-foreground border-0" variant="destructive">
+                              {t('logs.providerDisabled')}
+                            </Badge>
                           )}
                           {selectedLog.request_type === 'chat' && (
                             <Badge variant="secondary">{t('logs.chat')}</Badge>

@@ -35,10 +35,19 @@ export function UsersPage() {
     const [showEditDialog, setShowEditDialog] = useState(false)
     const [selectedUser, setSelectedUser] = useState<User | null>(null)
     const [userInstances, setUserInstances] = useState<UserInstance[]>([])
-    const [newUser, setNewUser] = useState({ username: '', password: '', role_id: 'user', org_id: '' })
+    const [newUser, setNewUser] = useState<{ username: string; password: string; role_id: string; org_id?: string }>({
+        username: '',
+        password: '',
+        role_id: 'user',
+        org_id: '',
+    })
     const [organizations, setOrganizations] = useState<Organization[]>([])
     const [grantData, setGrantData] = useState({ provider_id: '' })
-    const [editUser, setEditUser] = useState({ role_id: 'user', password: '', org_id: '' })
+    const [editUser, setEditUser] = useState<{ role_id: string; password: string; org_id?: string }>({
+        role_id: 'user',
+        password: '',
+        org_id: '',
+    })
     const [savingEdit, setSavingEdit] = useState(false)
     const [creating, setCreating] = useState(false)
     const [error, setError] = useState<string | null>(null)
