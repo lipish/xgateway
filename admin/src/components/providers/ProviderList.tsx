@@ -15,8 +15,8 @@ export function ProviderList({ providers, selectedProvider, onSelectProvider }: 
       {providers.map(pt => (
         <div
           key={pt.id}
-          className={`p-4 rounded-lg border cursor-pointer hover:bg-violet-50 transition-colors ${
-            selectedProvider?.id === pt.id ? 'bg-violet-50 border-violet-300' : 'bg-white border-border'
+          className={`p-4 rounded-lg border border-border cursor-pointer hover:bg-violet-50 transition-colors ${
+            selectedProvider?.id === pt.id ? 'bg-violet-50' : 'bg-white'
           }`}
           onClick={() => onSelectProvider(pt)}
         >

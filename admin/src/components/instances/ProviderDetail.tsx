@@ -42,9 +42,9 @@ export function ProviderDetail({ provider, providerTypeConfig, onTest, onNavigat
   const providerIcon = getProviderIcon(provider.provider_type)
 
   return (
-    <div className="w-[35%] bg-white rounded-xl shadow-sm border flex flex-col overflow-hidden">
+      <div className="w-[35%] bg-white rounded-xl shadow-sm border flex flex-col overflow-hidden">
       {/* Header with gradient background */}
-      <div className="px-6 py-4 bg-gradient-to-r from-muted/30 to-muted/10 border-b">
+      <div className="px-6 py-4 bg-gradient-to-r from-muted/30 to-muted/10">
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-3">
             <div
@@ -116,7 +116,7 @@ export function ProviderDetail({ provider, providerTypeConfig, onTest, onNavigat
             {t('providers.configInfo')}
           </h5>
           <div className="space-y-3">
-            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+            <div className="p-3 rounded-lg bg-muted">
               <div className="flex items-start gap-2">
                 <Link className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
                 <div className="flex-1 min-w-0">
@@ -130,7 +130,7 @@ export function ProviderDetail({ provider, providerTypeConfig, onTest, onNavigat
               </div>
             </div>
 
-            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+            <div className="p-3 rounded-lg bg-muted">
               <div className="flex items-start gap-2">
                 <Settings className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
                 <div className="flex-1 min-w-0">
@@ -142,7 +142,7 @@ export function ProviderDetail({ provider, providerTypeConfig, onTest, onNavigat
               </div>
             </div>
 
-            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+            <div className="p-3 rounded-lg bg-muted">
               <div className="flex items-start gap-2">
                 <Key className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
                 <div className="flex-1 min-w-0">
@@ -159,7 +159,7 @@ export function ProviderDetail({ provider, providerTypeConfig, onTest, onNavigat
             </div>
 
             {provider.provider_type === 'tencent' && provider.secret_id && (
-              <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+              <div className="p-3 rounded-lg bg-muted">
                 <div className="flex items-start gap-2">
                   <Key className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
@@ -177,7 +177,7 @@ export function ProviderDetail({ provider, providerTypeConfig, onTest, onNavigat
             )}
 
             {provider.provider_type === 'tencent' && provider.secret_key && (
-              <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+              <div className="p-3 rounded-lg bg-muted">
                 <div className="flex items-start gap-2">
                   <Key className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
@@ -195,7 +195,7 @@ export function ProviderDetail({ provider, providerTypeConfig, onTest, onNavigat
             )}
 
             {provider.provider_type === 'volcengine' && provider.endpoint && (
-              <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+              <div className="p-3 rounded-lg bg-muted">
                 <div className="flex items-start gap-2">
                   <Settings className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
@@ -211,12 +211,12 @@ export function ProviderDetail({ provider, providerTypeConfig, onTest, onNavigat
         </div>
 
         {/* Pricing & Quota section */}
-        <div className="space-y-3 pt-3 border-t">
+          <div className="space-y-3 pt-3">
           <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             {t('providers.pricingAndQuota') || 'Pricing & Quota'}
           </h5>
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+            <div className="p-3 rounded-lg bg-muted">
               <p className="text-[10px] font-medium text-muted-foreground mb-1">
                 {t('providers.inputPrice')}
               </p>
@@ -225,7 +225,7 @@ export function ProviderDetail({ provider, providerTypeConfig, onTest, onNavigat
                 <span className="text-[10px] text-muted-foreground ml-1">/1M</span>
               </p>
             </div>
-            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+            <div className="p-3 rounded-lg bg-muted">
               <p className="text-[10px] font-medium text-muted-foreground mb-1">
                 {t('providers.outputPrice')}
               </p>
@@ -234,7 +234,7 @@ export function ProviderDetail({ provider, providerTypeConfig, onTest, onNavigat
                 <span className="text-[10px] text-muted-foreground ml-1">/1M</span>
               </p>
             </div>
-            <div className={`p-3 rounded-lg border border-border/50 ${config.quota_limit ? 'bg-primary/5 border-primary/20' : 'bg-muted/30'}`}>
+            <div className={`p-3 rounded-lg ${config.quota_limit ? 'bg-primary/10' : 'bg-muted'}`}>
               <p className="text-[10px] font-medium text-muted-foreground mb-1">
                 {t('providers.quotaLimit')}
               </p>
@@ -242,7 +242,7 @@ export function ProviderDetail({ provider, providerTypeConfig, onTest, onNavigat
                 {config.quota_limit ? config.quota_limit.toLocaleString() : "∞"}
               </p>
             </div>
-            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+            <div className="p-3 rounded-lg bg-muted">
               <p className="text-[10px] font-medium text-muted-foreground mb-1">
                 {t('providers.tokensUsed')}
               </p>
@@ -257,7 +257,7 @@ export function ProviderDetail({ provider, providerTypeConfig, onTest, onNavigat
         </div>
 
         {/* Time info section */}
-        <div className="space-y-3 pt-3 border-t">
+        <div className="space-y-3 pt-3">
           <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             {t('providers.timeInfo')}
           </h5>

@@ -57,7 +57,7 @@ export function ProviderList({
           </span>
         </div>
       </div>
-      <div className="flex-1 overflow-auto border rounded-lg scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <div className="flex-1 overflow-auto rounded-lg scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {providers.length === 0 ? (
           <div className="flex-1 flex items-center justify-center py-12">
             <div className="text-center text-muted-foreground">

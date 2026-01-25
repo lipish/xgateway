@@ -66,11 +66,11 @@ export function ApiKeyDetailCard({
 
         <div className="p-5">
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-md bg-muted/60 p-4">
+            <div className="rounded-md bg-muted p-4">
               <div className="text-xs text-muted-foreground">{t("apiKeys.created")}</div>
               <div className="mt-1 text-sm font-medium">{formatDate(apiKey.created_at)}</div>
             </div>
-            <div className="rounded-md bg-muted/60 p-4">
+            <div className="rounded-md bg-muted p-4">
               <div className="text-xs text-muted-foreground">{t("apiKeys.scope")}</div>
               <div className="mt-1 text-sm font-medium">{getScopeLabel(apiKey.scope)}</div>
             </div>

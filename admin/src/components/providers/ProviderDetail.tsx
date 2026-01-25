@@ -25,7 +25,7 @@ interface ProviderDetailProps {
 export function ProviderDetail({ provider, onAddModel, onEditModel, onDeleteModel, onEditProvider, onDeleteProvider }: ProviderDetailProps) {
   return (
     <>
-      <div className="p-6 border-b bg-gradient-to-r from-muted/20 to-muted/5">
+      <div className="p-6 bg-gradient-to-r from-muted/20 to-muted/5">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <h2 className="text-2xl font-bold mb-2">{getLocalizedProviderName(provider.id, provider.label)}</h2>
@@ -80,12 +80,12 @@ export function ProviderDetail({ provider, onAddModel, onEditModel, onDeleteMode
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 rounded-lg bg-background border border-border/50">
+          <div className="p-3 rounded-lg bg-muted">
             <div className="text-xs font-medium text-muted-foreground mb-1.5">{t('modelTypes.baseUrl')}</div>
             <div className="text-xs font-mono text-foreground/90 break-all">{provider.base_url || '-'}</div>
           </div>
           {/* Corrected: Removed default model block */}
-          <div className="p-3 rounded-lg bg-background border border-border/50">
+          <div className="p-3 rounded-lg bg-muted">
             <div className="text-xs font-medium text-muted-foreground mb-1.5">{t('modelTypes.driverType')}</div>
             <div className="text-xs font-mono text-foreground/90 uppercase">{getLocalizedDriverType(provider.driver_type)}</div>
           </div>
@@ -105,7 +105,7 @@ export function ProviderDetail({ provider, onAddModel, onEditModel, onDeleteMode
             {t("modelTypes.noModels")}
           </div>
         ) : (
-          <div className="border rounded-lg overflow-hidden shadow-sm">
+          <div className="rounded-lg overflow-hidden shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">

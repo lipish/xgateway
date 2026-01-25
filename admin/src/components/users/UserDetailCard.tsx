@@ -53,16 +53,16 @@ export function UserDetailCard({
         <>
           <div className="p-4 space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-md bg-muted/60 p-3">
+              <div className="rounded-md bg-muted p-3">
                 <div className="text-xs text-muted-foreground">{t("users.createdAt")}</div>
                 <div className="mt-1 text-sm font-medium">{formatDate(user.created_at)}</div>
               </div>
-              <div className="rounded-md bg-muted/60 p-3">
+              <div className="rounded-md bg-muted p-3">
                 <div className="text-xs text-muted-foreground">{t("users.userId")}</div>
                 <div className="mt-1 text-sm font-medium">{user.id}</div>
               </div>
             </div>
-            <div className="rounded-md bg-muted/60 p-3">
+            <div className="rounded-md bg-muted p-3">
               <div className="text-xs text-muted-foreground">{t("users.orgLabel")}</div>
               <div className="mt-1 text-sm font-medium">{orgName}</div>
             </div>

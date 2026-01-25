@@ -22,29 +22,29 @@ export function ServiceDetailCard({ service }: ServiceDetailCardProps) {
 
       <div className="p-4">
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-          <div className="rounded-md bg-muted/60 p-3">
+          <div className="rounded-md bg-muted p-3">
             <div className="text-xs text-muted-foreground">{t("services.strategy")}</div>
             <div className="mt-1 text-sm font-medium">{strategyLabel}</div>
           </div>
-          <div className="rounded-md bg-muted/60 p-3">
+          <div className="rounded-md bg-muted p-3">
             <div className="text-xs text-muted-foreground">{t("services.updatedAt")}</div>
             <div className="mt-1 text-sm font-medium">{formatDate(service.updated_at)}</div>
           </div>
 
-          <div className="rounded-md bg-muted/60 p-3">
+          <div className="rounded-md bg-muted p-3">
             <div className="text-xs text-muted-foreground">{t("services.qpsLimit")}</div>
             <div className="mt-1 text-sm font-medium">{service.qps_limit}</div>
           </div>
-          <div className="rounded-md bg-muted/60 p-3">
+          <div className="rounded-md bg-muted p-3">
             <div className="text-xs text-muted-foreground">{t("services.concurrencyLimit")}</div>
             <div className="mt-1 text-sm font-medium">{service.concurrency_limit}</div>
           </div>
 
-          <div className="rounded-md bg-muted/60 p-3">
+          <div className="rounded-md bg-muted p-3">
             <div className="text-xs text-muted-foreground">{t("services.maxQueueSize")}</div>
             <div className="mt-1 text-sm font-medium">{service.max_queue_size}</div>
           </div>
-          <div className="rounded-md bg-muted/60 p-3">
+          <div className="rounded-md bg-muted p-3">
             <div className="text-xs text-muted-foreground">{t("services.maxQueueWaitMs")}</div>
             <div className="mt-1 text-sm font-medium">{service.max_queue_wait_ms}</div>
           </div>
