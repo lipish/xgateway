@@ -66,7 +66,8 @@ impl DatabasePool {
         let query = r#"
             SELECT u.id, u.username, u.password_hash, u.role_id, u.status,
                    (u.created_at AT TIME ZONE 'UTC') as created_at,
-                   (u.updated_at AT TIME ZONE 'UTC') as updated_at
+                   (u.updated_at AT TIME ZONE 'UTC') as updated_at,
+                   ou.org_id::BIGINT as org_id
             FROM org_users ou
             JOIN users u ON u.id = ou.user_id
             WHERE ou.org_id = $1

@@ -16,4 +16,5 @@ export interface User {
   role_id: string
   status: string
   created_at: string
+  org_id?: number
 }

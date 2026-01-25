@@ -8,7 +8,7 @@ impl DatabasePool {
         match self {
             Self::Postgres(pool) => {
                 let row = sqlx::query(
-                    "INSERT INTO user_instances (user_id, provider_id, granted_by) VALUES ($1, $2, $3) RETURNING id"
+                    "INSERT INTO user_instances (user_id, provider_id, granted_by) VALUES ($1, $2, $3) ON CONFLICT (user_id, provider_id) DO UPDATE SET granted_by = EXCLUDED.granted_by RETURNING id, granted_at"
                 )
                 .bind(grant.user_id)
                 .bind(grant.provider_id)
@@ -37,7 +37,7 @@ impl DatabasePool {
 
     /// Get all instances granted to a user
     pub async fn get_user_granted_instances(&self, user_id: i64) -> Result<Vec<UserInstance>> {
-        let pg_query = "SELECT id, user_id, provider_id, granted_at, granted_by FROM user_instances WHERE user_id = $1 ORDER BY granted_at DESC";
+        let pg_query = "SELECT id, user_id, provider_id, granted_at::timestamptz AS granted_at, granted_by FROM user_instances WHERE user_id = $1 ORDER BY granted_at DESC";
         match self {
             Self::Postgres(pool) => {
                 Ok(sqlx::query_as::<_, UserInstance>(pg_query)
@@ -50,7 +50,7 @@ impl DatabasePool {
 
     /// Get all users granted to a provider instance
     pub async fn get_instance_granted_users(&self, provider_id: i64) -> Result<Vec<UserInstance>> {
-        let pg_query = "SELECT id, user_id, provider_id, granted_at, granted_by FROM user_instances WHERE provider_id = $1 ORDER BY granted_at DESC";
+        let pg_query = "SELECT id, user_id, provider_id, granted_at::timestamptz AS granted_at, granted_by FROM user_instances WHERE provider_id = $1 ORDER BY granted_at DESC";
         match self {
             Self::Postgres(pool) => {
                 Ok(sqlx::query_as::<_, UserInstance>(pg_query)

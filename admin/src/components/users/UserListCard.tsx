@@ -1,21 +1,32 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { t } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
-import { User as UserIcon } from "lucide-react"
+import { MoreVertical, Pencil, Trash2, User as UserIcon } from "lucide-react"
 import type { User } from "./types"
 
 interface UserListCardProps {
   users: User[]
+  organizations: { id: number; name: string }[]
   selectedUserId: number | null
   onSelectUser: (user: User) => void
+  onRequestEdit: (user: User) => void
+  onRequestDelete: (userId: number) => void
 }
 
-export function UserListCard({ users, selectedUserId, onSelectUser }: UserListCardProps) {
+export function UserListCard({ users, organizations, selectedUserId, onSelectUser, onRequestEdit, onRequestDelete }: UserListCardProps) {
+  const getOrgName = (orgId?: number) => {
+    if (!orgId) return "-"
+    const org = organizations.find((item) => item.id === orgId)
+    if (!org) return "-"
+    return org.id === 1 && org.name === "default" ? t("organizations.defaultName") : org.name
+  }
+
   return (
-    <Card className="w-96 flex flex-col overflow-hidden">
-      <CardContent className="p-4 flex-1 overflow-y-auto">
-        {/* User List */}
+    <Card className="w-[520px] shrink-0 h-full flex flex-col">
+      <CardContent className="p-6 flex-1 h-full overflow-y-auto">
         {users.length === 0 ? (
           <div className="flex-1 flex items-center justify-center py-12">
             <div className="text-center text-muted-foreground">
@@ -24,41 +35,66 @@ export function UserListCard({ users, selectedUserId, onSelectUser }: UserListCa
             </div>
           </div>
         ) : (
-          <div className="space-y-2">
-            {users.map((user) => (
-              <div
-                key={user.id}
-                className={cn(
-                  "p-3 rounded-lg border cursor-pointer transition-all hover:border-violet-300",
-                  selectedUserId === user.id ? "border-violet-400 bg-violet-50" : "border-border"
-                )}
-                onClick={() => onSelectUser(user)}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                    <UserIcon className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{user.username}</div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="secondary" className="text-xs font-normal">
-                        {t(`users.role.${user.role_id}`)}
-                      </Badge>
-                      <Badge
-                        className={cn(
-                          "text-xs",
-                          user.status === "active"
-                            ? "bg-violet-50 text-violet-700 border border-violet-200"
-                            : "bg-muted text-muted-foreground border-0"
-                        )}
-                      >
-                        {t(`users.status.${user.status}`)}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="overflow-hidden rounded-lg border">
+            <Table>
+              <TableHeader className="sticky top-0 bg-white">
+                <TableRow>
+                  <TableHead className="text-left pl-4">{t("users.username")}</TableHead>
+                  <TableHead className="text-left w-[180px]">{t("users.orgLabel")}</TableHead>
+                  <TableHead className="text-center w-[120px]">{t("users.roleLabel")}</TableHead>
+                  <TableHead className="text-center w-[64px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow
+                    key={user.id}
+                    className={cn(
+                      "cursor-pointer hover:bg-muted/50",
+                      selectedUserId === user.id ? "bg-violet-50 border-l-2 border-l-violet-400" : ""
+                    )}
+                    onClick={() => onSelectUser(user)}
+                  >
+                    <TableCell className="text-left pl-4">
+                      <span className="font-medium text-sm">{user.username}</span>
+                    </TableCell>
+                    <TableCell className="text-left text-sm text-muted-foreground">
+                      {getOrgName(user.org_id)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {t(`users.role.${user.role_id}`)}
+                    </TableCell>
+                    <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu modal={false}>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            aria-label={t("common.actions") || "Actions"}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => onRequestEdit(user)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            {t("common.edit")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => onRequestDelete(user.id)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            {t("common.delete")}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
       </CardContent>

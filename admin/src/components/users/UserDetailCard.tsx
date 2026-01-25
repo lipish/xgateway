@@ -1,8 +1,7 @@
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { t } from "@/lib/i18n"
-import { cn } from "@/lib/utils"
+import { formatDate } from "@/lib/utils"
 import { Plus, Server, Trash2, User as UserIcon } from "lucide-react"
 import type { Provider, User, UserInstance } from "./types"
 
@@ -10,8 +9,7 @@ interface UserDetailCardProps {
   user: User | null
   providers: Provider[]
   userInstances: UserInstance[]
-  onToggleStatus: (user: User) => void
-  onRequestDelete: (userId: number) => void
+  organizations: { id: number; name: string }[]
   onOpenGrantDialog: () => void
   onRevokeInstance: (providerId: number) => void
 }
@@ -20,62 +18,60 @@ export function UserDetailCard({
   user,
   providers,
   userInstances,
-  onToggleStatus,
-  onRequestDelete,
+  organizations,
   onOpenGrantDialog,
   onRevokeInstance,
 }: UserDetailCardProps) {
-  return (
-    <Card className="flex-1 flex flex-col overflow-hidden">
-      <CardContent className="p-6 flex-1 overflow-y-auto">
-        {/* User Detail */}
-        {user ? (
-          <div className="space-y-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-2xl font-bold">{user.username}</h2>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge variant="secondary">{t(`users.role.${user.role_id}`)}</Badge>
-                  <Badge
-                    className={cn(
-                      "cursor-pointer",
-                      user.status === "active"
-                        ? "bg-violet-50 text-violet-700 border border-violet-200"
-                        : "bg-muted text-muted-foreground border-0"
-                    )}
-                    onClick={() => onToggleStatus(user)}
-                  >
-                    {t(`users.status.${user.status}`)}
-                  </Badge>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onRequestDelete(user.id)}
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
+  const orgName = (() => {
+    if (!user?.org_id) return "-"
+    const org = organizations.find((item) => item.id === user.org_id)
+    if (!org) return "-"
+    return org.id === 1 && org.name === "default" ? t("organizations.defaultName") : org.name
+  })()
 
-            <div className="border rounded-lg p-4 bg-muted/30">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <div className="text-muted-foreground">{t("users.createdAt")}</div>
-                  <div className="font-medium mt-1">{new Date(user.created_at).toLocaleDateString()}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">{t("users.userId")}</div>
-                  <div className="font-medium mt-1">{user.id}</div>
-                </div>
+  return (
+    <div className="rounded-lg border bg-background">
+      <div className="p-4">
+        {user ? (
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="text-xl font-semibold truncate">{user.username}</div>
+              <div className="flex items-center gap-2 mt-2">
+                <Badge variant="secondary">{t(`users.role.${user.role_id}`)}</Badge>
               </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+            <UserIcon className="h-16 w-16 mb-4 opacity-20" />
+            <p>{t("users.selectUser")}</p>
+          </div>
+        )}
+      </div>
+
+      {user && (
+        <>
+          <div className="border-t" />
+          <div className="p-4 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-md border bg-muted/60 p-3">
+                <div className="text-xs text-muted-foreground">{t("users.createdAt")}</div>
+                <div className="mt-1 text-sm font-medium">{formatDate(user.created_at)}</div>
+              </div>
+              <div className="rounded-md border bg-muted/60 p-3">
+                <div className="text-xs text-muted-foreground">{t("users.userId")}</div>
+                <div className="mt-1 text-sm font-medium">{user.id}</div>
+              </div>
+            </div>
+            <div className="rounded-md border bg-muted/60 p-3">
+              <div className="text-xs text-muted-foreground">{t("users.orgLabel")}</div>
+              <div className="mt-1 text-sm font-medium">{orgName}</div>
             </div>
 
             {user.role_id === "user" && (
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">{t("users.grantedInstances")}</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm font-medium">{t("users.grantedInstances")}</div>
                   <Button size="sm" variant="outline" onClick={onOpenGrantDialog}>
                     <Plus className="h-4 w-4 mr-2" />
                     {t("users.grantInstance")}
@@ -83,8 +79,8 @@ export function UserDetailCard({
                 </div>
                 <div className="border rounded-lg divide-y">
                   {userInstances.length === 0 ? (
-                    <div className="p-8 text-center text-muted-foreground">
-                      <Server className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                    <div className="p-6 text-center text-muted-foreground">
+                      <Server className="h-10 w-10 mx-auto mb-2 opacity-20" />
                       <p>{t("users.noInstancesGranted")}</p>
                     </div>
                   ) : (
@@ -97,7 +93,7 @@ export function UserDetailCard({
                             <div>
                               <div className="font-medium">{provider?.name || `Instance #${ui.provider_id}`}</div>
                               <div className="text-xs text-muted-foreground mt-1">
-                                {t("users.grantedOn")} {new Date(ui.granted_at).toLocaleDateString()}
+                                {t("users.grantedOn")} {formatDate(ui.granted_at)}
                               </div>
                             </div>
                           </div>
@@ -117,13 +113,8 @@ export function UserDetailCard({
               </div>
             )}
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-            <UserIcon className="h-16 w-16 mb-4 opacity-20" />
-            <p>{t("users.selectUser")}</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        </>
+      )}
+    </div>
   )
 }

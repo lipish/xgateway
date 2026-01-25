@@ -35,6 +35,8 @@ pub struct CreateUserRequest {
     pub password_hash: String, // In a real system, we'd hash this on the server
     #[serde(default)]
     pub role_id: Option<String>,
+    #[serde(default)]
+    pub org_id: Option<i64>,
 }
 
 /// Create a new user
@@ -55,9 +57,12 @@ pub async fn create_user_api(
 
     match db_pool.create_user(new_user).await {
         Ok(id) => {
-            if !ctx.is_admin {
-                let _ = db_pool.add_user_to_org(ctx.org_id, id, Some("member")).await;
-            }
+            let target_org_id = if ctx.is_admin {
+                req.org_id.unwrap_or(1)
+            } else {
+                ctx.org_id
+            };
+            let _ = db_pool.add_user_to_org(target_org_id, id, Some("member")).await;
             Json(ApiResponse {
                 success: true,
                 data: Some(id),
@@ -108,6 +113,65 @@ pub async fn delete_user_api(
             success: false,
             data: None,
             message: format!("Failed to delete user: {}", e),
+        }),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateUserRequest {
+    #[serde(default)]
+    pub role_id: Option<String>,
+    #[serde(default)]
+    pub password_hash: Option<String>,
+    #[serde(default)]
+    pub org_id: Option<i64>,
+}
+
+/// Update user role/password/org
+pub async fn update_user_api(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::extract::Path(id): axum::extract::Path<i64>,
+    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
+    Json(req): Json<UpdateUserRequest>,
+) -> Json<ApiResponse<()>> {
+    if !ctx.is_admin {
+        if ctx.org_role.as_deref() != Some("admin") {
+            return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+        }
+        match db_pool.is_user_in_org(ctx.org_id, id).await {
+            Ok(true) => {}
+            Ok(false) => {
+                return Json(ApiResponse { success: false, data: None, message: "forbidden".to_string() });
+            }
+            Err(e) => {
+                return Json(ApiResponse { success: false, data: None, message: format!("Failed to check org membership: {}", e) });
+            }
+        }
+    }
+
+    match db_pool.update_user_profile(id, req.role_id.as_deref(), req.password_hash.as_deref()).await {
+        Ok(true) => {
+            let target_org_id = if ctx.is_admin {
+                req.org_id.unwrap_or(1)
+            } else {
+                ctx.org_id
+            };
+            let _ = db_pool.add_user_to_org(target_org_id, id, Some("member")).await;
+            Json(ApiResponse {
+                success: true,
+                data: Some(()),
+                message: "User updated".to_string(),
+            })
+        }
+        Ok(false) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: "User not found".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to update user: {}", e),
         }),
     }
 }

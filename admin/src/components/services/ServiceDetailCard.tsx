@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Loader2 } from "lucide-react"
 import { t } from "@/lib/i18n"
+import { formatDate } from "@/lib/utils"
 import type { Service } from "./types"
 
 interface ServiceDetailCardProps {
@@ -47,10 +48,10 @@ export function ServiceDetailCard({ service, toggleBusy, onToggleEnabled }: Serv
             <div className="text-xs text-muted-foreground">{t("services.strategy")}</div>
             <div className="mt-1 text-sm font-medium">{service.strategy || "Priority"}</div>
           </div>
-          <div className="rounded-md border bg-muted/60 p-3">
-            <div className="text-xs text-muted-foreground">{t("services.updatedAt")}</div>
-            <div className="mt-1 text-sm font-medium">{new Date(service.updated_at).toLocaleString()}</div>
-          </div>
+            <div className="rounded-md border bg-muted/60 p-3">
+              <div className="text-xs text-muted-foreground">{t("services.updatedAt")}</div>
+              <div className="mt-1 text-sm font-medium">{formatDate(service.updated_at)}</div>
+            </div>
 
           <div className="rounded-md border bg-muted/60 p-3">
             <div className="text-xs text-muted-foreground">{t("services.qpsLimit")}</div>

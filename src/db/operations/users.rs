@@ -40,8 +40,11 @@ impl DatabasePool {
                 Ok(sqlx::query_as::<_, User>(
                     "SELECT u.id, u.username, u.password_hash, u.role_id, u.status, \
                             (u.created_at AT TIME ZONE 'UTC') as created_at, \
-                            (u.updated_at AT TIME ZONE 'UTC') as updated_at \
-                     FROM auth_tokens t JOIN users u ON u.id = t.user_id \
+                            (u.updated_at AT TIME ZONE 'UTC') as updated_at, \
+                            COALESCE(ou.org_id::BIGINT, 1) as org_id \
+                     FROM auth_tokens t \
+                     JOIN users u ON u.id = t.user_id \
+                     LEFT JOIN org_users ou ON ou.user_id = u.id \
                      WHERE t.token = $1",
                 )
                 .bind(token)
@@ -55,10 +58,13 @@ impl DatabasePool {
         match self {
             Self::Postgres(pool) => {
                 Ok(sqlx::query_as::<_, User>(
-                    "SELECT id, username, password_hash, role_id, status, \
-                            (created_at AT TIME ZONE 'UTC') as created_at, \
-                            (updated_at AT TIME ZONE 'UTC') as updated_at \
-                     FROM users WHERE username = $1",
+                    "SELECT u.id, u.username, u.password_hash, u.role_id, u.status, \
+                            (u.created_at AT TIME ZONE 'UTC') as created_at, \
+                            (u.updated_at AT TIME ZONE 'UTC') as updated_at, \
+                            COALESCE(ou.org_id::BIGINT, 1) as org_id \
+                     FROM users u \
+                     LEFT JOIN org_users ou ON ou.user_id = u.id \
+                     WHERE u.username = $1",
                 )
                     .bind(username)
                     .fetch_optional(pool)
@@ -68,10 +74,13 @@ impl DatabasePool {
     }
 
     pub async fn list_users(&self) -> Result<Vec<User>> {
-        let query = "SELECT id, username, password_hash, role_id, status, \
-                            (created_at AT TIME ZONE 'UTC') as created_at, \
-                            (updated_at AT TIME ZONE 'UTC') as updated_at \
-                     FROM users ORDER BY created_at DESC";
+        let query = "SELECT u.id, u.username, u.password_hash, u.role_id, u.status, \
+                            (u.created_at AT TIME ZONE 'UTC') as created_at, \
+                            (u.updated_at AT TIME ZONE 'UTC') as updated_at, \
+                            COALESCE(ou.org_id::BIGINT, 1) as org_id \
+                     FROM users u \
+                     LEFT JOIN org_users ou ON ou.user_id = u.id \
+                     ORDER BY u.created_at DESC";
         match self {
             Self::Postgres(pool) => Ok(sqlx::query_as::<_, User>(query).fetch_all(pool).await?),
         }
@@ -92,6 +101,26 @@ impl DatabasePool {
         match self {
             Self::Postgres(pool) => {
                 let result = sqlx::query(pg_query).bind(status).bind(id).execute(pool).await?;
+                Ok(result.rows_affected() > 0)
+            }
+        }
+    }
+
+    pub async fn update_user_profile(&self, id: i64, role_id: Option<&str>, password_hash: Option<&str>) -> Result<bool> {
+        let pg_query = r#"
+            UPDATE users
+            SET role_id = COALESCE($1, role_id),
+                password_hash = COALESCE($2, password_hash)
+            WHERE id = $3
+        "#;
+        match self {
+            Self::Postgres(pool) => {
+                let result = sqlx::query(pg_query)
+                    .bind(role_id)
+                    .bind(password_hash)
+                    .bind(id)
+                    .execute(pool)
+                    .await?;
                 Ok(result.rows_affected() > 0)
             }
         }

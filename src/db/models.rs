@@ -391,6 +391,8 @@ pub struct User {
     pub status: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    #[serde(default)]
+    pub org_id: Option<i64>,
 }
 
 /// New user for creation

@@ -103,7 +103,7 @@ pub fn create_admin_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -
         .route("/api/chat/completions", post(chat_handlers::handle_admin_chat_completions))
         // User management
         .route("/api/users", get(user_handlers::list_users_api).post(user_handlers::create_user_api))
-        .route("/api/users/:id", delete(user_handlers::delete_user_api))
+        .route("/api/users/:id", delete(user_handlers::delete_user_api).put(user_handlers::update_user_api))
         .route("/api/users/:id/toggle", post(user_handlers::toggle_user_api))
         // User-Instance grants
         .route("/api/users/:user_id/instances", get(user_handlers::list_user_instances_api).post(user_handlers::grant_user_instance_api))

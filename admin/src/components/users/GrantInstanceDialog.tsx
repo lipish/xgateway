@@ -13,6 +13,7 @@ interface GrantInstanceDialogProps {
   username?: string
   providers: Provider[]
   userInstances: UserInstance[]
+  error?: string | null
   grantData: { provider_id: string }
   onGrantDataChange: (next: { provider_id: string }) => void
   onGrant: () => void
@@ -25,6 +26,7 @@ export function GrantInstanceDialog({
   username,
   providers,
   userInstances,
+  error,
   grantData,
   onGrantDataChange,
   onGrant,
@@ -54,7 +56,7 @@ export function GrantInstanceDialog({
                   onChange={(value) => onGrantDataChange({ provider_id: value })}
                   options={availableProviderOptions}
                   placeholder={t("users.selectInstance")}
-                  triggerClassName="h-10 flex-1"
+                  triggerClassName="h-10 flex-1 min-w-[220px]"
                 />
                 <Button
                   onClick={onGrant}
@@ -65,6 +67,7 @@ export function GrantInstanceDialog({
                   {t("users.grant")}
                 </Button>
               </div>
+              {error && <p className="text-sm text-destructive font-medium">{error}</p>}
             </div>
 
             <div className="border rounded-md overflow-hidden bg-background">
@@ -104,11 +107,11 @@ export function GrantInstanceDialog({
             </div>
           </div>
 
-          <DialogFooter className="mt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="h-10 px-10 w-full sm:w-auto">
-              {t("common.cancel")}
-            </Button>
-          </DialogFooter>
+            <DialogFooter className="mt-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)} className="h-10 px-10 w-full sm:w-auto">
+                {t("common.close")}
+              </Button>
+            </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

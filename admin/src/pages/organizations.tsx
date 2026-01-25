@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ConfirmAlertDialog } from "@/components/ui/confirm-alert-dialog"
 import { PageHeader } from "@/components/layout/page-header"
 import { toast } from "sonner"
-import { formatDate } from "@/lib/utils"
+import { cn, formatDate } from "@/lib/utils"
 import { TwoPanelLayout } from "@/components/layout/two-panel-layout"
 import { MoreVertical, Pencil, Plus, Trash2 } from "lucide-react"
 import { DetailPanel } from "@/components/layout/detail-panel"
@@ -247,8 +247,8 @@ export function OrganizationsPage() {
       <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">
         <TwoPanelLayout
           left={
-            <Card className="w-[420px] max-w-full min-h-0 overflow-hidden">
-              <CardContent className="p-4 space-y-4">
+            <Card className="w-[520px] shrink-0 h-full flex flex-col">
+              <CardContent className="p-6 flex-1 h-full overflow-y-auto space-y-4">
                 {error && <div className="text-sm text-destructive font-medium">{error}</div>}
 
                 <div className="space-y-2">
@@ -274,7 +274,10 @@ export function OrganizationsPage() {
                             return (
                               <TableRow
                                 key={o.id}
-                                className={`cursor-pointer hover:bg-muted/50 ${active ? "bg-violet-50 border-l-2 border-l-violet-400" : ""}`}
+                                className={cn(
+                                  "cursor-pointer transition-colors",
+                                  active ? "bg-violet-50 border-l-2 border-l-violet-400" : "hover:bg-muted/40"
+                                )}
                                 onClick={() => setSelectedId(o.id)}
                               >
                                 <TableCell className="text-left pl-4">
@@ -302,9 +305,7 @@ export function OrganizationsPage() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                      <DropdownMenuItem
-                                        onClick={() => openEditOrg(o)}
-                                      >
+                                      <DropdownMenuItem onClick={() => openEditOrg(o)}>
                                         <Pencil className="h-4 w-4 mr-2" />
                                         {t("common.edit")}
                                       </DropdownMenuItem>
@@ -343,19 +344,15 @@ export function OrganizationsPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <Card>
-                      <CardContent className="p-3 space-y-1">
-                        <div className="text-xs text-muted-foreground">{t("organizations.status")}</div>
-                        <div className="text-sm font-medium">{t(`organizations.statusLabel.${selectedOrg.status}`)}</div>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="p-3 space-y-1">
-                        <div className="text-xs text-muted-foreground">{t("organizations.updatedAt")}</div>
-                        <div className="text-sm font-medium">{formatDate(selectedOrg.updated_at)}</div>
-                      </CardContent>
-                    </Card>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-md border bg-muted/60 p-3">
+                      <div className="text-xs text-muted-foreground">{t("organizations.status")}</div>
+                      <div className="mt-1 text-sm font-medium">{t(`organizations.statusLabel.${selectedOrg.status}`)}</div>
+                    </div>
+                    <div className="rounded-md border bg-muted/60 p-3">
+                      <div className="text-xs text-muted-foreground">{t("organizations.updatedAt")}</div>
+                      <div className="mt-1 text-sm font-medium">{formatDate(selectedOrg.updated_at)}</div>
+                    </div>
                   </div>
 
 
