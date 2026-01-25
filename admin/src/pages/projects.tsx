@@ -239,7 +239,7 @@ export function ProjectsPage() {
                         <TableRow>
                           <TableHead className="text-left pl-4">{t("projects.name")}</TableHead>
                           <TableHead className="text-left w-[180px]">{t("projects.orgLabel") || t("organizations.title")}</TableHead>
-                          <TableHead className="text-center w-[80px]">{t("projects.status")}</TableHead>
+                          <TableHead className="text-center w-[80px]">{t("projects.label")}</TableHead>
                           <TableHead className="text-center w-[64px]"></TableHead>
                         </TableRow>
                       </TableHeader>
@@ -262,7 +262,7 @@ export function ProjectsPage() {
                               <TableCell className="text-left text-sm text-muted-foreground">
                                 {orgName ? getOrgDisplayName(orgName) : `${t("organizations.title")} ${t("common.idLabel")}: ${p.org_id}`}
                               </TableCell>
-                              <TableCell className="text-center text-xs text-muted-foreground">{t(`projects.statusLabel.${p.status}`)}</TableCell>
+                              <TableCell className="text-center text-xs text-muted-foreground">{t(`projects.labelText.${p.status}`)}</TableCell>
                               <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                                 <DropdownMenu modal={false}>
                                   <DropdownMenuTrigger asChild>
@@ -327,13 +327,13 @@ export function ProjectsPage() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-md border bg-muted/60 p-3">
-                      <div className="text-xs text-muted-foreground">{t("projects.status")}</div>
+                    <div className="rounded-md bg-muted/60 p-3">
+                      <div className="text-xs text-muted-foreground">{t("projects.label")}</div>
                       <div className="mt-1 text-sm font-medium">
-                        {t(`projects.statusLabel.${selectedProject.status}`) || selectedProject.status}
+                        {t(`projects.labelText.${selectedProject.status}`) || selectedProject.status}
                       </div>
                     </div>
-                    <div className="rounded-md border bg-muted/60 p-3">
+                    <div className="rounded-md bg-muted/60 p-3">
                       <div className="text-xs text-muted-foreground">{t("projects.updatedAt")}</div>
                       <div className="mt-1 text-sm font-medium">{formatDate(selectedProject.updated_at)}</div>
                     </div>

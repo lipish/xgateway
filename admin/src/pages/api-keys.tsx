@@ -55,6 +55,7 @@ export function ApiKeysPage() {
   const [editSaving, setEditSaving] = useState(false)
   const [copySuccess, setCopySuccess] = useState(false)
   const [migratingKeyId, setMigratingKeyId] = useState<number | null>(null)
+  const [bindingUpdatingId, setBindingUpdatingId] = useState<number | null>(null)
 
   useEffect(() => {
     fetchApiKeys()
@@ -221,6 +222,45 @@ export function ApiKeysPage() {
       setEditError(t('common.networkError'))
     } finally {
       setEditSaving(false)
+    }
+  }
+
+  const handleToggleServiceBinding = async (key: ApiKey, serviceId: string, nextBound: boolean) => {
+    if (key.scope !== 'instance') return
+    if (bindingUpdatingId === key.id) return
+
+    const existingIds = (key.service_ids && key.service_ids.length > 0) ? key.service_ids : getLegacyServiceIds(key)
+    const nextServiceIds = nextBound
+      ? Array.from(new Set([...existingIds, serviceId]))
+      : existingIds.filter((id) => id !== serviceId)
+
+    if (nextServiceIds.length === 0) {
+      setError(t('apiKeys.selectServiceRequired') || t('apiKeys.selectInstance') || t('common.saveFailed'))
+      return
+    }
+
+    try {
+      setBindingUpdatingId(key.id)
+      setError(null)
+
+      const payload = {
+        name: key.name,
+        scope: 'instance',
+        provider_id: null,
+        provider_ids: null,
+        service_ids: nextServiceIds,
+      }
+
+      const data = await apiPut<ApiResponse<unknown>>(`/api/api-keys/${key.id}`, payload)
+      if (data.success) {
+        await fetchApiKeys()
+      } else {
+        setError(data.message || t('common.saveFailed'))
+      }
+    } catch {
+      setError(t('common.networkError'))
+    } finally {
+      setBindingUpdatingId(null)
     }
   }
 
@@ -448,6 +488,9 @@ export function ApiKeysPage() {
                     apiKey={selectedApiKey}
                     statusUpdatingId={statusUpdatingId}
                     onToggleStatus={toggleApiKeyStatus}
+                    serviceBindingUpdating={bindingUpdatingId === selectedApiKey.id}
+                    services={services}
+                    onToggleServiceBinding={handleToggleServiceBinding}
                     getScopeLabel={getScopeLabel}
                     hasLegacyBindingButNoServiceIds={hasLegacyBindingButNoServiceIds}
                     migratingKeyId={migratingKeyId}

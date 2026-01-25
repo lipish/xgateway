@@ -1,9 +1,12 @@
 import { Button } from "@/components/ui/button"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select } from "@/components/ui/select"
 import { t } from "@/lib/i18n"
+import { Check, ChevronsUpDown } from "lucide-react"
 import type { Service } from "./types"
 
 interface ApiKeyEditDialogProps {
@@ -61,27 +64,50 @@ export function ApiKeyEditDialog({ open, onOpenChange, form, onFormChange, servi
             {form.scope === "instance" && (
               <div className="space-y-2">
                 <Label className="text-sm font-medium">{t("apiKeys.selectService") || t("apiKeys.selectInstance")}</Label>
-                <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-1 bg-background">
-                  {services.map((service) => (
-                    <label
-                      key={service.id}
-                      className="flex items-center gap-2 p-2 hover:bg-accent rounded-md cursor-pointer transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={form.service_ids.includes(service.id)}
-                        onChange={(e) => {
-                          const newServiceIds = e.target.checked
-                            ? [...form.service_ids, service.id]
-                            : form.service_ids.filter((id) => id !== service.id)
-                          onFormChange({ ...form, service_ids: newServiceIds })
-                        }}
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      />
-                      <span className="text-sm font-medium">{service.name}</span>
-                    </label>
-                  ))}
-                </div>
+                <Popover modal={false}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" className="h-10 w-full justify-between font-normal" type="button">
+                      <span className="flex-1 truncate text-left">
+                        {form.service_ids.length > 0
+                          ? services
+                            .filter((service) => form.service_ids.includes(service.id))
+                            .map((service) => service.name)
+                            .join(", ")
+                          : t("services.bindingsPlaceholder")}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[20rem] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder={t("common.search")} />
+                      <CommandList>
+                        <CommandEmpty>{t("services.empty")}</CommandEmpty>
+                        <CommandGroup>
+                          {services.map((service) => {
+                            const checked = form.service_ids.includes(service.id)
+                            return (
+                              <CommandItem
+                                key={service.id}
+                                value={`${service.name} ${service.id}`}
+                                onSelect={() => {
+                                  const nextServiceIds = checked
+                                    ? form.service_ids.filter((id) => id !== service.id)
+                                    : [...form.service_ids, service.id]
+                                  onFormChange({ ...form, service_ids: nextServiceIds })
+                                }}
+                              >
+                                <Check className={checked ? "mr-2 h-4 w-4 opacity-100" : "mr-2 h-4 w-4 opacity-0"} />
+                                <span className="truncate">{service.name}</span>
+                                <span className="ml-auto text-xs text-muted-foreground">{service.id}</span>
+                              </CommandItem>
+                            )
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             )}
 

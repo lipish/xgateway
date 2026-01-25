@@ -258,12 +258,12 @@ export function OrganizationsPage() {
                   ) : orgs.length === 0 ? (
                     <div className="text-sm text-muted-foreground">{t("organizations.empty")}</div>
                   ) : (
-                    <div className="overflow-hidden rounded-lg border">
+                    <div className="overflow-hidden rounded-lg">
                       <Table>
                         <TableHeader className="sticky top-0 bg-white">
                           <TableRow>
                             <TableHead className="text-left pl-4">{t("organizations.title")}</TableHead>
-                            <TableHead className="text-center w-[120px]">{t("organizations.status")}</TableHead>
+                            <TableHead className="text-center w-[120px]">{t("organizations.label")}</TableHead>
                             <TableHead className="text-center w-[80px]">{t("organizations.id")}</TableHead>
                             <TableHead className="text-center w-[64px]"></TableHead>
                           </TableRow>
@@ -288,7 +288,7 @@ export function OrganizationsPage() {
                                     variant="outline"
                                     className={o.status === "active" ? "bg-violet-50 text-violet-700 border border-violet-200" : "bg-muted text-muted-foreground border-0"}
                                   >
-                                    {t(`organizations.statusLabel.${o.status}`)}
+                                    {t(`organizations.labelText.${o.status}`)}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-center text-xs text-muted-foreground">{o.id}</TableCell>
@@ -345,11 +345,11 @@ export function OrganizationsPage() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-md border bg-muted/60 p-3">
-                      <div className="text-xs text-muted-foreground">{t("organizations.status")}</div>
-                      <div className="mt-1 text-sm font-medium">{t(`organizations.statusLabel.${selectedOrg.status}`)}</div>
+                    <div className="rounded-md bg-muted/60 p-3">
+                      <div className="text-xs text-muted-foreground">{t("organizations.label")}</div>
+                      <div className="mt-1 text-sm font-medium">{t(`organizations.labelText.${selectedOrg.status}`)}</div>
                     </div>
-                    <div className="rounded-md border bg-muted/60 p-3">
+                    <div className="rounded-md bg-muted/60 p-3">
                       <div className="text-xs text-muted-foreground">{t("organizations.updatedAt")}</div>
                       <div className="mt-1 text-sm font-medium">{formatDate(selectedOrg.updated_at)}</div>
                     </div>
@@ -360,7 +360,7 @@ export function OrganizationsPage() {
                     <CardContent className="p-4 space-y-3">
                       <div className="flex items-center justify-between gap-2">
                         <div className="text-sm font-medium">{t("organizations.membersTitle")}</div>
-                        <Button size="sm" onClick={() => setMemberDialogOpen(true)} className="bg-primary hover:bg-primary/90">
+                        <Button size="sm" variant="outline" onClick={() => setMemberDialogOpen(true)}>
                           <Plus className="mr-2 h-4 w-4" />
                           {t("organizations.addMember")}
                         </Button>
@@ -371,7 +371,7 @@ export function OrganizationsPage() {
                       ) : orgUsers.length === 0 ? (
                         <div className="text-sm text-muted-foreground">{t("organizations.membersEmpty")}</div>
                       ) : (
-                        <div className="overflow-hidden rounded-lg border">
+                        <div className="overflow-hidden rounded-lg">
                           <Table>
                             <TableHeader className="sticky top-0 bg-white">
                               <TableRow>

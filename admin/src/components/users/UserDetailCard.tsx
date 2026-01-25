@@ -30,7 +30,7 @@ export function UserDetailCard({
   })()
 
   return (
-    <div className="rounded-lg border bg-background">
+    <div className="rounded-lg bg-background">
       <div className="p-4">
         {user ? (
           <div className="flex items-start justify-between gap-4">
@@ -51,19 +51,18 @@ export function UserDetailCard({
 
       {user && (
         <>
-          <div className="border-t" />
           <div className="p-4 space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-md border bg-muted/60 p-3">
+              <div className="rounded-md bg-muted/60 p-3">
                 <div className="text-xs text-muted-foreground">{t("users.createdAt")}</div>
                 <div className="mt-1 text-sm font-medium">{formatDate(user.created_at)}</div>
               </div>
-              <div className="rounded-md border bg-muted/60 p-3">
+              <div className="rounded-md bg-muted/60 p-3">
                 <div className="text-xs text-muted-foreground">{t("users.userId")}</div>
                 <div className="mt-1 text-sm font-medium">{user.id}</div>
               </div>
             </div>
-            <div className="rounded-md border bg-muted/60 p-3">
+            <div className="rounded-md bg-muted/60 p-3">
               <div className="text-xs text-muted-foreground">{t("users.orgLabel")}</div>
               <div className="mt-1 text-sm font-medium">{orgName}</div>
             </div>
@@ -77,7 +76,7 @@ export function UserDetailCard({
                     {t("users.grantInstance")}
                   </Button>
                 </div>
-                <div className="border rounded-lg divide-y">
+                <div className="rounded-lg divide-y">
                   {userInstances.length === 0 ? (
                     <div className="p-6 text-center text-muted-foreground">
                       <Server className="h-10 w-10 mx-auto mb-2 opacity-20" />
