@@ -45,17 +45,17 @@ export default function UserMenu() {
         setError("");
         
         if (!oldPassword || !newPassword || !confirmPassword) {
-            setError("All fields are required");
+            setError(t("settings.changePasswordAllFields"));
             return;
         }
         
         if (newPassword !== confirmPassword) {
-            setError("New passwords do not match");
+            setError(t("settings.changePasswordMismatch"));
             return;
         }
         
         if (newPassword.length < 6) {
-            setError("Password must be at least 6 characters");
+            setError(t("settings.changePasswordMinLength"));
             return;
         }
 
@@ -74,7 +74,7 @@ export default function UserMenu() {
             setConfirmPassword("");
             // Show success message
         } catch (err) {
-            setError("Failed to change password");
+            setError(t("settings.changePasswordFailed"));
         } finally {
             setLoading(false);
         }
@@ -133,38 +133,38 @@ export default function UserMenu() {
                     <DialogHeader>
                         <DialogTitle>{t('settings.changePassword') || 'Change Password'}</DialogTitle>
                         <DialogDescription>
-                            Enter your current password and a new password.
+                            {t("settings.changePasswordDescription")}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="old-password">Current Password</Label>
+                            <Label htmlFor="old-password">{t("settings.currentPassword")}</Label>
                             <Input
                                 id="old-password"
                                 type="password"
                                 value={oldPassword}
                                 onChange={(e) => setOldPassword(e.target.value)}
-                                placeholder="Enter current password"
+                                placeholder={t("settings.currentPasswordPlaceholder")}
                             />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="new-password">New Password</Label>
+                            <Label htmlFor="new-password">{t("settings.newPassword")}</Label>
                             <Input
                                 id="new-password"
                                 type="password"
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
-                                placeholder="Enter new password"
+                                placeholder={t("settings.newPasswordPlaceholder")}
                             />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="confirm-password">Confirm New Password</Label>
+                            <Label htmlFor="confirm-password">{t("settings.confirmNewPassword")}</Label>
                             <Input
                                 id="confirm-password"
                                 type="password"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                placeholder="Confirm new password"
+                                placeholder={t("settings.confirmNewPasswordPlaceholder")}
                             />
                         </div>
                         {error && (
@@ -173,10 +173,10 @@ export default function UserMenu() {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
-                            Cancel
+                            {t("common.cancel")}
                         </Button>
                         <Button onClick={handleChangePassword} disabled={loading}>
-                            {loading ? "Changing..." : "Change Password"}
+                            {loading ? t("settings.changingPassword") : t("settings.changePassword")}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

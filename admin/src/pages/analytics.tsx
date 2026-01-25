@@ -291,7 +291,7 @@ export function AnalyticsPage() {
                 ) : (
                   data.token_by_org.slice(0, 10).map((row, idx) => (
                     <div key={idx} className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-lg gap-3">
-                      <div className="text-sm">org #{row.org_id}</div>
+                      <div className="text-sm">{t("organizations.title")} {t("common.idLabel")}: {row.org_id}</div>
                       <div className="text-right">
                         <div className="text-sm font-medium">{Number(row.tokens).toLocaleString()}</div>
                         <div className="text-xs text-muted-foreground">{row.requests} req</div>

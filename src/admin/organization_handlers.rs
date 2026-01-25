@@ -88,6 +88,70 @@ pub async fn create_organization_api(
     }
 }
 
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateOrganizationRequest {
+    pub name: String,
+}
+
+pub async fn update_organization_api(
+    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
+    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
+    axum::extract::Path(id): axum::extract::Path<i64>,
+    Json(req): Json<UpdateOrganizationRequest>,
+) -> Json<ApiResponse<crate::db::Organization>> {
+    if !ctx.is_admin {
+        return Json(ApiResponse {
+            success: false,
+            data: None,
+            message: "Admin privileges required".to_string(),
+        });
+    }
+
+    if req.name.trim().is_empty() {
+        return Json(ApiResponse {
+            success: false,
+            data: None,
+            message: "name is required".to_string(),
+        });
+    }
+
+    match db_pool.update_organization(id, req.name.trim()).await {
+        Ok(true) => match db_pool.list_organizations().await {
+            Ok(orgs) => {
+                let org = orgs.into_iter().find(|o| o.id == id);
+                match org {
+                    Some(o) => Json(ApiResponse {
+                        success: true,
+                        data: Some(o),
+                        message: "Organization updated".to_string(),
+                    }),
+                    None => Json(ApiResponse {
+                        success: false,
+                        data: None,
+                        message: "Organization updated but cannot be retrieved".to_string(),
+                    }),
+                }
+            }
+            Err(e) => Json(ApiResponse {
+                success: false,
+                data: None,
+                message: format!("Organization updated but failed to retrieve: {}", e),
+            }),
+        },
+        Ok(false) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: "Organization not found".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to update organization: {}", e),
+        }),
+    }
+}
+
 pub async fn delete_organization_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
     axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,

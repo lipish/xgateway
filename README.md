@@ -5,32 +5,28 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Downloads](https://img.shields.io/crates/d/llm-link.svg)](https://crates.io/crates/llm-link)
 
-🚀 **A user-friendly LLM proxy service with built-in support for popular AI coding tools**
+🚀 **LLM gateway with unified API, service routing, and admin control plane**
 
-LLM Link provides zero-configuration access to LLM providers through multiple API formats, with optimized built-in support for popular AI applications.
+LLM Link (XGateway) provides a unified OpenAI-compatible API, service-based routing, and an admin UI for managing providers, services, API keys, and observability.
 
 ## ✨ Key Features
 
-- **🎯 Application-Oriented**: Built-in configurations for popular AI coding tools
-- **⚡ Zero Configuration**: One-command startup for common use cases
-- **🔄 Multi-Protocol**: Simultaneous OpenAI, Ollama, and Anthropic API support
-- **🔀 9 LLM Providers**: OpenAI, Anthropic, Zhipu, Aliyun, Volcengine, Tencent, Longcat, Moonshot, Ollama
-- **📡 Dynamic Model Discovery**: REST API to query all supported providers and models
-- ** Hot-Reload Configuration**: Update API keys and switch providers without restart
-- ** Production Ready**: Built with Rust for performance and reliability
+- **🔌 Unified API**: OpenAI-compatible `/v1/chat/completions` and `/v1/models`
+- **🧭 Service Routing**: `service_id` based routing with fallback chains
+- **⚖️ Load Balancing**: round-robin, least connections, random, priority, latency, lowest price, quota-aware
+- **🚦 Service Limits**: QPS, concurrency, queue size, and wait timeout per service
+- **✅ Health Checks**: provider health tracking with automatic failover
+- **🔐 Access Control**: API keys scoped to services with org/project boundaries
+- **📊 Observability**: request logs, metrics, and admin dashboards
+- **🧩 Admin UI**: manage providers, services, API keys, users, and conversations
 
-## 🎯 Supported Applications
+## 📚 Documentation
 
-| Application | Protocol | Port | Authentication | Status |
-|-------------|----------|------|----------------|---------|
-| **Codex CLI** | OpenAI API | 8088 | Bearer Token | ✅ Ready |
-| **Zed** | Ollama API | 11434 | None | ✅ Ready |
-| **Aider** | OpenAI API | 8090 | Bearer Token | ✅ Ready |
-| **OpenHands** | OpenAI API | 8091 | Bearer Token | ✅ Ready |
+- **[XGateway 产品说明（中文）](docs/xgateway.md)**
+- **[用户指南（中文）](docs/USER_GUIDE.md)**
+- **[开发与运维](docs/DEVELOPMENT.md)**
 
-� **[Full Application Documentation →](https://lipish.github.io/llm-link/docs/apps)**
-
-## � Quick Start
+## 🚀 Quick Start
 
 ### Installation
 
@@ -45,7 +41,7 @@ brew tap lipish/llm-link && brew install llm-link
 pip install pyllmlink
 ```
 
-� **[Complete Installation Guide →](https://lipish.github.io/llm-link/docs/quick-start)**
+📚 **[Documentation Index →](docs/README.md)**
 
 ### Basic Usage
 
@@ -65,7 +61,7 @@ pip install pyllmlink
 
 📚 **[Detailed Configuration Guide →](https://lipish.github.io/llm-link/docs)**
 
-## 📋 Help & Information
+## 📋 CLI Help
 
 ```bash
 # List all supported applications
@@ -78,30 +74,9 @@ pip install pyllmlink
 ./llm-link --provider zhipu --list-models
 ```
 
-## 🌐 Protocol Mode
-
-Use multiple protocols simultaneously for maximum flexibility:
-
-```bash
-./llm-link --protocols openai,ollama,anthropic --provider zhipu --model glm-4.6
-```
-
-� **[Protocol Mode Documentation →](https://lipish.github.io/llm-link/docs/protocols)**
-
 ## 🏗️ Architecture
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   AI Tools      │    │   LLM Link      │    │   LLM Providers │
-│                 │    │                 │    │                 │
-│ • Codex CLI     │───▶│ • Protocol      │───▶│ • OpenAI        │
-│ • Zed IDE       │    │   Conversion    │    │ • Anthropic     │
-│ • Aider         │    │ • Format        │    │ • Zhipu         │
-│ • OpenHands     │    │   Adaptation    │    │ • Aliyun        │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-📚 **[Architecture Documentation →](https://lipish.github.io/llm-link/docs/architecture)**
+See **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** for architecture, scheduling, and operations.
 
 ## 🛠️ Development
 

@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n"
+
 export const getProviderIcon = (providerId: string): string | null => {
   const iconMap: Record<string, string> = {
     'aliyun': '/ali.svg',
@@ -30,6 +32,28 @@ export const getLocalizedProviderName = (id: string, label: string) => {
   }
   return label;
 };
+
+export const getLocalizedDriverType = (driverType?: string) => {
+  if (!driverType) return "-"
+  switch (driverType) {
+    case "openai":
+      return t("modelTypes.driverTypeOpenAI")
+    case "openai_compatible":
+      return t("modelTypes.driverTypeOpenAICompatible")
+    case "anthropic":
+      return t("modelTypes.driverTypeAnthropic")
+    case "aliyun":
+      return t("modelTypes.driverTypeAliyun")
+    case "volcengine":
+      return t("modelTypes.driverTypeVolcengine")
+    case "tencent":
+      return t("modelTypes.driverTypeTencent")
+    case "ollama":
+      return t("modelTypes.driverTypeOllama")
+    default:
+      return driverType
+  }
+}
 
 export const formatPrice = (price?: number) => {
   if (price === undefined || price === null) return "-"

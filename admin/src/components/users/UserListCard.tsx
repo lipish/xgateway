@@ -42,7 +42,7 @@ export function UserListCard({ users, selectedUserId, onSelectUser }: UserListCa
                     <div className="font-medium truncate">{user.username}</div>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge variant="secondary" className="text-xs font-normal">
-                        {user.role_id}
+                        {t(`users.role.${user.role_id}`)}
                       </Badge>
                       <Badge
                         className={cn(
@@ -52,7 +52,7 @@ export function UserListCard({ users, selectedUserId, onSelectUser }: UserListCa
                             : "bg-muted text-muted-foreground border-0"
                         )}
                       >
-                        {user.status}
+                        {t(`users.status.${user.status}`)}
                       </Badge>
                     </div>
                   </div>

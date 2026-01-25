@@ -62,12 +62,10 @@ export function ChatPage() {
 
   useEffect(() => {
     panels.forEach(panel => {
-      if (panel.loading || panel.messages.length > 0) {
-        messagesEndRefs.current[panel.id]?.scrollIntoView({ behavior: "auto" })
-      }
+      if (!panel.loading) return
+      messagesEndRefs.current[panel.id]?.scrollIntoView({ behavior: "auto" })
     })
   }, [
-    panels.map(p => p.messages.length).join(','),
     panels.map(p => p.loading).join(','),
     panels.map(p => p.messages[p.messages.length - 1]?.content.length || 0).join(',')
   ])
@@ -78,7 +76,8 @@ export function ChatPage() {
 
   const addPanel = () => {
     if (panels.length >= 4) return
-    setPanels(prev => [...prev, { id: Date.now().toString(), providerId: null, conversationId: null, messages: [], loading: false, input: "" }])
+    const defaultProviderId = providers[0]?.id ?? null
+    setPanels(prev => [...prev, { id: Date.now().toString(), providerId: defaultProviderId, conversationId: null, messages: [], loading: false, input: "" }])
   }
 
   const removePanel = (id: string) => {

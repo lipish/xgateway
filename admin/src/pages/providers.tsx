@@ -43,9 +43,21 @@ export function ModelTypesPage() {
       setLoading(true)
       const response = await apiGet<{ success: boolean; data: ProviderType[] }>("/api/provider-types")
       if (response.success && response.data) {
-        setProviderTypes(response.data)
-        if (response.data.length > 0 && !selectedType) {
-          setSelectedType(response.data[0])
+        const data = response.data
+        setProviderTypes(data)
+        if (data.length > 0 && !selectedType) {
+          const aliyun = data.find((item) => item.id === "aliyun")
+          if (aliyun) {
+            setSelectedType(aliyun)
+          } else {
+            const [defaultType] = [...data].sort((a, b) => {
+              if (a.sort_order !== b.sort_order) {
+                return a.sort_order - b.sort_order
+              }
+              return (b.models?.length || 0) - (a.models?.length || 0)
+            })
+            setSelectedType(defaultType)
+          }
         }
       }
     } catch (err) {
@@ -289,7 +301,7 @@ export function ModelTypesPage() {
                               setSortDropdownOpen(false)
                             }}
                           >
-                            Sort by Name
+                            {t("modelTypes.sortByName")}
                           </div>
                           <div
                             className={`px-3 py-2 text-sm cursor-pointer rounded hover:bg-accent ${sortBy === "models" ? "bg-accent" : ""}`}
@@ -298,7 +310,7 @@ export function ModelTypesPage() {
                               setSortDropdownOpen(false)
                             }}
                           >
-                            Sort by Models
+                            {t("modelTypes.sortByModels")}
                           </div>
                         </div>
                       </div>

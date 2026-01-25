@@ -35,7 +35,7 @@ export function UserDetailCard({
               <div>
                 <h2 className="text-2xl font-bold">{user.username}</h2>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge variant="secondary">{user.role_id}</Badge>
+                  <Badge variant="secondary">{t(`users.role.${user.role_id}`)}</Badge>
                   <Badge
                     className={cn(
                       "cursor-pointer",
@@ -45,7 +45,7 @@ export function UserDetailCard({
                     )}
                     onClick={() => onToggleStatus(user)}
                   >
-                    {user.status}
+                    {t(`users.status.${user.status}`)}
                   </Badge>
                 </div>
               </div>
@@ -66,8 +66,8 @@ export function UserDetailCard({
                   <div className="font-medium mt-1">{new Date(user.created_at).toLocaleDateString()}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">User ID</div>
-                  <div className="font-medium mt-1">#{user.id}</div>
+                  <div className="text-muted-foreground">{t("users.userId")}</div>
+                  <div className="font-medium mt-1">{user.id}</div>
                 </div>
               </div>
             </div>
@@ -75,17 +75,17 @@ export function UserDetailCard({
             {user.role_id === "user" && (
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Granted Instances</h3>
+                  <h3 className="text-lg font-semibold">{t("users.grantedInstances")}</h3>
                   <Button size="sm" variant="outline" onClick={onOpenGrantDialog}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Grant Instance
+                    {t("users.grantInstance")}
                   </Button>
                 </div>
                 <div className="border rounded-lg divide-y">
                   {userInstances.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">
                       <Server className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                      <p>No instances granted yet</p>
+                      <p>{t("users.noInstancesGranted")}</p>
                     </div>
                   ) : (
                     userInstances.map((ui) => {
@@ -97,7 +97,7 @@ export function UserDetailCard({
                             <div>
                               <div className="font-medium">{provider?.name || `Instance #${ui.provider_id}`}</div>
                               <div className="text-xs text-muted-foreground mt-1">
-                                Granted on {new Date(ui.granted_at).toLocaleDateString()}
+                                {t("users.grantedOn")} {new Date(ui.granted_at).toLocaleDateString()}
                               </div>
                             </div>
                           </div>
@@ -120,7 +120,7 @@ export function UserDetailCard({
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
             <UserIcon className="h-16 w-16 mb-4 opacity-20" />
-            <p>Select a user to view details</p>
+            <p>{t("users.selectUser")}</p>
           </div>
         )}
       </CardContent>

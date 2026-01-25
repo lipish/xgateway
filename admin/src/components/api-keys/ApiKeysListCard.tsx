@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { t } from "@/lib/i18n"
-import { cn } from "@/lib/utils"
+import { cn, formatDate } from "@/lib/utils"
 import { Loader2, MoreVertical, Pencil, Shield, Trash2 } from "lucide-react"
 import type { ApiKey, Service } from "./types"
 
@@ -81,7 +81,7 @@ export function ApiKeysListCard({
                         <span className="text-sm text-muted-foreground">{serviceSummary}</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{new Date(key.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{formatDate(key.created_at)}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild>

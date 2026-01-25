@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
+import { t } from "@/lib/i18n"
 import { Plus, Server, Trash2 } from "lucide-react"
 
 import type { Provider, UserInstance } from "./types"
@@ -38,21 +39,21 @@ export function GrantInstanceDialog({
       <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden border">
         <div className="p-6 space-y-5">
           <DialogHeader className="space-y-1.5 mb-0">
-            <DialogTitle className="text-xl font-semibold tracking-tight">Manage Instance Access</DialogTitle>
+            <DialogTitle className="text-xl font-semibold tracking-tight">{t("users.manageInstanceAccess")}</DialogTitle>
             <DialogDescription className="text-purple-600 font-medium pb-2">
-              Grant or revoke access for <span className="text-foreground font-bold">{username}</span>
+              {t("users.manageInstanceAccessFor")} <span className="text-foreground font-bold">{username}</span>
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5">
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Grant New Instance</Label>
+              <Label className="text-sm font-medium">{t("users.grantNewInstance")}</Label>
               <div className="flex gap-2">
                 <Select
                   value={grantData.provider_id}
                   onChange={(value) => onGrantDataChange({ provider_id: value })}
                   options={availableProviderOptions}
-                  placeholder="Select instance"
+                  placeholder={t("users.selectInstance")}
                   triggerClassName="h-10 flex-1"
                 />
                 <Button
@@ -61,18 +62,18 @@ export function GrantInstanceDialog({
                   className="h-10 px-6 bg-purple-600 hover:bg-purple-700 text-white border-0"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Grant
+                  {t("users.grant")}
                 </Button>
               </div>
             </div>
 
             <div className="border rounded-md overflow-hidden bg-background">
               <div className="p-3 border-b bg-muted/30">
-                <h4 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Granted Instances</h4>
+                <h4 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">{t("users.grantedInstances")}</h4>
               </div>
               <div className="divide-y max-h-48 overflow-y-auto scrollbar-hide">
                 {userInstances.length === 0 ? (
-                  <div className="p-8 text-center text-muted-foreground text-sm">No instances granted yet</div>
+                  <div className="p-8 text-center text-muted-foreground text-sm">{t("users.noInstancesGranted")}</div>
                 ) : (
                   userInstances.map((ui) => {
                     const provider = providers.find((p) => p.id === ui.provider_id)
@@ -83,7 +84,7 @@ export function GrantInstanceDialog({
                           <div>
                             <div className="font-medium text-sm">{provider?.name || `Instance #${ui.provider_id}`}</div>
                             <div className="text-[10px] text-muted-foreground uppercase font-semibold mt-0.5">
-                              Since {new Date(ui.granted_at).toLocaleDateString()}
+                              {t("users.grantedSince")} {new Date(ui.granted_at).toLocaleDateString()}
                             </div>
                           </div>
                         </div>
@@ -105,7 +106,7 @@ export function GrantInstanceDialog({
 
           <DialogFooter className="mt-2">
             <Button variant="outline" onClick={() => onOpenChange(false)} className="h-10 px-10 w-full sm:w-auto">
-              Close
+              {t("common.cancel")}
             </Button>
           </DialogFooter>
         </div>

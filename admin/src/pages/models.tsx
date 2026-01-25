@@ -134,10 +134,10 @@ export function ProvidersPage() {
         }
         setError(null);
       } else {
-        setError(result.message || "Failed to fetch providers");
+        setError(result.message || t("providers.fetchFailed"));
       }
     } catch (err) {
-      setError("Network error: Failed to fetch providers");
+      setError(t("providers.fetchFailed"));
       console.error("Error fetching providers:", err);
     } finally {
       setLoading(false);
@@ -170,20 +170,20 @@ export function ProvidersPage() {
         if (result.data) {
           setProviders((ps) => ps.map((p) => (p.id === id ? result.data! : p)));
           setSelectedProvider((sp) => (sp?.id === id ? result.data! : sp));
-          setGlobalError(result.message || "Provider has been modified, please refresh");
+          setGlobalError(result.message || t("providers.modifiedRefresh"));
           setErrorDialogOpen(true);
           fetchProviders();
         } else {
           setProviders(prevProviders);
           setSelectedProvider(prevSelectedProvider);
-          setGlobalError(result.message || "Failed to update provider");
+          setGlobalError(result.message || t("providers.updateFailed"));
           setErrorDialogOpen(true);
         }
       }
     } catch (err) {
       setProviders(prevProviders);
       setSelectedProvider(prevSelectedProvider);
-      setGlobalError("Network error: Failed to update provider");
+      setGlobalError(t("providers.updateFailed"));
       setErrorDialogOpen(true);
       console.error("Error updating provider:", err);
     } finally {

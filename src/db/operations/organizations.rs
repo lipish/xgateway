@@ -35,6 +35,21 @@ impl DatabasePool {
         }
     }
 
+
+    pub async fn update_organization(&self, id: i64, name: &str) -> Result<bool> {
+        let query = "UPDATE organizations SET name = $1, updated_at = NOW() WHERE id = $2";
+
+        match self {
+            Self::Postgres(pool) => {
+                let result = sqlx::query(query)
+                    .bind(name)
+                    .bind(id)
+                    .execute(pool)
+                    .await?;
+                Ok(result.rows_affected() > 0)
+            }
+        }
+    }
     pub async fn delete_organization(&self, id: i64) -> Result<bool> {
         let query = "DELETE FROM organizations WHERE id = $1";
 

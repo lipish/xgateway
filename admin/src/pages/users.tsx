@@ -43,7 +43,7 @@ export function UsersPage() {
             setLoading(true)
             const data = await apiGet<ApiResponse<User[]>>('/api/users')
             if (!data.success) {
-                setError(data.message || 'Failed to fetch users')
+                setError(data.message || t('users.fetchUsersFailed'))
                 return []
             }
             const list: User[] = data.data || []
@@ -74,7 +74,7 @@ export function UsersPage() {
         try {
             const data = await apiGet<ApiResponse<Provider[]>>('/api/instances')
             if (!data.success) {
-                setError(data.message || 'Failed to fetch providers')
+                setError(data.message || t('users.fetchProvidersFailed'))
                 return
             }
             setProviders(data.data || [])
@@ -88,7 +88,7 @@ export function UsersPage() {
         try {
             const data = await apiGet<ApiResponse<UserInstance[]>>(`/api/users/${userId}/instances`)
             if (!data.success) {
-                setError(data.message || 'Failed to fetch user instances')
+                setError(data.message || t('users.fetchUserInstancesFailed'))
                 return
             }
             setUserInstances(data.data || [])
@@ -122,7 +122,7 @@ export function UsersPage() {
                     }
                 }
             } else {
-                setError(data.message || 'Failed to create user')
+                setError(data.message || t('users.createFailed'))
             }
         } catch {
             setError(t('common.networkError'))
@@ -249,7 +249,7 @@ export function UsersPage() {
                                 <CardContent className="flex-1 flex items-center justify-center p-6">
                                     <div className="text-center text-muted-foreground">
                                         <p className="text-lg font-medium mb-2">{t('users.noUsers')}</p>
-                                        <p className="text-sm">Create your first user to get started.</p>
+                                        <p className="text-sm">{t('users.emptyDescription')}</p>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -271,7 +271,7 @@ export function UsersPage() {
                     open={userToDelete != null}
                     onOpenChange={(open) => !open && setUserToDelete(null)}
                     title={t('users.confirmDelete')}
-                    description={t('users.deleteWarning') || 'This action cannot be undone. This will permanently delete the user account.'}
+                    description={t('users.deleteWarning')}
                     cancelText={t('common.cancel')}
                     confirmText={t('common.delete')}
                     onConfirm={handleDelete}

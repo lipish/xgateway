@@ -11,7 +11,7 @@ import {
 import { Plus, Pencil, Trash2, MoreVertical, ExternalLink } from "lucide-react"
 import { t } from "@/lib/i18n"
 import type { ProviderType, ModelInfo } from "./types"
-import { getLocalizedProviderName, formatPrice } from "./utils"
+import { getLocalizedProviderName, formatPrice, getLocalizedDriverType } from "./utils"
 
 interface ProviderDetailProps {
   provider: ProviderType
@@ -87,7 +87,7 @@ export function ProviderDetail({ provider, onAddModel, onEditModel, onDeleteMode
           {/* Corrected: Removed default model block */}
           <div className="p-3 rounded-lg bg-background border border-border/50">
             <div className="text-xs font-medium text-muted-foreground mb-1.5">{t('modelTypes.driverType')}</div>
-            <div className="text-xs font-mono text-foreground/90 uppercase">{provider.driver_type || '-'}</div>
+            <div className="text-xs font-mono text-foreground/90 uppercase">{getLocalizedDriverType(provider.driver_type)}</div>
           </div>
         </div>
       </div>

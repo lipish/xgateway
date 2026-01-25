@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { t } from "@/lib/i18n"
+import { formatDate } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
 import type { ApiKey, Service } from "./types"
 
@@ -61,7 +62,7 @@ export function ApiKeyDetailCard({
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-md bg-muted/30 p-4">
               <div className="text-xs text-muted-foreground">{t("apiKeys.created")}</div>
-              <div className="mt-1 text-sm font-medium">{new Date(apiKey.created_at).toLocaleString()}</div>
+              <div className="mt-1 text-sm font-medium">{formatDate(apiKey.created_at)}</div>
             </div>
             <div className="rounded-md bg-muted/30 p-4">
               <div className="text-xs text-muted-foreground">{t("apiKeys.scope")}</div>

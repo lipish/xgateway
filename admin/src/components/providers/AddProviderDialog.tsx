@@ -60,13 +60,13 @@ export function AddProviderDialog({
                   value={providerForm.driver_type}
                   onChange={value => onFormChange({ ...providerForm, driver_type: value })}
                   options={[
-                    { value: "openai", label: "OpenAI" },
-                    { value: "openai_compatible", label: "OpenAI Compatible" },
-                    { value: "anthropic", label: "Anthropic" },
-                    { value: "aliyun", label: "Aliyun (DashScope)" },
-                    { value: "volcengine", label: "Volcengine" },
-                    { value: "tencent", label: "Tencent" },
-                    { value: "ollama", label: "Ollama" },
+                    { value: "openai", label: t("modelTypes.driverTypeOpenAI") },
+                    { value: "openai_compatible", label: t("modelTypes.driverTypeOpenAICompatible") },
+                    { value: "anthropic", label: t("modelTypes.driverTypeAnthropic") },
+                    { value: "aliyun", label: t("modelTypes.driverTypeAliyun") },
+                    { value: "volcengine", label: t("modelTypes.driverTypeVolcengine") },
+                    { value: "tencent", label: t("modelTypes.driverTypeTencent") },
+                    { value: "ollama", label: t("modelTypes.driverTypeOllama") },
                   ]}
                   triggerClassName="h-10"
                 />

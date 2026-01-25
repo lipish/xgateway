@@ -64,7 +64,7 @@ pub fn create_admin_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -
         .route("/api/provider-types/:id", put(provider_type_handlers::update_provider_type_api).delete(provider_type_handlers::delete_provider_type_api))
         // Organizations / Projects (Tenancy)
         .route("/api/organizations", get(organization_handlers::list_organizations_api).post(organization_handlers::create_organization_api))
-        .route("/api/organizations/:id", delete(organization_handlers::delete_organization_api))
+        .route("/api/organizations/:id", put(organization_handlers::update_organization_api).delete(organization_handlers::delete_organization_api))
         .route("/api/organizations/:id/users", get(org_user_handlers::list_org_users_api).post(org_user_handlers::add_org_user_api))
         .route("/api/organizations/:id/users/:user_id", delete(org_user_handlers::remove_org_user_api))
         .route("/api/projects", get(project_handlers::list_projects_api).post(project_handlers::create_project_api))

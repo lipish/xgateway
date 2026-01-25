@@ -13,7 +13,7 @@ import {
 } from "lucide-react"
 import { t } from "@/lib/i18n"
 import type { Provider, ProviderTypeConfig } from "./types"
-import { parseProviderConfig } from "./utils"
+import { parseProviderConfig, formatDate } from "./utils"
 import { getProviderIcon } from "../providers/utils"
 
 interface ProviderDetailProps {
@@ -266,14 +266,14 @@ export function ProviderDetail({ provider, providerTypeConfig, onTest, onNavigat
               <Calendar className="h-3.5 w-3.5 shrink-0" />
               <span className="font-medium">{t('providers.createdAt')}:</span>
               <span className="text-foreground">
-                {new Date(provider.created_at).toLocaleString()}
+                {formatDate(provider.created_at)}
               </span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Calendar className="h-3.5 w-3.5 shrink-0" />
               <span className="font-medium">{t('providers.updatedAt')}:</span>
               <span className="text-foreground">
-                {new Date(provider.updated_at).toLocaleString()}
+                {formatDate(provider.updated_at)}
               </span>
             </div>
           </div>

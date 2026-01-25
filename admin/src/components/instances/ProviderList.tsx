@@ -2,7 +2,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
 import {
   Table,
   TableBody,
@@ -11,13 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Search,
-  Server,
-  MoreVertical,
-  Pencil,
-  Trash2,
-} from "lucide-react"
+import { Search, Server, MoreVertical, Pencil, Trash2, Power } from "lucide-react"
 import { t } from "@/lib/i18n"
 import type { Provider } from "./types"
 
@@ -81,9 +74,6 @@ export function ProviderList({
                 <TableHead className="text-left">{t("providers.type")}</TableHead>
                 <TableHead className="text-center w-[100px]">{t("providers.status")}</TableHead>
                 <TableHead className="text-center">{t("providers.priority")}</TableHead>
-                <TableHead className="text-center w-[80px]">
-                  {t("providers.enableDisable")}
-                </TableHead>
                 {isAdmin && <TableHead className="text-center w-[64px]"></TableHead>}
               </TableRow>
             </TableHeader>
@@ -111,15 +101,6 @@ export function ProviderList({
                     </Badge>
                   </TableCell>
                   <TableCell className="text-center">{provider.priority}</TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                      <Switch
-                        checked={provider.enabled}
-                        disabled={togglingProviderIds.includes(provider.id)}
-                        onCheckedChange={(checked) => onToggleProvider(provider.id, checked)}
-                      />
-                    </div>
-                  </TableCell>
                   {isAdmin && (
                     <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu modal={false}>
@@ -141,6 +122,15 @@ export function ProviderList({
                           >
                             <Pencil className="h-4 w-4 mr-2" />
                             {t("common.edit")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              onToggleProvider(provider.id, !provider.enabled)
+                            }}
+                            disabled={togglingProviderIds.includes(provider.id)}
+                          >
+                            <Power className="h-4 w-4 mr-2" />
+                            {provider.enabled ? t("providers.disable") : t("providers.enable")}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {

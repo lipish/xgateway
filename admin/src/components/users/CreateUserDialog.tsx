@@ -24,7 +24,7 @@ export function CreateUserDialog({ open, onOpenChange, newUser, onNewUserChange,
           <DialogHeader className="space-y-1.5 mb-0">
             <DialogTitle className="text-xl font-semibold tracking-tight">{t("users.create")}</DialogTitle>
             <DialogDescription className="text-purple-600 font-medium pb-2">
-              Create a new user account with specific roles.
+              {t("users.createDescription")}
             </DialogDescription>
           </DialogHeader>
 
@@ -44,15 +44,15 @@ export function CreateUserDialog({ open, onOpenChange, newUser, onNewUserChange,
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role" className="text-sm font-medium">
-                  {t("users.role")}
+                  {t("users.roleLabel")}
                 </Label>
                 <Select
                   id="role"
                   value={newUser.role_id}
                   onChange={(value) => onNewUserChange({ ...newUser, role_id: value })}
                   options={[
-                    { value: "user", label: "User" },
-                    { value: "admin", label: "Administrator" },
+                    { value: "user", label: t("users.roleUser") },
+                    { value: "admin", label: t("users.roleAdmin") },
                   ]}
                   triggerClassName="h-10"
                 />

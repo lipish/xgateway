@@ -39,13 +39,13 @@ export function LoginPage() {
         const data = await response.json()
 
         if (data.success) {
-          setSuccess(data.message || "Password reset link sent to your email")
+          setSuccess(data.message || t("auth.resetLinkSent"))
           setTimeout(() => {
             setIsForgotPassword(false)
             setIsLogin(true)
           }, 2000)
         } else {
-          setError(data.message || "Failed to send reset link")
+          setError(data.message || t("auth.resetLinkFailed"))
         }
       } else if (isLogin) {
         const response = await fetch("/api/auth/login", {
@@ -60,11 +60,11 @@ export function LoginPage() {
           login(data.data.user, data.data.token)
           navigate("/")
         } else {
-          setError(data.message || "Login failed")
+          setError(data.message === "Invalid username or password" ? t("auth.invalidCredentials") : (data.message || t("auth.loginFailed")))
         }
       } else {
         if (password !== confirmPassword) {
-          setError("Passwords do not match")
+          setError(t("auth.passwordsDoNotMatch"))
           setLoading(false)
           return
         }
@@ -78,16 +78,16 @@ export function LoginPage() {
         const data = await response.json()
 
         if (data.success) {
-          setSuccess(data.message || "Registration successful! Please login.")
+          setSuccess(data.message || t("auth.registrationSuccess"))
           setTimeout(() => {
             setIsLogin(true)
           }, 2000)
         } else {
-          setError(data.message || "Registration failed")
+          setError(data.message || t("auth.registrationFailed"))
         }
       }
     } catch (err) {
-      setError("Network error. Please try again.")
+      setError(t("common.networkError"))
     } finally {
       setLoading(false)
     }
