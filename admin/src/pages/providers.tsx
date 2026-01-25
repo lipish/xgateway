@@ -245,7 +245,7 @@ export function ModelTypesPage() {
           action={
             <Button size="sm" onClick={() => setShowAddProvider(true)} className="bg-primary hover:bg-primary/90">
               <Plus className="mr-2 h-4 w-4" />
-              {t('providers.addProvider')}
+              {t('modelTypes.addProvider')}
             </Button>
           }
         />

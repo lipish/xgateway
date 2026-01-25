@@ -31,10 +31,10 @@ export default function Notifications() {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-64" align="end">
-                <DropdownMenuLabel>{t('notifications.title')}</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('common.notifications.title')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <div className="py-2 px-4 text-sm text-muted-foreground text-center">
-                    {t('notifications.noNew')}
+                    {t('common.notifications.noNew')}
                 </div>
             </DropdownMenuContent>
         </DropdownMenu>

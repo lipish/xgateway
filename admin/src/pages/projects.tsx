@@ -14,7 +14,7 @@ import { cn, formatDate } from "@/lib/utils"
 import { TwoPanelLayout } from "@/components/layout/two-panel-layout"
 import { DetailPanel } from "@/components/layout/detail-panel"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { MoreVertical, Pencil, Trash2 } from "lucide-react"
+import { MoreVertical, Pencil, Plus, Trash2 } from "lucide-react"
 
 type ApiResponse<T> = {
   success: boolean
@@ -199,11 +199,12 @@ export function ProjectsPage() {
       <PageHeader
         title={t("projects.title")}
         subtitle={t("projects.description")}
-        action={
-          <Button size="sm" onClick={() => setCreateDialogOpen(true)} className="bg-primary hover:bg-primary/90">
-            {t("projects.add") || t("projects.create")}
-          </Button>
-        }
+          action={
+            <Button size="sm" onClick={() => setCreateDialogOpen(true)} className="bg-primary hover:bg-primary/90">
+              <Plus className="mr-2 h-4 w-4" />
+              {t("projects.add") || t("projects.create")}
+            </Button>
+          }
       />
 
       <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">

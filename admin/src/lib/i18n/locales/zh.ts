@@ -606,6 +606,10 @@ export const zh = {
     english: 'English',
     networkError: '网络错误',
     noRecentProviders: '暂无最近模型服务商',
+    notifications: {
+      title: '通知',
+      noNew: '暂无新通知',
+    },
     performance: {
       title: '性能',
       successRate: '成功率',

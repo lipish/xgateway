@@ -608,6 +608,10 @@ export const en = {
     english: 'English',
     networkError: 'Network error',
     noRecentProviders: 'No recent providers available',
+    notifications: {
+      title: 'Notifications',
+      noNew: 'No new notifications',
+    },
     performance: {
       title: 'Performance',
       successRate: 'Success Rate',
