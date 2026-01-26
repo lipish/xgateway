@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/layout/page-header"
 import { TwoPanelLayout } from "@/components/layout/two-panel-layout"
@@ -137,9 +137,24 @@ export function ServicesPage() {
     }
   }
 
+  const fetchProviders = useCallback(async () => {
+    try {
+      const data = await apiGet<ApiResponse<Provider[]>>("/api/instances")
+      if (!data.success) {
+        setProviders([])
+        setError(data.message || t("common.networkError"))
+        return
+      }
+      setProviders(data.data || [])
+    } catch {
+      setProviders([])
+      setError(t("common.networkError"))
+    }
+  }, [])
+
   useEffect(() => {
     fetchAll()
-  }, [])
+  }, [fetchAll])
 
   useEffect(() => {
     if (services.length === 0) {
@@ -152,17 +167,42 @@ export function ServicesPage() {
     }
   }, [services, selectedServiceId])
 
+  const fetchServiceModelServices = useCallback(async (serviceId: string) => {
+    try {
+      const data = await apiGet<ApiResponse<Provider[]>>(`/api/services/${serviceId}/model-services`)
+      if (!data.success) {
+        setBoundProviders([])
+        setError(data.message || t("common.networkError"))
+        return
+      }
+      setBoundProviders(data.data || [])
+    } catch {
+      setBoundProviders([])
+      setError(t("common.networkError"))
+    }
+  }, [])
+
   useEffect(() => {
     if (!selectedServiceId) return
     fetchServiceModelServices(selectedServiceId)
-  }, [selectedServiceId])
+  }, [selectedServiceId, fetchServiceModelServices])
 
-  useEffect(() => {
-    if (!selectedServiceId) return
-    fetchApiKeys()
-  }, [selectedServiceId])
+  const fetchServices = useCallback(async () => {
+    try {
+      const data = await apiGet<ApiResponse<Service[]>>("/api/services")
+      if (!data.success) {
+        setServices([])
+        setError(data.message || t("common.networkError"))
+        return
+      }
+      setServices(data.data || [])
+    } catch {
+      setServices([])
+      setError(t("common.networkError"))
+    }
+  }, [])
 
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -170,9 +210,9 @@ export function ServicesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [fetchProviders, fetchServices])
 
-  const fetchApiKeys = async () => {
+  const fetchApiKeys = useCallback(async () => {
     try {
       setApiKeyLoading(true)
       setApiKeyError(null)
@@ -189,7 +229,12 @@ export function ServicesPage() {
     } finally {
       setApiKeyLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (!selectedServiceId) return
+    fetchApiKeys()
+  }, [selectedServiceId, fetchApiKeys])
 
   const openCreateApiKey = () => {
     setApiKeyCreateForm({ name: "" })
@@ -214,7 +259,7 @@ export function ServicesPage() {
         provider_ids: null,
       }
 
-      const data = await apiPost<ApiResponse<any>>('/api/api-keys', payload)
+  const data = await apiPost<ApiResponse<{ full_key?: string }>>('/api/api-keys', payload)
       if (!data.success) {
         setApiKeyCreateError(data.message || t('common.networkError'))
         return
@@ -250,7 +295,7 @@ export function ServicesPage() {
       setRotatingKeyId(id)
       setRotateError(null)
       setRotatedApiKey(null)
-      const data = await apiPost<ApiResponse<any>>(`/api/api-keys/${id}/rotate`)
+  const data = await apiPost<ApiResponse<{ full_key?: string }>>(`/api/api-keys/${id}/rotate`)
       if (!data.success) {
         setRotateError(data.message || t('common.networkError'))
         return
@@ -277,36 +322,6 @@ export function ServicesPage() {
       setApiKeyError(t('common.networkError'))
     } finally {
       setApiKeyToDelete(null)
-    }
-  }
-
-  const fetchServices = async () => {
-    try {
-      const data = await apiGet<ApiResponse<Service[]>>("/api/services")
-      if (!data.success) {
-        setServices([])
-        setError(data.message || t("common.networkError"))
-        return
-      }
-      setServices(data.data || [])
-    } catch {
-      setServices([])
-      setError(t("common.networkError"))
-    }
-  }
-
-  const fetchProviders = async () => {
-    try {
-      const data = await apiGet<ApiResponse<Provider[]>>("/api/instances")
-      if (!data.success) {
-        setProviders([])
-        setError(data.message || t("common.networkError"))
-        return
-      }
-      setProviders(data.data || [])
-    } catch {
-      setProviders([])
-      setError(t("common.networkError"))
     }
   }
 

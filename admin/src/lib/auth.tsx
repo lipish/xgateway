@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState, type ReactNode } from "react"
 
 interface User {
   id: number
@@ -22,16 +23,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  if (loading) {
     const storedToken = localStorage.getItem("auth_token")
     const storedUser = localStorage.getItem("auth_user")
-    
     if (storedToken && storedUser) {
       setToken(storedToken)
       setUser(JSON.parse(storedUser))
     }
     setLoading(false)
-  }, [])
+  }
 
   const login = (user: User, token: string) => {
     setUser(user)
@@ -54,10 +54,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export function useAuth() {
+function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider")
   }
   return context
 }
+
+export { useAuth }

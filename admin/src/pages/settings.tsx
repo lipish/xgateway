@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { t } from "@/lib/i18n"
 import { apiGet, apiPost } from "@/lib/api"
 import { cn } from "@/lib/utils"
-import { Settings, Save, RotateCcw, RefreshCw, Loader2, Shield, Zap, Heart } from "lucide-react"
+import { Save, RotateCcw, RefreshCw, Loader2, Shield, Zap, Heart } from "lucide-react"
 import { PageHeader } from "@/components/layout/page-header"
 
 type ApiResponse<T> = {
@@ -77,7 +77,7 @@ export function SettingsPage() {
       } else {
         setMessage({ type: 'error', text: data.message || t('settings.saveFailed') })
       }
-    } catch (err) {
+    } catch {
       setMessage({ type: 'error', text: t('common.networkError') })
     } finally {
       setSaving(false)

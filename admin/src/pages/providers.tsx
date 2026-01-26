@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { apiGet, apiPut, apiPost, apiDelete } from "@/lib/api"
 import { t } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
@@ -38,7 +38,7 @@ export function ModelTypesPage() {
     setProviderForm({ ...providerForm, label, id })
   }
 
-  const fetchProviderTypes = async () => {
+  const fetchProviderTypes = useCallback(async () => {
     try {
       setLoading(true)
       const response = await apiGet<{ success: boolean; data: ProviderType[] }>("/api/provider-types")
@@ -65,11 +65,11 @@ export function ModelTypesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedType])
 
   useEffect(() => {
     fetchProviderTypes()
-  }, [])
+  }, [fetchProviderTypes])
 
   const openAddModel = (typeId: string) => {
     setEditingModel({ typeId, model: null })

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { t } from "@/lib/i18n"
 import { useAuth } from "@/lib/auth"
-import { Eye, EyeOff, ArrowRight, Shield, Globe, Zap, CheckCircle2 } from "lucide-react"
+import { Eye, EyeOff, ArrowRight } from "lucide-react"
 import { LanguageSwitcher } from "@/components/language-switcher"
 
 export function LoginPage() {
@@ -86,7 +86,7 @@ export function LoginPage() {
           setError(data.message || t("auth.registrationFailed"))
         }
       }
-    } catch (err) {
+    } catch {
       setError(t("common.networkError"))
     } finally {
       setLoading(false)

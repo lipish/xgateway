@@ -179,7 +179,7 @@ export function ApiKeysPage() {
 
   const openEditDialog = (key: ApiKey) => {
     const serviceIds = key.scope === 'instance'
-      ? ((key.service_ids && key.service_ids.length > 0) ? key.service_ids : getLegacyServiceIds(key))
+      ? ((key.service_ids && key.service_ids.length > 0) ? key.service_ids.slice(0, 1) : getLegacyServiceIds(key).slice(0, 1))
       : []
 
     setEditingApiKeyId(key.id)
@@ -199,6 +199,10 @@ export function ApiKeysPage() {
       setEditError(null)
 
       if (editKeyData.scope === 'instance' && editKeyData.service_ids.length === 0) {
+        setEditError(t('apiKeys.selectServiceRequired') || t('apiKeys.selectInstance') || t('common.saveFailed'))
+        return
+      }
+      if (editKeyData.scope === 'instance' && editKeyData.service_ids.length > 1) {
         setEditError(t('apiKeys.selectServiceRequired') || t('apiKeys.selectInstance') || t('common.saveFailed'))
         return
       }
@@ -229,10 +233,9 @@ export function ApiKeysPage() {
     if (key.scope !== 'instance') return
     if (bindingUpdatingId === key.id) return
 
-    const existingIds = (key.service_ids && key.service_ids.length > 0) ? key.service_ids : getLegacyServiceIds(key)
     const nextServiceIds = nextBound
-      ? Array.from(new Set([...existingIds, serviceId]))
-      : existingIds.filter((id) => id !== serviceId)
+      ? [serviceId]
+      : []
 
     if (nextServiceIds.length === 0) {
       setError(t('apiKeys.selectServiceRequired') || t('apiKeys.selectInstance') || t('common.saveFailed'))
@@ -285,6 +288,10 @@ export function ApiKeysPage() {
       setError(null)
 
       if (newKeyData.scope === 'instance' && newKeyData.service_ids.length === 0) {
+        setError(t('apiKeys.selectServiceRequired') || t('apiKeys.selectInstance') || t('common.saveFailed'))
+        return
+      }
+      if (newKeyData.scope === 'instance' && newKeyData.service_ids.length > 1) {
         setError(t('apiKeys.selectServiceRequired') || t('apiKeys.selectInstance') || t('common.saveFailed'))
         return
       }

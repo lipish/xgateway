@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { t } from "@/lib/i18n"
 import { Copy } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 interface ApiKeyCreateDialogProps {
   open: boolean
@@ -31,11 +31,9 @@ export function ApiKeyCreateDialog({
   error,
   createdApiKey,
 }: ApiKeyCreateDialogProps) {
-  const [copied, setCopied] = useState(false)
+  const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
-  useEffect(() => {
-    setCopied(false)
-  }, [createdApiKey, open])
+  const copied = copiedKey === createdApiKey && createdApiKey !== null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -71,10 +69,10 @@ export function ApiKeyCreateDialog({
                     onClick={async () => {
                       try {
                         await navigator.clipboard.writeText(createdApiKey)
-                        setCopied(true)
-                        window.setTimeout(() => setCopied(false), 1500)
+                        setCopiedKey(createdApiKey)
+                        window.setTimeout(() => setCopiedKey(null), 1500)
                       } catch {
-                        setCopied(false)
+                        setCopiedKey(null)
                       }
                     }}
                   >

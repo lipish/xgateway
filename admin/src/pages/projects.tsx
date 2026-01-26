@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api"
 import { t } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
@@ -67,25 +67,7 @@ export function ProjectsPage() {
     return o.name
   }
 
-  useEffect(() => {
-    fetchAll()
-  }, [])
-
-  useEffect(() => {
-    if (projects.length === 0) {
-      setSelectedId(null)
-      return
-    }
-    if (!selectedId || !projects.some((p) => p.id === selectedId)) {
-      setSelectedId(projects[0].id)
-    }
-  }, [projects, selectedId])
-
-  const fetchAll = async () => {
-    await Promise.all([fetchOrgs(), fetchProjects(filterOrgId)])
-  }
-
-  const fetchOrgs = async () => {
+  const fetchOrgs = useCallback(async () => {
     try {
       const resp = await apiGet<ApiResponse<Organization[]>>("/api/organizations")
       if (resp.success) {
@@ -101,10 +83,11 @@ export function ProjectsPage() {
         }
       }
     } catch {
+      setOrgs([])
     }
-  }
+  }, [createOrgId, filterOrgId])
 
-  const fetchProjects = async (orgId: number | null) => {
+  const fetchProjects = useCallback(async (orgId: number | null) => {
     try {
       setLoading(true)
       setError(null)
@@ -122,7 +105,26 @@ export function ProjectsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  const fetchAll = useCallback(async () => {
+    await Promise.all([fetchOrgs(), fetchProjects(filterOrgId)])
+  }, [fetchOrgs, fetchProjects, filterOrgId])
+
+  useEffect(() => {
+    fetchAll()
+  }, [fetchAll])
+
+  useEffect(() => {
+    if (projects.length === 0) {
+      setSelectedId(null)
+      return
+    }
+    if (!selectedId || !projects.some((p) => p.id === selectedId)) {
+      setSelectedId(projects[0].id)
+    }
+  }, [projects, selectedId])
+
 
   const handleCreate = async () => {
     const name = createName.trim()

@@ -116,25 +116,22 @@ export function ApiKeyCreateDialog({
                         <CommandList>
                           <CommandEmpty>{t("services.empty")}</CommandEmpty>
                           <CommandGroup>
-                            {services.map((service) => {
-                              const checked = form.service_ids.includes(service.id)
-                              return (
-                                <CommandItem
-                                  key={service.id}
-                                  value={`${service.name} ${service.id}`}
-                                  onSelect={() => {
-                                    const nextServiceIds = checked
-                                      ? form.service_ids.filter((id) => id !== service.id)
-                                      : [...form.service_ids, service.id]
-                                    onFormChange({ ...form, service_ids: nextServiceIds })
-                                  }}
-                                >
-                                  <Check className={checked ? "mr-2 h-4 w-4 opacity-100" : "mr-2 h-4 w-4 opacity-0"} />
-                                  <span className="truncate">{service.name}</span>
-                                  <span className="ml-auto text-xs text-muted-foreground">{service.id}</span>
-                                </CommandItem>
-                              )
-                            })}
+                          {services.map((service) => {
+                            const checked = form.service_ids.includes(service.id)
+                            return (
+                              <CommandItem
+                                key={service.id}
+                                value={`${service.name} ${service.id}`}
+                                onSelect={() => {
+                                  onFormChange({ ...form, service_ids: [service.id] })
+                                }}
+                              >
+                                <Check className={checked ? "mr-2 h-4 w-4 opacity-100" : "mr-2 h-4 w-4 opacity-0"} />
+                                <span className="truncate">{service.name}</span>
+                                <span className="ml-auto text-xs text-muted-foreground">{service.id}</span>
+                              </CommandItem>
+                            )
+                          })}
                           </CommandGroup>
                         </CommandList>
                       </Command>

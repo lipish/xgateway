@@ -27,7 +27,7 @@ import {
   Server
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
-import { apiGet, apiPost, apiPut } from "@/lib/api"
+import { apiGet, apiPut } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 interface ProviderStats {
@@ -67,14 +67,14 @@ interface ErrorLog {
 
 export function DashboardPage() {
   const navigate = useNavigate()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [stats, setStats] = useState<ProviderStats | null>(null)
   const [todayStats, setTodayStats] = useState<{ total_requests: number, avg_latency_ms: number } | null>(null)
   const [performanceStats, setPerformanceStats] = useState<PerformanceStats | null>(null)
   const [recentErrors, setRecentErrors] = useState<ErrorLog[]>([])
   const [recentProviders, setRecentProviders] = useState<Provider[]>([])
   const [allProviders, setAllProviders] = useState<Provider[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchDashboardData()
@@ -90,7 +90,13 @@ export function DashboardPage() {
         apiGet('/api/logs/today'),
         apiGet('/api/logs/performance'),
         apiGet('/api/logs?limit=20&status=error')
-      ]) as [any, any, any, any, any]
+      ]) as [
+        { success: boolean; data?: ProviderStats; message?: string },
+        { success: boolean; data?: Provider[]; message?: string },
+        { success: boolean; data?: { total_requests: number; avg_latency_ms: number }; message?: string },
+        { success: boolean; data?: PerformanceStats; message?: string },
+        { success: boolean; data?: Array<{ created_at: string; provider_name: string; model: string; error_message?: string }>; message?: string },
+      ]
 
       if (statsResult.success) {
         setStats(statsResult.data)
@@ -119,7 +125,7 @@ export function DashboardPage() {
       }
 
       if (logsResult.success) {
-        const errorLogs = (logsResult.data || []).map((log: any) => ({
+        const errorLogs = (logsResult.data || []).map((log) => ({
           timestamp: log.created_at,
           provider: log.provider_name,
           model: log.model,
@@ -144,11 +150,11 @@ export function DashboardPage() {
       setError(null)
       const current = allProviders.find(p => p.id === id) || recentProviders.find(p => p.id === id)
       const nextEnabled = current ? !current.enabled : true
-      const result = await apiPut(`/api/instances/${id}`, { enabled: nextEnabled, expected_version: current?.version }) as any
+      const result = await apiPut<{ success: boolean; data?: Provider; message?: string }>(`/api/instances/${id}`, { enabled: nextEnabled, expected_version: current?.version })
       if (result.success) {
         setRecentProviders(recentProviders.map(p => p.id === id ? result.data : p))
         setAllProviders(allProviders.map(p => p.id === id ? result.data : p))
-        const statsResult = await apiGet('/api/instances/stats') as any
+        const statsResult = await apiGet<{ success: boolean; data?: ProviderStats; message?: string }>('/api/instances/stats')
         if (statsResult.success) {
           setStats(statsResult.data)
         }
@@ -157,13 +163,38 @@ export function DashboardPage() {
           setRecentProviders(recentProviders.map(p => p.id === id ? result.data : p))
           setAllProviders(allProviders.map(p => p.id === id ? result.data : p))
         }
-        setError(result.message || t('common.error'))
-        setTimeout(() => setError(null), 3000)
       }
     } catch {
       setError(t('common.networkError'))
-      setTimeout(() => setError(null), 3000)
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
+        <PageHeader
+          title={t('dashboard.title')}
+          subtitle={t('dashboard.description')}
+        />
+        <div className="flex-1 max-w-[1400px] mx-auto w-full">
+          <div className="rounded-xl border bg-card h-80 animate-pulse"></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
+        <PageHeader
+          title={t('dashboard.title')}
+          subtitle={t('dashboard.description')}
+        />
+        <div className="flex-1 max-w-[1400px] mx-auto w-full">
+          <div className="rounded-xl border bg-destructive/5 p-6 text-center text-destructive">{error}</div>
+        </div>
+      </div>
+    )
   }
 
 
@@ -196,7 +227,7 @@ export function DashboardPage() {
     },
   ]
 
-  return (
+   return (
     <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
       <PageHeader
         title={t('dashboard.title')}

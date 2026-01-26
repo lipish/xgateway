@@ -62,7 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 💥 Breaking Changes
 
 - 移除 SQLite 支持，数据库仅支持 PostgreSQL（必须设置 `DATABASE_URL`，且为 `postgres://` 或 `postgresql://`）。
-- 删除 `migrations/sqlite/`，仅保留 `migrations/postgres/`。
+- 删除 `migrations/sqlite/`，迁移文件统一放在 `migrations/`。
 
 ### 🧹 Cleanup
 
@@ -1001,4 +1001,3 @@ If you encounter any issues or have questions:
 ---
 
 **Note**: This changelog follows [Keep a Changelog](https://keepachangelog.com/) format.
-

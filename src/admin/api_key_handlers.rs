@@ -208,6 +208,13 @@ pub async fn update_api_key_api(
                         message: "Instance-scoped API key requires service_ids (or legacy provider_id/provider_ids)".to_string(),
                     });
                 }
+                if service_ids.len() > 1 {
+                    return Json(ApiResponse {
+                        success: false,
+                        data: None,
+                        message: "Instance-scoped API key can only bind to one service".to_string(),
+                    });
+                }
 
                 if let Err(e) = db_pool.replace_api_key_services(id, &service_ids).await {
                     return Json(ApiResponse {
@@ -340,6 +347,13 @@ pub async fn create_api_key_api(
                         success: false,
                         data: None,
                         message: "Instance-scoped API key requires service_ids (or legacy provider_id/provider_ids)".to_string(),
+                    });
+                }
+                if service_ids.len() > 1 {
+                    return Json(ApiResponse {
+                        success: false,
+                        data: None,
+                        message: "Instance-scoped API key can only bind to one service".to_string(),
                     });
                 }
 

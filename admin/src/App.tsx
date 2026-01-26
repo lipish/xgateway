@@ -9,7 +9,6 @@ const ProvidersPage = React.lazy(() => import("@/pages/models").then((m) => ({ d
 const AnalyticsPage = React.lazy(() => import("@/pages/analytics").then((m) => ({ default: m.AnalyticsPage })))
 const LogsPage = React.lazy(() => import("@/pages/logs").then((m) => ({ default: m.LogsPage })))
 const SettingsPage = React.lazy(() => import("@/pages/settings").then((m) => ({ default: m.SettingsPage })))
-const ApiKeysPage = React.lazy(() => import("@/pages/api-keys").then((m) => ({ default: m.ApiKeysPage })))
 const ServicesPage = React.lazy(() => import("@/pages/services").then((m) => ({ default: m.ServicesPage })))
 const UsersPage = React.lazy(() => import("@/pages/users").then((m) => ({ default: m.UsersPage })))
 const HelpPage = React.lazy(() => import("@/pages/help").then((m) => ({ default: m.HelpPage })))
@@ -46,7 +45,6 @@ function AppRoutes() {
           <Route path="organizations" element={<OrganizationsPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="services" element={<ServicesPage />} />
-          <Route path="apikeys" element={<ApiKeysPage />} />
           <Route path="help" element={<HelpPage />} />
         </Route>
       </Routes>

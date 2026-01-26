@@ -73,7 +73,7 @@ export default function UserMenu() {
             setNewPassword("");
             setConfirmPassword("");
             // Show success message
-        } catch (err) {
+        } catch {
             setError(t("settings.changePasswordFailed"));
         } finally {
             setLoading(false);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { apiGet, apiPost, apiPut } from "@/lib/api";
 import { t } from "@/lib/i18n";
@@ -83,29 +83,7 @@ export function ProvidersPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingProvider, setDeletingProvider] = useState<Provider | null>(null);
 
-  useEffect(() => {
-    fetchProviders();
-    fetchProviderTypes();
-  }, []);
-
-  useEffect(() => {
-    if (searchParams.get("add") === "true") {
-      setAddDialogOpen(true);
-      setSearchParams({}, { replace: true });
-    }
-
-    const selectId = searchParams.get("select");
-    if (selectId && providers.length > 0) {
-      const id = parseInt(selectId);
-      const provider = providers.find((p) => p.id === id);
-      if (provider) {
-        setSelectedProvider(provider);
-      }
-      setSearchParams({}, { replace: true });
-    }
-  }, [searchParams, setSearchParams, providers]);
-
-  const fetchProviderTypes = async () => {
+  const fetchProviderTypes = useCallback(async () => {
     try {
       const result = await apiGet<ApiResponse<ProviderTypeConfig[]>>("/api/provider-types");
       if (result.success && result.data) {
@@ -114,13 +92,9 @@ export function ProvidersPage() {
     } catch (e) {
       console.error("Failed to fetch provider types:", e);
     }
-  };
+  }, []);
 
-  const getProviderTypeConfig = (typeId: string): ProviderTypeConfig | undefined => {
-    return providerTypes.find((t) => t.id === typeId);
-  };
-
-  const fetchProviders = async () => {
+  const fetchProviders = useCallback(async () => {
     try {
       setLoading(true);
       const endpoint = isAdmin ? "/api/instances" : `/api/users/${user?.id}/instances`;
@@ -142,7 +116,35 @@ export function ProvidersPage() {
     } finally {
       setLoading(false);
     }
+  }, [isAdmin, selectedProvider, user?.id]);
+
+  useEffect(() => {
+    fetchProviders();
+    fetchProviderTypes();
+  }, [fetchProviderTypes, fetchProviders]);
+
+  useEffect(() => {
+    if (searchParams.get("add") === "true") {
+      setAddDialogOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+
+    const selectId = searchParams.get("select");
+    if (selectId && providers.length > 0) {
+      const id = parseInt(selectId);
+      const provider = providers.find((p) => p.id === id);
+      if (provider) {
+        setSelectedProvider(provider);
+      }
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, providers]);
+
+
+  const getProviderTypeConfig = (typeId: string): ProviderTypeConfig | undefined => {
+    return providerTypes.find((t) => t.id === typeId);
   };
+
 
   const setProviderEnabled = async (id: number, nextEnabled: boolean) => {
     if (togglingProviderIds.includes(id)) return;
@@ -158,10 +160,10 @@ export function ProvidersPage() {
     setSelectedProvider((sp) => (sp?.id === id ? { ...sp, enabled: nextEnabled } : sp));
 
     try {
-      const result = await apiPut<ApiResponse<Provider>>(`/api/instances/${id}`, {
-        enabled: nextEnabled,
-        expected_version: expectedVersion,
-      } as any);
+        const result = await apiPut<ApiResponse<Provider>>(`/api/instances/${id}`, {
+          enabled: nextEnabled,
+          expected_version: expectedVersion,
+        });
 
       if (result.success && result.data) {
         setProviders((ps) => ps.map((p) => (p.id === id ? result.data! : p)));
@@ -314,7 +316,7 @@ export function ProvidersPage() {
     setAdding(true);
     setAddError(null);
     try {
-      const payload: any = {
+      const payload = {
         name: addForm.name,
         provider_type: addForm.providerType,
         config: JSON.stringify({
@@ -410,7 +412,7 @@ export function ProvidersPage() {
 
       const isMasked = (value: string) => value.includes('*');
 
-      const payload: any = {
+      const payload = {
         name: editForm.name,
         config: JSON.stringify({
           api_key: isMasked(editForm.apiKey) ? originalConfig.api_key : editForm.apiKey,

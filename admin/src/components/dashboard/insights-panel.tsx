@@ -1,7 +1,4 @@
-import { Badge } from "@/components/ui/badge"
 import { BarChart3 } from "lucide-react"
-import { cn } from "@/lib/utils"
-import type { FC, SVGProps } from "react"
 
 interface ModelUsage {
   model: string
@@ -14,7 +11,7 @@ interface InsightsPanelProps {
 }
 
 export function InsightsPanel({ topModels = [] }: InsightsPanelProps) {
-  const insights = topModels.slice(0, 4).map((model, index) => ({
+  const insights = topModels.slice(0, 4).map((model) => ({
     label: model.model,
     value: `${model.requests} requests`,
     percentage: ((model.tokens / (topModels.reduce((sum, m) => sum + m.tokens, 0) || 1)) * 100).toFixed(1) + '%'

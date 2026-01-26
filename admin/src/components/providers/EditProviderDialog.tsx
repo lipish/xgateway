@@ -18,7 +18,7 @@ interface EditProviderDialogProps {
     driver_type: string
     docs_url: string
   }
-  onFormChange: (form: any) => void
+  onFormChange: (form: EditProviderDialogProps["providerForm"]) => void
   onSubmit: () => void
   saving: boolean
 }

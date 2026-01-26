@@ -610,6 +610,14 @@ pub async fn set_api_key_services_api(
         }
     }
 
+    if req.service_ids.len() > 1 {
+        return Json(ApiResponse {
+            success: false,
+            data: None,
+            message: "API key can only bind to one service".to_string(),
+        });
+    }
+
     match db_pool.replace_api_key_services(api_key_id, &req.service_ids).await {
         Ok(_) => Json(ApiResponse {
             success: true,

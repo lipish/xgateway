@@ -1,18 +1,15 @@
 import * as React from "react"
-import { Link, useLocation, useNavigate } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import {
     LayoutDashboard,
     Server,
     Settings,
-    Key,
     Layers,
     BarChart3,
     Zap,
-    HelpCircle,
     MessageSquare,
     Library,
     User,
-    LogOut,
 } from "lucide-react"
 
 import {
@@ -28,7 +25,6 @@ import {
 } from "@/components/ui/sidebar"
 import { t } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
-import { useAuth } from "@/lib/auth"
 
 function getNavigation() {
     return [
@@ -48,7 +44,6 @@ function getNavigation() {
                 { name: t('nav.organizations'), href: "/organizations", icon: Settings },
                 { name: t('nav.projects'), href: "/projects", icon: Settings },
                 { name: t('nav.services'), href: "/services", icon: Layers },
-                { name: t('nav.apiKeys'), href: "/apikeys", icon: Key },
             ],
         },
         {
@@ -63,7 +58,6 @@ function getNavigation() {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const location = useLocation()
-    const navigate = useNavigate()
     const navigation = getNavigation()
 
     return (

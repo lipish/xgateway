@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,14 +11,7 @@ import {
 import { t } from "@/lib/i18n";
 
 export default function Notifications() {
-    const [hasNotifications, setHasNotifications] = useState(false);
-
-    // 模拟检查是否有新通知
-    useEffect(() => {
-        // 这里可以调用API检查是否有新通知
-        // 暂时设置为false，表示没有新通知
-        setHasNotifications(false);
-    }, []);
+    const [hasNotifications] = useState(false);
 
     return (
         <DropdownMenu>

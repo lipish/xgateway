@@ -18,7 +18,7 @@ interface AddProviderDialogProps {
     driver_type: string
     docs_url: string
   }
-  onFormChange: (form: any) => void
+  onFormChange: (form: AddProviderDialogProps["providerForm"]) => void
   onLabelChange: (label: string) => void
   onSave: () => void
   saving: boolean

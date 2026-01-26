@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api"
 import { t } from "@/lib/i18n"
 import { Badge } from "@/components/ui/badge"
@@ -65,29 +65,7 @@ export function OrganizationsPage() {
     return o.name
   }
 
-  useEffect(() => {
-    fetchOrgs()
-  }, [])
-
-  useEffect(() => {
-    if (orgs.length === 0) {
-      setSelectedId(null)
-      return
-    }
-    if (!selectedId || !orgs.some((o) => o.id === selectedId)) {
-      setSelectedId(orgs[0].id)
-    }
-  }, [orgs, selectedId])
-
-  useEffect(() => {
-    if (!selectedOrg) {
-      setOrgUsers([])
-      return
-    }
-    fetchOrgUsers(selectedOrg.id)
-  }, [selectedOrg?.id])
-
-  const fetchOrgs = async () => {
+  const fetchOrgs = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -105,9 +83,23 @@ export function OrganizationsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const fetchOrgUsers = async (orgId: number) => {
+  useEffect(() => {
+    fetchOrgs()
+  }, [fetchOrgs])
+
+  useEffect(() => {
+    if (orgs.length === 0) {
+      setSelectedId(null)
+      return
+    }
+    if (!selectedId || !orgs.some((o) => o.id === selectedId)) {
+      setSelectedId(orgs[0].id)
+    }
+  }, [orgs, selectedId])
+
+  const fetchOrgUsers = useCallback(async (orgId: number) => {
     try {
       setOrgUsersLoading(true)
       setError(null)
@@ -125,7 +117,16 @@ export function OrganizationsPage() {
     } finally {
       setOrgUsersLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (!selectedOrg) {
+      setOrgUsers([])
+      return
+    }
+    fetchOrgUsers(selectedOrg.id)
+  }, [selectedOrg, fetchOrgUsers])
+
 
   const handleAddOrgUser = async () => {
     if (!selectedOrg) return

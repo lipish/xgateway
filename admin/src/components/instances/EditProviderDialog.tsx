@@ -39,7 +39,7 @@ interface EditProviderDialogProps {
     outputPrice: string
     quotaLimit: string
   }
-  onFormChange: (form: any) => void;
+  onFormChange: (form: EditProviderDialogProps["form"]) => void;
   onModelChange?: (model: string) => void;
   onSubmit: () => void;
   saving: boolean

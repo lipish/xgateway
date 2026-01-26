@@ -9,6 +9,16 @@ interface ProviderLatency {
   avg_latency_ms: number
 }
 
+interface ApiResponse<T> {
+  success: boolean
+  data?: T
+}
+
+interface ProviderLatencyRaw {
+  provider_name?: unknown
+  avg_latency_ms?: unknown
+}
+
 export function ResponseTimeChart() {
   const [services, setServices] = useState<ProviderLatency[]>([])
   const [loading, setLoading] = useState(true)
@@ -24,9 +34,15 @@ export function ResponseTimeChart() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const result = await apiGet('/api/logs/latencies') as any
-        if (result.success && result.data) {
-          setServices(result.data)
+        const result = await apiGet<ApiResponse<ProviderLatencyRaw[]>>('/api/logs/latencies')
+        if (result.success && Array.isArray(result.data)) {
+          const normalized = result.data
+            .map((item) => ({
+              provider_name: typeof item?.provider_name === 'string' ? item.provider_name : '',
+              avg_latency_ms: Number(item?.avg_latency_ms ?? 0),
+            }))
+            .filter((item) => item.provider_name.length > 0)
+          setServices(normalized)
         }
       } catch (error) {
         console.error('Failed to fetch provider latencies:', error)

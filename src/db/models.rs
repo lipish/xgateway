@@ -57,6 +57,7 @@ pub struct Service {
     pub updated_at: DateTime<Utc>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct ServiceModelService {
     pub service_id: String,
@@ -64,6 +65,7 @@ pub struct ServiceModelService {
     pub created_at: DateTime<Utc>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct ApiKeyService {
     pub api_key_id: i64,

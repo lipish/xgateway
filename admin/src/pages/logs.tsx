@@ -51,7 +51,7 @@ export function LogsPage() {
         refreshTimerRef.current = null
       }
     }
-  }, [])
+  }, [fetchLogs])
 
   const fetchLogs = useCallback(async ({ initial }: { initial: boolean }) => {
     if (fetchInFlightRef.current) return
@@ -66,7 +66,7 @@ export function LogsPage() {
       if (statusFilter !== 'all') params.set('status', statusFilter)
       if (requestTypeFilter !== 'all') params.set('request_type', requestTypeFilter)
       if (hideHealthChecks) params.set('exclude_health_checks', 'true')
-      const data = await apiGet(`/api/logs?${params.toString()}`) as any
+      const data = await apiGet<{ success: boolean; data?: RequestLog[] }>(`/api/logs?${params.toString()}`)
       if (data.success) {
         const logsData = data.data || []
         setLogs(logsData)
@@ -82,20 +82,22 @@ export function LogsPage() {
         setLogs([])
       }
     } finally {
-      if (!mountedRef.current) return
-      if (initial) {
-        setLoading(false)
-      } else {
-        setRefreshing(false)
-      }
+      const isMounted = mountedRef.current
       fetchInFlightRef.current = false
+      if (isMounted) {
+        if (initial) {
+          setLoading(false)
+        } else {
+          setRefreshing(false)
+        }
+      }
     }
-  }, [])
+  }, [hideHealthChecks, requestTypeFilter, statusFilter])
 
   useEffect(() => {
     if (!mountedRef.current) return
     fetchLogs({ initial: true })
-  }, [statusFilter, requestTypeFilter, hideHealthChecks, fetchLogs])
+  }, [fetchLogs])
 
   useEffect(() => {
     if (!autoRefreshEnabled) {
@@ -169,8 +171,10 @@ export function LogsPage() {
     const a = document.createElement('a')
     a.href = url
     a.download = `xgateway-logs-${new Date().toISOString().split('T')[0]}.csv`
+    document.body.appendChild(a)
     a.click()
-  }
+    a.remove()
+    }
 
   return (
     <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">

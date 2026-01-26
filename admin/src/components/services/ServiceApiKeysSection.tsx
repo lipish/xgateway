@@ -4,7 +4,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { t } from "@/lib/i18n"
 import { Copy, Loader2, MoreVertical, Plus, Power, RotateCcw, Trash2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import type { ApiKey } from "./types"
 
 interface ServiceApiKeysSectionProps {
@@ -38,11 +38,14 @@ export function ServiceApiKeysSection({
   onRequestDelete,
   onClearRotatedApiKey,
 }: ServiceApiKeysSectionProps) {
-  const [copied, setCopied] = useState(false)
+  const [copiedKey, setCopiedKey] = useState<string | null>(null)
+  const maskKey = (key?: string | null) => {
+    if (!key) return "-"
+    if (key.length <= 8) return key
+    return `${key.slice(0, 4)}****${key.slice(-4)}`
+  }
 
-  useEffect(() => {
-    setCopied(false)
-  }, [rotatedApiKey])
+  const copied = copiedKey === rotatedApiKey && rotatedApiKey !== null
 
   return (
     <div className="rounded-lg bg-background p-5">
@@ -61,13 +64,14 @@ export function ServiceApiKeysSection({
               <TableHead className="w-[220px]">{t("apiKeys.name")}</TableHead>
               <TableHead className="w-[120px]">{t("apiKeys.status")}</TableHead>
               <TableHead className="w-[180px]">{t("apiKeys.createdAt")}</TableHead>
+              <TableHead className="w-[220px]">{t("apiKeys.key")}</TableHead>
               <TableHead className="w-[200px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
                   <div className="inline-flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span>{t("common.loading")}</span>
@@ -76,7 +80,7 @@ export function ServiceApiKeysSection({
               </TableRow>
             ) : apiKeys.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
                   {t("apiKeys.noKeys")}
                 </TableCell>
               </TableRow>
@@ -90,6 +94,7 @@ export function ServiceApiKeysSection({
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">{new Date(k.created_at).toLocaleDateString("en-CA")}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm font-mono">{maskKey(k.key_hash)}</TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end">
                       <DropdownMenu modal={false}>
@@ -144,7 +149,7 @@ export function ServiceApiKeysSection({
         <div className="mt-3 rounded-md border bg-muted/30 p-3">
           <div className="text-xs text-muted-foreground">{t("apiKeys.key")}</div>
           <div className="mt-2 inline-flex items-center gap-2">
-            <div className="text-sm font-mono break-all leading-5">{rotatedApiKey}</div>
+            <div className="text-sm font-mono break-all leading-5">{maskKey(rotatedApiKey)}</div>
             <Button
               variant="ghost"
               size="icon"
@@ -153,11 +158,11 @@ export function ServiceApiKeysSection({
               onClick={async () => {
                 try {
                   await navigator.clipboard.writeText(rotatedApiKey)
-                  setCopied(true)
+                  setCopiedKey(rotatedApiKey)
                   onClearRotatedApiKey()
-                  window.setTimeout(() => setCopied(false), 1500)
+                  window.setTimeout(() => setCopiedKey(null), 1500)
                 } catch {
-                  setCopied(false)
+                  setCopiedKey(null)
                 }
               }}
             >

@@ -9,6 +9,16 @@ interface HourlyRequestCount {
   requests: number
 }
 
+interface ApiResponse<T> {
+  success: boolean
+  data?: T
+}
+
+interface HourlyRequestCountRaw {
+  hour?: unknown
+  requests?: unknown
+}
+
 interface AnalyticsChartProps {
   maxHours?: number
 }
@@ -20,17 +30,15 @@ export function AnalyticsChart({ maxHours }: AnalyticsChartProps) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const result = await apiGet('/api/logs/hourly') as any
-        const raw = result?.data
-        const parsed: HourlyRequestCount[] = Array.isArray(raw)
-          ? raw
-              .map((item: any) => ({
-                hour: String(item?.hour ?? ''),
-                requests: Number(item?.requests ?? 0),
-              }))
-              .filter((item: HourlyRequestCount) => item.hour.length > 0)
-              .sort((a, b) => a.hour.localeCompare(b.hour))
-          : []
+        const result = await apiGet<ApiResponse<HourlyRequestCountRaw[]>>('/api/logs/hourly')
+        const raw = Array.isArray(result?.data) ? result.data : []
+        const parsed: HourlyRequestCount[] = raw
+          .map((item) => ({
+            hour: typeof item?.hour === 'string' || typeof item?.hour === 'number' ? String(item.hour) : '',
+            requests: Number(item?.requests ?? 0),
+          }))
+          .filter((item) => item.hour.length > 0)
+          .sort((a, b) => a.hour.localeCompare(b.hour))
 
         if (result?.success) {
           setData(parsed)

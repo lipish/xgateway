@@ -7,14 +7,12 @@ import {
   Clock,
   Zap,
   TrendingUp,
-  TrendingDown,
   AlertTriangle,
   BarChart3,
 } from "lucide-react"
 import { DashboardStats } from "@/components/dashboard/dashboard-stats"
 import { AnalyticsChart } from "@/components/dashboard/analytics-chart"
 import { PerformancePanel } from "@/components/dashboard/performance-panel"
-import { InsightsPanel } from "@/components/dashboard/insights-panel"
 import { RecentErrorsPanel } from "@/components/dashboard/recent-errors-panel"
 
 interface AnalyticsData {
@@ -51,13 +49,19 @@ export function AnalyticsPage() {
       setLoading(true)
       setError(null)
 
-      const [performanceResult, topModelsResult, errorsResult, byOrgResult, byServiceResult] = await Promise.all([
+       const [performanceResult, topModelsResult, errorsResult, byOrgResult, byServiceResult] = await Promise.all([
         apiGet("/api/logs/performance"),
         apiGet("/api/logs/top-models?limit=10&hours=24"),
         apiGet("/api/logs?status=error&limit=10"),
         apiGet("/api/logs/tokens/by-org?hours=24&top=20"),
         apiGet("/api/logs/tokens/by-service?hours=24&top=20"),
-      ]) as any
+      ]) as [
+        { success: boolean; data?: { requests_today?: number; success_rate?: number; avg_response_time?: number; tokens_used?: number; failed_requests?: number }; message?: string },
+        { success: boolean; data?: Array<{ model: string; requests: number; tokens: number }> },
+        { success: boolean; data?: Array<{ created_at: string; provider_name: string; model: string; error_message?: string }> },
+        { success: boolean; data?: Array<{ org_id: number; tokens: number; requests: number }> },
+        { success: boolean; data?: Array<{ service_id: string | null; tokens: number; requests: number }> },
+      ]
 
       if (!performanceResult.success) {
         setError(performanceResult.message || t('common.error'))
@@ -70,7 +74,7 @@ export function AnalyticsPage() {
       const tokenByOrg = byOrgResult?.success ? byOrgResult.data : []
       const tokenByService = byServiceResult?.success ? byServiceResult.data : []
 
-      const analyticsData: AnalyticsData = {
+       const analyticsData: AnalyticsData = {
         total_requests: perfData.requests_today || 0,
         success_rate: perfData.success_rate || 0,
         avg_latency_ms: perfData.avg_response_time || 0,
@@ -78,7 +82,7 @@ export function AnalyticsPage() {
         requests_today: perfData.requests_today || 0,
         failed_requests: perfData.failed_requests || 0,
         top_models: topModels || [],
-        recent_errors: recentErrors.map((error: any) => ({
+        recent_errors: recentErrors.map((error) => ({
           timestamp: error.created_at,
           provider: error.provider_name,
           model: error.model,
@@ -86,12 +90,12 @@ export function AnalyticsPage() {
             error.error_message?.includes('rate') ? 'Rate Limit' : 'Error',
           error_message: error.error_message
         })),
-        token_by_org: (tokenByOrg || []).map((r: any) => ({
+        token_by_org: (tokenByOrg || []).map((r) => ({
           org_id: r.org_id,
           tokens: r.tokens,
           requests: r.requests,
         })),
-        token_by_service: (tokenByService || []).map((r: any) => ({
+        token_by_service: (tokenByService || []).map((r) => ({
           service_id: r.service_id,
           tokens: r.tokens,
           requests: r.requests,

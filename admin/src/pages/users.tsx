@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ConfirmAlertDialog } from "@/components/ui/confirm-alert-dialog"
@@ -53,13 +53,53 @@ export function UsersPage() {
     const [error, setError] = useState<string | null>(null)
     const [orgFilterId, setOrgFilterId] = useState<string>('all')
 
-    useEffect(() => {
-        fetchUsers()
-        fetchProviders()
-        fetchOrganizations()
+    const fetchProviders = useCallback(async () => {
+        try {
+            const data = await apiGet<ApiResponse<Provider[]>>('/api/instances')
+            if (!data.success) {
+                setError(data.message || t('users.fetchProvidersFailed'))
+                return
+            }
+            setProviders(data.data || [])
+        } catch (err) {
+            console.error('Failed to fetch providers:', err)
+            setError(t('common.networkError'))
+        }
     }, [])
 
-    const fetchUsers = async (): Promise<User[]> => {
+    const fetchOrganizations = useCallback(async () => {
+        try {
+            const data = await apiGet<ApiResponse<Organization[]>>('/api/organizations')
+            if (!data.success) {
+                setError(data.message || t('common.networkError'))
+                return
+            }
+            const list = data.data || []
+            setOrganizations(list)
+            if (list.length > 0) {
+                setNewUser((prev) => ({ ...prev, org_id: prev.org_id || list[0].id.toString() }))
+            }
+        } catch (err) {
+            console.error('Failed to fetch organizations:', err)
+            setError(t('common.networkError'))
+        }
+    }, [])
+
+    const fetchUserInstances = useCallback(async (userId: number) => {
+        try {
+            const data = await apiGet<ApiResponse<UserInstance[]>>(`/api/users/${userId}/instances`)
+            if (!data.success) {
+                setError(data.message || t('users.fetchUserInstancesFailed'))
+                return
+            }
+            setUserInstances(data.data || [])
+        } catch (err) {
+            console.error('Failed to fetch user instances:', err)
+            setError(t('common.networkError'))
+        }
+    }, [])
+
+    const fetchUsers = useCallback(async (): Promise<User[]> => {
         try {
             setLoading(true)
             const data = await apiGet<ApiResponse<User[]>>('/api/users')
@@ -89,53 +129,14 @@ export function UsersPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [fetchUserInstances, selectedUser])
 
-    const fetchProviders = async () => {
-        try {
-            const data = await apiGet<ApiResponse<Provider[]>>('/api/instances')
-            if (!data.success) {
-                setError(data.message || t('users.fetchProvidersFailed'))
-                return
-            }
-            setProviders(data.data || [])
-        } catch (err) {
-            console.error('Failed to fetch providers:', err)
-            setError(t('common.networkError'))
-        }
-    }
+    useEffect(() => {
+        fetchUsers()
+        fetchProviders()
+        fetchOrganizations()
+    }, [fetchOrganizations, fetchProviders, fetchUsers])
 
-    const fetchOrganizations = async () => {
-        try {
-            const data = await apiGet<ApiResponse<Organization[]>>('/api/organizations')
-            if (!data.success) {
-                setError(data.message || t('common.networkError'))
-                return
-            }
-            const list = data.data || []
-            setOrganizations(list)
-            if (list.length > 0) {
-                setNewUser((prev) => ({ ...prev, org_id: prev.org_id || list[0].id.toString() }))
-            }
-        } catch (err) {
-            console.error('Failed to fetch organizations:', err)
-            setError(t('common.networkError'))
-        }
-    }
-
-    const fetchUserInstances = async (userId: number) => {
-        try {
-            const data = await apiGet<ApiResponse<UserInstance[]>>(`/api/users/${userId}/instances`)
-            if (!data.success) {
-                setError(data.message || t('users.fetchUserInstancesFailed'))
-                return
-            }
-            setUserInstances(data.data || [])
-        } catch (err) {
-            console.error('Failed to fetch user instances:', err)
-            setError(t('common.networkError'))
-        }
-    }
 
     const handleCreate = async () => {
         if (!newUser.username || !newUser.password) return

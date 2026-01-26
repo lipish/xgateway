@@ -1,0 +1,29 @@
+Metadata-Version: 2.4
+Name: pyllmlink
+Version: 0.12.3
+Summary: Python wrapper that downloads and launches the llm-link binary
+Author: LLM Link Maintainers
+License: MIT
+Project-URL: Homepage, https://github.com/lipish/llm-link
+Project-URL: Repository, https://github.com/lipish/llm-link
+Project-URL: Issues, https://github.com/lipish/llm-link/issues
+Keywords: llm,proxy,cli
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: MacOS
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Topic :: Software Development :: Libraries
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+
+# llm-link Python Wrapper
+
+This package provides a Python CLI entry point that downloads the prebuilt `llm-link` binary for your platform the first time it runs, so `pip install` never triggers a local Rust build. The wrapper currently supports:
+
+- macOS arm64 (Apple Silicon)
+- macOS x86_64 (Intel)
+- Linux x86_64
+
+After installation, invoke `llm-link` from your shell and the wrapper will ensure the matching binary is fetched from the corresponding GitHub release.

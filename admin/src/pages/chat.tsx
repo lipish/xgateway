@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
-import { API_URL, apiGet, apiPost } from "@/lib/api"
+import { apiGet, apiPost } from "@/lib/api"
 import { t } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
@@ -29,17 +29,17 @@ export function ChatPage() {
   const inputRefs = useRef<{ [key: string]: HTMLTextAreaElement | null }>({})
 
   const fetchConversations = async () => {
-    const result = await apiGet("/api/conversations?limit=50") as any
+    const result = await apiGet<{ success: boolean; data?: ConversationItem[] }>("/api/conversations?limit=50")
     if (result.success) {
-      setConversations(result.data)
+      setConversations(result.data || [])
     }
   }
 
   useEffect(() => {
     const endpoint = isAdmin ? "/api/instances" : `/api/users/${user?.id}/instances`
-    apiGet(endpoint).then((result: any) => {
+    apiGet<{ success: boolean; data?: Provider[] }>(endpoint).then((result) => {
       if (result.success) {
-        const enabledProviders = result.data.filter((p: Provider) => p.enabled)
+        const enabledProviders = (result.data || []).filter((p) => p.enabled)
         setProviders(enabledProviders)
 
         const providerIdParam = searchParams.get('provider')
@@ -58,17 +58,14 @@ export function ChatPage() {
       }
     })
     fetchConversations()
-  }, [])
+  }, [isAdmin, user?.id, setSearchParams, searchParams])
 
   useEffect(() => {
     panels.forEach(panel => {
       if (!panel.loading) return
       messagesEndRefs.current[panel.id]?.scrollIntoView({ behavior: "auto" })
     })
-  }, [
-    panels.map(p => p.loading).join(','),
-    panels.map(p => p.messages[p.messages.length - 1]?.content.length || 0).join(',')
-  ])
+  }, [panels])
 
   const updatePanel = (panelId: string, updates: Partial<ChatPanel>) => {
     setPanels(prev => prev.map(p => p.id === panelId ? { ...p, ...updates } : p))
@@ -86,7 +83,7 @@ export function ChatPage() {
   }
 
   const loadConversation = async (conversationId: number, panelId: string) => {
-    const result = await apiGet(`/api/conversations/${conversationId}`) as any
+    const result = await apiGet<{ success: boolean; data?: { id: number; provider_id: number | null; messages: Array<{ role: string; content: string }> } }>(`/api/conversations/${conversationId}`)
     if (result.success) {
       const conv = result.data
       updatePanel(panelId, {
@@ -107,7 +104,7 @@ export function ChatPage() {
   }
 
   const createConversation = async (providerId: number, title?: string): Promise<number | null> => {
-    const result = await apiPost("/api/conversations", { provider_id: providerId, title }) as any
+    const result = await apiPost<{ success: boolean; data?: { id: number } }>("/api/conversations", { provider_id: providerId, title })
     if (result.success) {
       fetchConversations()
       return result.data.id
@@ -170,12 +167,14 @@ export function ChatPage() {
           details = `HTTP ${response.status} ${response.statusText}`
         } else {
           try {
-            const parsed = JSON.parse(details) as any
+            const parsed = JSON.parse(details) as { error?: { message?: string; type?: string; details?: string }; message?: string }
             const msg = parsed?.error?.message || parsed?.message
             const typ = parsed?.error?.type
             const det = parsed?.error?.details
             details = [msg, typ, det].filter(Boolean).join(" | ") || raw
-          } catch {
+          } catch (err) {
+            // ignore JSON parse errors from non-JSON error responses
+            void err
           }
         }
         setPanels(prev => prev.map(p => p.id === panelId ? {
@@ -190,7 +189,7 @@ export function ChatPage() {
       let accumulatedContent = ""
 
       if (contentType.includes("application/json")) {
-        const json = await response.json().catch(() => null) as any
+        const json = await response.json().catch(() => null) as { choices?: Array<{ message?: { content?: string } }> } | null
         accumulatedContent = json?.choices?.[0]?.message?.content || ""
         setPanels(prev => prev.map(p => p.id === panelId ? {
           ...p,
@@ -213,14 +212,16 @@ export function ChatPage() {
                 const data = line.startsWith("data: ") ? line.slice(6) : line.slice(5)
                 if (data === "[DONE]") continue
                 try {
-                  const parsed = JSON.parse(data)
+                  const parsed = JSON.parse(data) as { choices?: Array<{ delta?: { content?: string } }> }
                   const delta = parsed.choices?.[0]?.delta?.content || ""
                   accumulatedContent += delta
                   setPanels(prev => prev.map(p => p.id === panelId ? {
                     ...p,
                     messages: [...p.messages.slice(0, -1), { role: "assistant" as const, content: accumulatedContent }]
                   } : p))
-                } catch {
+                } catch (err) {
+                  // ignore malformed streaming chunks
+                  void err
                 }
               }
             }

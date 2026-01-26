@@ -11,7 +11,7 @@ impl DatabasePool {
     pub async fn new_postgres(connection_string: &str) -> Result<Self> {
         info!("Connecting to PostgreSQL: {}", connection_string);
         let pool = PgPool::connect(connection_string).await?;
-        sqlx::migrate!("./migrations/postgres").run(&pool).await?;
+        sqlx::migrate!("./migrations").run(&pool).await?;
 
         Ok(Self::Postgres(pool))
     }

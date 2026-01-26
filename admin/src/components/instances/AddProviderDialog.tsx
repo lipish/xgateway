@@ -33,7 +33,7 @@ interface AddProviderDialogProps {
     outputPrice: string
     quotaLimit: string
   }
-  onFormChange: (form: any) => void
+  onFormChange: (form: AddProviderDialogProps["form"]) => void
   onProviderTypeChange: (type: string) => void
   onModelChange?: (model: string) => void
   onSubmit: () => void

@@ -91,10 +91,7 @@ export function ApiKeyEditDialog({ open, onOpenChange, form, onFormChange, servi
                                 key={service.id}
                                 value={`${service.name} ${service.id}`}
                                 onSelect={() => {
-                                  const nextServiceIds = checked
-                                    ? form.service_ids.filter((id) => id !== service.id)
-                                    : [...form.service_ids, service.id]
-                                  onFormChange({ ...form, service_ids: nextServiceIds })
+                                  onFormChange({ ...form, service_ids: [service.id] })
                                 }}
                               >
                                 <Check className={checked ? "mr-2 h-4 w-4 opacity-100" : "mr-2 h-4 w-4 opacity-0"} />
