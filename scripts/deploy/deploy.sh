@@ -10,6 +10,23 @@ DEPLOY_BRANCH="${DEPLOY_BRANCH:-master}"
 APP_NAME="${APP_NAME:-xgateway}"
 ENV_FILE="${ENV_FILE:-${DEPLOY_BASE}/.env}"
 RUST_ENV_FILE="${RUST_ENV_FILE:-$HOME/.cargo/env}"
+NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+
+ensure_node() {
+  if command -v npm >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if [ -s "${NVM_DIR}/nvm.sh" ]; then
+    . "${NVM_DIR}/nvm.sh"
+  fi
+
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "npm not found; install Node.js/npm or make npm available in non-interactive shell" >&2
+    echo "if you use nvm, ensure ${NVM_DIR}/nvm.sh exists and nvm has a default node version" >&2
+    return 1
+  fi
+}
 
 ensure_rust() {
   if command -v cargo >/dev/null 2>&1; then
@@ -98,6 +115,7 @@ deploy_from_repo() {
     exit 1
   fi
 
+  export GIT_TERMINAL_PROMPT=0
   cd "${repo_root}"
   git fetch origin --prune
 
@@ -110,6 +128,7 @@ deploy_from_repo() {
     GIT_SHA="$(git rev-parse HEAD)"
   fi
 
+  ensure_node
   (cd admin && npm ci && npm run build)
   ensure_rust
   cargo build --release

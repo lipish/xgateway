@@ -36,4 +36,4 @@ jobs:
           script: |
             set -euo pipefail
             cd /home/ubuntu/xgateway
-            bash scripts/deploy/deploy.sh
+            bash -lc 'cd /home/ubuntu/xgateway && bash scripts/deploy/deploy.sh'
