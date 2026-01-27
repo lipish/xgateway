@@ -5,7 +5,7 @@
 
 set -e
 
-echo "🧪 LLM Link v0.3.2 Release Verification"
+echo "🧪 XGateway v0.3.2 Release Verification"
 echo "========================================"
 echo ""
 
@@ -16,7 +16,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Check if binary exists
-if [ ! -f "./target/release/llm-link" ]; then
+if [ ! -f "./target/release/xgateway" ]; then
     echo -e "${RED}❌ Binary not found. Please run: cargo build --release${NC}"
     exit 1
 fi
@@ -27,7 +27,7 @@ echo ""
 # Test 1: Version check
 echo "📋 Test 1: Version Check"
 echo "------------------------"
-VERSION=$(./target/release/llm-link --version 2>&1 | grep -o "llm-link [0-9.]*" || echo "unknown")
+VERSION=$(./target/release/xgateway --version 2>&1 | grep -o "xgateway [0-9.]*" || echo "unknown")
 echo "Version: $VERSION"
 if [[ "$VERSION" == *"0.3.2"* ]]; then
     echo -e "${GREEN}✅ Version correct${NC}"
@@ -39,7 +39,7 @@ echo ""
 # Test 2: Help command
 echo "📋 Test 2: Help Command"
 echo "------------------------"
-if ./target/release/llm-link --help > /dev/null 2>&1; then
+if ./target/release/xgateway --help > /dev/null 2>&1; then
     echo -e "${GREEN}✅ Help command works${NC}"
 else
     echo -e "${RED}❌ Help command failed${NC}"
@@ -50,7 +50,7 @@ echo ""
 # Test 3: List apps
 echo "📋 Test 3: List Applications"
 echo "-----------------------------"
-if ./target/release/llm-link --list-apps > /dev/null 2>&1; then
+if ./target/release/xgateway --list-apps > /dev/null 2>&1; then
     echo -e "${GREEN}✅ List apps works${NC}"
 else
     echo -e "${RED}❌ List apps failed${NC}"
@@ -62,13 +62,13 @@ echo ""
 echo "📋 Test 4: API Endpoint Test"
 echo "-----------------------------"
 
-# Kill any existing llm-link processes
-pkill -f "llm-link" 2>/dev/null || true
+# Kill any existing xgateway processes
+pkill -f "xgateway" 2>/dev/null || true
 sleep 1
 
 # Start service in background
 export ZHIPU_API_KEY="test-key-for-verification"
-./target/release/llm-link --app zed --provider zhipu > /tmp/llm-link-verify.log 2>&1 &
+./target/release/xgateway --app zed --provider zhipu > /tmp/xgateway-verify.log 2>&1 &
 PID=$!
 
 echo "Started service (PID: $PID)"
@@ -127,7 +127,7 @@ fi
 
 # Cleanup
 kill $PID 2>/dev/null || true
-rm -f /tmp/api-response.json /tmp/llm-link-verify.log
+rm -f /tmp/api-response.json /tmp/xgateway-verify.log
 
 echo ""
 echo "📋 Test 5: Compilation Check"

@@ -265,7 +265,7 @@ pub async fn handle_get_model(
         axum::Json(serde_json::json!({
             "id": model_id,
             "object": "model",
-            "owned_by": "llm-link"
+            "owned_by": "xgateway"
         })),
     )
 }

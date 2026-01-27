@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# LLM Link Codex CLI Startup Script
-# This script starts llm-link with proper configuration for Codex CLI integration
+# XGateway Codex CLI Startup Script
+# This script starts xgateway with proper configuration for Codex CLI integration
 # 
 # Usage: ./scripts/start-codex.sh
 #
 # Prerequisites:
-# 1. Build llm-link: cargo build --release
+# 1. Build xgateway: cargo build --release
 # 2. Set your Aliyun API key as environment variable
 # 3. Configure ~/.codex/config.toml (see documentation)
 
@@ -14,7 +14,7 @@ set -e
 
 # Configuration - Modify these values as needed
 ALIYUN_API_KEY="${ALIYUN_API_KEY}"
-AUTH_TOKEN="${LLM_LINK_AUTH_TOKEN:-123456}"
+AUTH_TOKEN="${XGATEWAY_AUTH_TOKEN:-123456}"
 MODEL="${MODEL:-qwen3-coder-plus}"
 PROVIDER="${PROVIDER:-aliyun}"
 PORT="${PORT:-8088}"
@@ -27,7 +27,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🚀 Starting LLM Link for Codex CLI...${NC}"
+echo -e "${BLUE}🚀 Starting XGateway for Codex CLI...${NC}"
 echo -e "${BLUE}========================================${NC}"
 
 # Check if API key is provided
@@ -40,9 +40,9 @@ if [ -z "$ALIYUN_API_KEY" ]; then
 fi
 
 # Check if binary exists
-BINARY_PATH="./target/release/llm-link"
+BINARY_PATH="./target/release/xgateway"
 if [ ! -f "$BINARY_PATH" ]; then
-    echo -e "${RED}❌ Error: llm-link binary not found at $BINARY_PATH${NC}"
+    echo -e "${RED}❌ Error: xgateway binary not found at $BINARY_PATH${NC}"
     echo -e "${YELLOW}💡 Please build first: cargo build --release${NC}"
     exit 1
 fi
@@ -60,8 +60,8 @@ echo ""
 # Set NO_PROXY to avoid macOS system proxy issues
 export NO_PROXY='*'
 
-# Start llm-link
-echo -e "${GREEN}🔧 Starting llm-link...${NC}"
+# Start xgateway
+echo -e "${GREEN}🔧 Starting xgateway...${NC}"
 echo ""
 
 exec "$BINARY_PATH" \

@@ -6,7 +6,7 @@ echo ""
 
 # 启动服务
 export ZHIPU_API_KEY="test-key"
-./target/release/llm-link --app zed --provider zhipu > /tmp/llm-link-test.log 2>&1 &
+./target/release/xgateway --app zed --provider zhipu > /tmp/xgateway-test.log 2>&1 &
 PID=$!
 
 echo "⏳ Waiting for service to start..."

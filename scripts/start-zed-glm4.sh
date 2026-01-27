@@ -3,14 +3,14 @@ set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
   cat <<'USAGE'
-用法：scripts/start-zed-glm4.sh <ZHIPU_API_KEY> [附加 llm-link 参数]
+用法：scripts/start-zed-glm4.sh <ZHIPU_API_KEY> [附加 xgateway 参数]
 示例：scripts/start-zed-glm4.sh "your-zhipu-api-key" --port 11434
 
 该脚本会以 Ollama 协议启动 Zed 服务，后端使用智谱 GLM-4.6 模型。
 GLM-4.6 是智谱 AI 的最新旗舰模型，具有 200K 上下文和强大的代码理解生成能力。
 
 环境变量：
-  LLM_LINK_BIN - llm-link 二进制文件路径 (默认: ./target/release/llm-link)
+  XGATEWAY_BIN - xgateway 二进制文件路径 (默认: ./target/release/xgateway)
   MODEL        - 模型名称 (默认: glm-4.6)
   RUST_LOG     - 日志级别 (推荐: info 或 debug)
 
@@ -36,11 +36,11 @@ if [[ ! "${ZHIPU_API_KEY}" =~ ^[a-zA-Z0-9._-]+$ ]]; then
   echo "   智谱 API 密钥通常是字母数字组合"
 fi
 
-LLM_LINK_BIN=${LLM_LINK_BIN:-"./target/release/llm-link"}
+XGATEWAY_BIN=${XGATEWAY_BIN:-"./target/release/xgateway"}
 
-# 检查并构建 llm-link
-if [[ ! -x "${LLM_LINK_BIN}" ]]; then
-  echo "🔧 未找到 ${LLM_LINK_BIN}，正在执行 cargo build --release..."
+# 检查并构建 xgateway
+if [[ ! -x "${XGATEWAY_BIN}" ]]; then
+  echo "🔧 未找到 ${XGATEWAY_BIN}，正在执行 cargo build --release..."
   cargo build --release
 fi
 
@@ -61,7 +61,7 @@ done
 
 # 构建启动命令
 cmd=(
-  "${LLM_LINK_BIN}"
+  "${XGATEWAY_BIN}"
   --app zed
   --protocols ollama
   --provider zhipu
@@ -76,7 +76,7 @@ fi
 # 添加用户指定的额外参数
 cmd+=("${args[@]}")
 
-echo "🚀 启动 llm-link 服务..."
+echo "🚀 启动 xgateway 服务..."
 echo "📋 提供商: 智谱 AI (ZhipuAI)"
 echo "🤖 模型: ${MODEL}"
 echo "🌐 协议: Ollama (兼容 Zed)"

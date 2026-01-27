@@ -7,10 +7,10 @@ echo "🧪 测试其他 LLM 提供商"
 echo "======================="
 echo ""
 
-# 检查 llm-link 二进制文件
-LLM_LINK_BIN="./target/release/llm-link"
-if [[ ! -x "$LLM_LINK_BIN" ]]; then
-    echo "🔧 构建 llm-link..."
+# 检查 xgateway 二进制文件
+XGATEWAY_BIN="./target/release/xgateway"
+if [[ ! -x "$XGATEWAY_BIN" ]]; then
+    echo "🔧 构建 xgateway..."
     cargo build --release
 fi
 
@@ -65,10 +65,10 @@ for provider in openai anthropic aliyun volcengine tencent moonshot minimax long
     if [[ "$provider" == "ollama" ]]; then
         echo "     # 需要先启动本地 Ollama 服务"
         echo "     ollama serve"
-        echo "     $LLM_LINK_BIN --app zed --provider ollama --model $model"
+        echo "     $XGATEWAY_BIN --app zed --provider ollama --model $model"
     else
         echo "     export $env_var=\"your-api-key\""
-        echo "     $LLM_LINK_BIN --app zed --provider $provider --model $model --llm-api-key \"\$$env_var\""
+        echo "     $XGATEWAY_BIN --app zed --provider $provider --model $model --llm-api-key \"\$$env_var\""
     fi
 done
 
@@ -87,7 +87,7 @@ create_test_script() {
     cat > "test_${provider}.sh" << SCRIPT
 #!/bin/bash
 echo "🧪 测试 $provider - $model"
-./target/release/llm-link \\
+./target/release/xgateway \\
   --app zed \\
   --provider $provider \\
   --model $model \\
@@ -126,7 +126,7 @@ echo "   - 月之暗面: https://platform.moonshot.cn/"
 echo ""
 echo "2. 🚀 快速启动（以 OpenAI 为例）："
 echo "   export OPENAI_API_KEY=\"your-key\""
-echo "   ./target/release/llm-link --app zed --provider openai --model gpt-4o --llm-api-key \"\$OPENAI_API_KEY\""
+echo "   ./target/release/xgateway --app zed --provider openai --model gpt-4o --llm-api-key \"\$OPENAI_API_KEY\""
 echo ""
 echo "3. 🔄 在 Zed 中切换："
 echo "   - 停止当前服务 (Ctrl+C)"

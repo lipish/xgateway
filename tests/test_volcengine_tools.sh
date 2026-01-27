@@ -11,16 +11,16 @@ if [ -z "$VOLCENGINE_API_KEY" ]; then
     exit 1
 fi
 
-echo "🚀 启动 llm-link 服务 (Ollama 协议 + Volcengine Seed Code)..."
+echo "🚀 启动 xgateway 服务 (Ollama 协议 + Volcengine Seed Code)..."
 cargo build --release 2>&1 | grep -v "Compiling\|Finished" || true
 
-./target/release/llm-link \
+./target/release/xgateway \
   --app zed \
   --protocols ollama \
   --provider volcengine \
   --model doubao-seed-code-preview-latest \
   --llm-api-key "$VOLCENGINE_API_KEY" \
-  > /tmp/llm-link-volcengine-tools.log 2>&1 &
+  > /tmp/xgateway-volcengine-tools.log 2>&1 &
 
 PID=$!
 echo "📝 PID: $PID"
@@ -81,7 +81,7 @@ fi
 
 echo ""
 echo "📋 服务日志 (最后 30 行):"
-tail -30 /tmp/llm-link-volcengine-tools.log
+tail -30 /tmp/xgateway-volcengine-tools.log
 
 # 清理
 echo ""

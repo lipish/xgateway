@@ -9,17 +9,17 @@ echo "========================================"
 echo ""
 
 # 停止可能运行的实例
-pkill -f "llm-link" 2>/dev/null || true
+pkill -f "xgateway" 2>/dev/null || true
 sleep 1
 
 # 启动服务
-BINARY="./target/debug/llm-link"
+BINARY="./target/debug/xgateway"
 if [ ! -f "$BINARY" ]; then
-    BINARY="./target/release/llm-link"
+    BINARY="./target/release/xgateway"
 fi
 
-echo "🚀 Starting llm-link with minimax provider..."
-$BINARY --app zed --provider minimax > /tmp/llm-link-minimax-real.log 2>&1 &
+echo "🚀 Starting xgateway with minimax provider..."
+$BINARY --app zed --provider minimax > /tmp/xgateway-minimax-real.log 2>&1 &
 PID=$!
 
 echo "⏳ Waiting for service to start (PID: $PID)..."
@@ -28,7 +28,7 @@ sleep 4
 # 检查服务是否启动
 if ! ps -p $PID > /dev/null; then
     echo "❌ Service failed to start. Check logs:"
-    tail -20 /tmp/llm-link-minimax-real.log
+    tail -20 /tmp/xgateway-minimax-real.log
     exit 1
 fi
 

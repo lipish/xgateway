@@ -30,19 +30,19 @@ if [ -z "$API_KEY" ]; then
 fi
 
 # 构建项目（如果需要）
-if [ ! -f "target/release/llm-link" ]; then
-    echo "🔨 构建 llm-link..."
+if [ ! -f "target/release/xgateway" ]; then
+    echo "🔨 构建 xgateway..."
     cargo build --release
 fi
 
-echo "🚀 启动 llm-link for Aider..."
+echo "🚀 启动 xgateway for Aider..."
 echo "   Provider: $PROVIDER"
 echo "   Model: $MODEL"
 echo "   Port: $DEFAULT_PORT"
 echo ""
 
-# 启动 llm-link
-./target/release/llm-link \
+# 启动 xgateway
+./target/release/xgateway \
     --app aider \
     --provider "$PROVIDER" \
     --model "$MODEL" \
@@ -62,5 +62,5 @@ echo "aider --model openai/$MODEL"
 echo ""
 echo "💡 提示:"
 echo "   - Aider 使用 'openai/' 前缀的模型名"
-echo "   - 支持所有 llm-link 的 LLM 提供商"
+echo "   - 支持所有 xgateway 的 LLM 提供商"
 echo "   - 查看 https://aider.chat/docs/ 获取更多信息"

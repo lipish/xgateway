@@ -1,7 +1,7 @@
 use clap::Parser;
 
 #[derive(Parser, Debug)]
-#[command(name = "llm-link")]
+#[command(name = "xgateway")]
 #[command(about = "A configurable LLM proxy service with multi-provider support", long_about = None)]
 pub struct Args {
     /// Application mode (codex-cli, zed, aider, openhands)
@@ -24,7 +24,7 @@ pub struct Args {
     #[arg(long = "admin-port", default_value = "8081")]
     pub admin_port: Option<u16>,
 
-    /// API key for protecting LLM Link's own HTTP APIs (not forwarded to providers)
+    /// API key for protecting XGateway's own HTTP APIs (not forwarded to providers)
     #[arg(long = "auth-key")]
     pub auth_key: Option<String>,
 

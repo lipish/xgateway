@@ -9,17 +9,17 @@ echo "🧪 Minimax M2 完整功能测试"
 echo "═══════════════════════════════════════════════════════════"
 echo ""
 
-BINARY="./target/debug/llm-link"
+BINARY="./target/debug/xgateway"
 if [ ! -f "$BINARY" ]; then
-    BINARY="./target/release/llm-link"
+    BINARY="./target/release/xgateway"
 fi
 
 echo "📦 使用二进制文件: $BINARY"
 echo ""
 
 # 启动服务
-echo "🚀 启动 llm-link 服务..."
-$BINARY --app zed --provider minimax > /tmp/llm-link-minimax-full.log 2>&1 &
+echo "🚀 启动 xgateway 服务..."
+$BINARY --app zed --provider minimax > /tmp/xgateway-minimax-full.log 2>&1 &
 PID=$!
 echo "   服务 PID: $PID"
 echo "   等待服务启动..."
@@ -29,7 +29,7 @@ sleep 4
 if ! ps -p $PID > /dev/null; then
     echo "❌ 服务启动失败！"
     echo "日志内容："
-    tail -30 /tmp/llm-link-minimax-full.log
+    tail -30 /tmp/xgateway-minimax-full.log
     exit 1
 fi
 
@@ -141,5 +141,5 @@ echo "════════════════════════�
 echo "✅ 测试完成！"
 echo "═══════════════════════════════════════════════════════════"
 echo ""
-echo "📝 测试日志保存在: /tmp/llm-link-minimax-full.log"
+echo "📝 测试日志保存在: /tmp/xgateway-minimax-full.log"
 

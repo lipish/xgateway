@@ -38,11 +38,11 @@ if [[ ! "${OPENAI_API_KEY}" =~ ^sk-[a-zA-Z0-9_-]+$ ]]; then
   echo "   OpenAI API 密钥通常以 'sk-' 开头"
 fi
 
-LLM_LINK_BIN="./target/release/llm-link"
+XGATEWAY_BIN="./target/release/xgateway"
 
-# 检查并构建 llm-link
-if [[ ! -x "${LLM_LINK_BIN}" ]]; then
-  echo "🔧 构建 llm-link..."
+# 检查并构建 xgateway
+if [[ ! -x "${XGATEWAY_BIN}" ]]; then
+  echo "🔧 构建 xgateway..."
   cargo build --release
 fi
 
@@ -71,7 +71,7 @@ echo "🛑 停止服务: Ctrl+C"
 echo "========================="
 
 # 启动服务
-exec "${LLM_LINK_BIN}" \
+exec "${XGATEWAY_BIN}" \
   --app zed \
   --protocols ollama \
   --provider openai \

@@ -1,6 +1,6 @@
 # GLM-4 + Zed 集成脚本
 
-这些脚本帮助你快速启动 llm-link 服务，使用智谱 AI 的 GLM-4 模型为 Zed 编辑器提供 AI 代码助手功能。
+这些脚本帮助你快速启动 xgateway 服务，使用智谱 AI 的 GLM-4 模型为 Zed 编辑器提供 AI 代码助手功能。
 
 ## 🚀 快速开始
 
@@ -66,7 +66,7 @@ MODEL=glm-4.5-flash ./scripts/start-zed-glm4.sh "your-zhipu-api-key"
 
 | 变量名 | 默认值 | 说明 |
 |--------|--------|------|
-| `LLM_LINK_BIN` | `./target/release/llm-link` | llm-link 二进制文件路径 |
+| `XGATEWAY_BIN` | `./target/release/xgateway` | xgateway 二进制文件路径 |
 | `MODEL` | `glm-4.6` | 默认使用的模型 |
 | `RUST_LOG` | `info` | 日志级别 (`debug`, `info`, `warn`, `error`) |
 
@@ -104,10 +104,10 @@ MODEL=glm-4.5-flash ./scripts/start-zed-glm4.sh "your-zhipu-api-key"
 
 ```bash
 # 实时查看日志
-RUST_LOG=debug ./scripts/zed-glm4-quick.sh "your-api-key" 2>&1 | tee llm-link.log
+RUST_LOG=debug ./scripts/zed-glm4-quick.sh "your-api-key" 2>&1 | tee xgateway.log
 
 # 查看错误日志
-grep -i error llm-link.log
+grep -i error xgateway.log
 ```
 
 ## 💡 性能优化建议
@@ -124,7 +124,7 @@ grep -i error llm-link.log
 3. **资源监控**：
    ```bash
    # 监控服务状态
-   ps aux | grep llm-link
+   ps aux | grep xgateway
    
    # 检查端口状态
    netstat -tlnp | grep 11434
@@ -135,4 +135,4 @@ grep -i error llm-link.log
 - [智谱 AI 开放平台](https://open.bigmodel.cn/)
 - [GLM-4 模型文档](https://open.bigmodel.cn/dev/api#glm-4)
 - [Zed 编辑器](https://zed.dev/)
-- [llm-link 项目](https://github.com/lipish/llm-link)
+- [xgateway 项目](https://github.com/lipish/xgateway)

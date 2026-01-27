@@ -15,10 +15,10 @@ pub fn list_applications() {
     }
 
     println!(" Usage:");
-    println!("  ./llm-link --app <app-name> --provider <provider>");
+    println!("  ./xgateway --app <app-name> --provider <provider>");
     println!();
     println!("📚 For detailed setup:");
-    println!("  ./llm-link --app-info <app-name>");
+    println!("  ./xgateway --app-info <app-name>");
 }
 
 /// 显示应用详细信息
@@ -48,16 +48,16 @@ pub fn show_application_info(app_name: &str) {
         println!();
         
         if info.auth_required {
-            println!("   --auth-key <TOKEN>     (protects llm-link HTTP APIs, not forwarded upstream)");
+            println!("   --auth-key <TOKEN>     (protects xgateway HTTP APIs, not forwarded upstream)");
             println!();
         }
 
         println!(" Example:");
         println!();
-        println!("   ./llm-link --app {} --provider openai --api-key sk-openai-xxx", app_name);
+        println!("   ./xgateway --app {} --provider openai --api-key sk-openai-xxx", app_name);
         println!();
         println!("   # Or use a different provider:");
-        println!("   ./llm-link --app {} --provider anthropic --api-key sk-ant-xxx", app_name);
+        println!("   ./xgateway --app {} --provider anthropic --api-key sk-ant-xxx", app_name);
         println!();
     } else {
         error!("Unknown application: {}", app_name);

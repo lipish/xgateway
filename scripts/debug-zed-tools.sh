@@ -35,8 +35,8 @@ echo "======================="
 echo ""
 
 # 启动服务（后台，启用详细日志）
-echo "🚀 启动 llm-link 服务（详细日志模式）..."
-RUST_LOG=debug ./target/release/llm-link \
+echo "🚀 启动 xgateway 服务（详细日志模式）..."
+RUST_LOG=debug ./target/release/xgateway \
   --protocols ollama \
   --provider aliyun \
   --model qwen3-coder-plus \

@@ -1,13 +1,13 @@
-# LLM Link
+# XGateway
 
-[![Crates.io](https://img.shields.io/crates/v/llm-link.svg)](https://crates.io/crates/llm-link)
-[![Documentation](https://docs.rs/llm-link/badge.svg)](https://docs.rs/llm-link)
+[![Crates.io](https://img.shields.io/crates/v/xgateway.svg)](https://crates.io/crates/xgateway)
+[![Documentation](https://docs.rs/xgateway/badge.svg)](https://docs.rs/xgateway)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Downloads](https://img.shields.io/crates/d/llm-link.svg)](https://crates.io/crates/llm-link)
+[![Downloads](https://img.shields.io/crates/d/xgateway.svg)](https://crates.io/crates/xgateway)
 
 🚀 **LLM gateway with unified API, service routing, and admin control plane**
 
-LLM Link (XGateway) provides a unified OpenAI-compatible API, service-based routing, and an admin UI for managing providers, services, API keys, and observability.
+XGateway (XGateway) provides a unified OpenAI-compatible API, service-based routing, and an admin UI for managing providers, services, API keys, and observability.
 
 ## ✨ Key Features
 
@@ -32,13 +32,13 @@ LLM Link (XGateway) provides a unified OpenAI-compatible API, service-based rout
 
 ```bash
 # Install from crates.io (Recommended)
-cargo install llm-link
+cargo install xgateway
 
 # Or via Homebrew (macOS)
-brew tap lipish/llm-link && brew install llm-link
+brew tap lipish/xgateway && brew install xgateway
 
 # Or via pip (macOS / Linux)
-pip install pyllmlink
+pip install pyxgateway
 ```
 
 📚 **[Documentation Index →](docs/README.md)**
@@ -47,31 +47,31 @@ pip install pyllmlink
 
 ```bash
 # For Codex CLI
-./llm-link --app codex-cli --api-key "your-auth-token"
+./xgateway --app codex-cli --api-key "your-auth-token"
 
 # For Zed
-./llm-link --app zed
+./xgateway --app zed
 
 # For Aider (using open-source models)
-./llm-link --app aider --provider zhipu --model glm-4.6 --api-key "your-zhipu-key"
+./xgateway --app aider --provider zhipu --model glm-4.6 --api-key "your-zhipu-key"
 
 # For OpenHands
-./llm-link --app openhands --provider anthropic --model claude-3-5-sonnet --api-key "your-anthropic-key"
+./xgateway --app openhands --provider anthropic --model claude-3-5-sonnet --api-key "your-anthropic-key"
 ```
 
-📚 **[Detailed Configuration Guide →](https://lipish.github.io/llm-link/docs)**
+📚 **[Detailed Configuration Guide →](https://lipish.github.io/xgateway/docs)**
 
 ## 📋 CLI Help
 
 ```bash
 # List all supported applications
-./llm-link --list-apps
+./xgateway --list-apps
 
 # Get detailed setup guide for specific application
-./llm-link --app-info aider
+./xgateway --app-info aider
 
 # List available models for a provider
-./llm-link --provider zhipu --list-models
+./xgateway --provider zhipu --list-models
 ```
 
 ## 🏗️ Architecture
@@ -93,7 +93,7 @@ The backend serves the frontend static files directly, so you only need to start
 cd admin && npm install && npx vite build && cd ..
 
 # Local demo (PostgreSQL)
-export DATABASE_URL="postgresql://xinference@localhost:5432/llm_link"
+export DATABASE_URL="postgresql://xinference@localhost:5432/xgateway"
 
 # Start the unified service (default port 3000)
 cargo run
@@ -122,7 +122,7 @@ npm run dev
 
 The frontend dev server will be available at `http://localhost:5173/` with hot-reload enabled.
 
-📚 **[Development Guide →](https://lipish.github.io/llm-link/docs/development)**
+📚 **[Development Guide →](https://lipish.github.io/xgateway/docs/development)**
 
 ## 🔧 Advanced Usage
 
@@ -130,10 +130,10 @@ The frontend dev server will be available at `http://localhost:5173/` with hot-r
 
 ```bash
 # Custom port and host
-./llm-link --app aider --provider zhipu --model glm-4.6 --port 8095 --host 0.0.0.0
+./xgateway --app aider --provider zhipu --model glm-4.6 --port 8095 --host 0.0.0.0
 
 # With authentication
-./llm-link --app aider --provider zhipu --model glm-4.6 --auth-key "your-secret-token"
+./xgateway --app aider --provider zhipu --model glm-4.6 --auth-key "your-secret-token"
 ```
 
 ### Environment Variables
@@ -144,11 +144,11 @@ export ZHIPU_API_KEY="your-zhipu-api-key"
 export OPENAI_API_KEY="sk-xxx"
 export ANTHROPIC_API_KEY="sk-ant-xxx"
 
-# LLM Link authentication
-export LLM_LINK_API_KEY="your-auth-token"
+# XGateway authentication
+export XGATEWAY_API_KEY="your-auth-token"
 ```
 
-📚 **[Advanced Configuration →](https://lipish.github.io/llm-link/docs)**
+📚 **[Advanced Configuration →](https://lipish.github.io/xgateway/docs)**
 
 ## 🧪 Testing
 
@@ -163,17 +163,17 @@ curl -X POST http://localhost:8090/v1/chat/completions \
   -d '{"model": "glm-4.6", "messages": [{"role": "user", "content": "Hello!"}]}'
 ```
 
-📚 **[Testing & Troubleshooting →](https://lipish.github.io/llm-link/docs)**
+📚 **[Testing & Troubleshooting →](https://lipish.github.io/xgateway/docs)**
 
 ## 📚 Full Documentation
 
-🌐 **[Complete Documentation Site →](https://lipish.github.io/llm-link/)**
+🌐 **[Complete Documentation Site →](https://lipish.github.io/xgateway/)**
 
-- **[Getting Started](https://lipish.github.io/llm-link/docs/quick-start)** - Installation and basic setup
-- **[Application Guides](https://lipish.github.io/llm-link/docs/apps)** - Detailed integration for each tool
-- **[Configuration](https://lipish.github.io/llm-link/docs)** - Advanced configuration options
-- **[Architecture](https://lipish.github.io/llm-link/docs/architecture)** - System design and internals
-- **[API Reference](https://lipish.github.io/llm-link/api)** - REST API documentation
+- **[Getting Started](https://lipish.github.io/xgateway/docs/quick-start)** - Installation and basic setup
+- **[Application Guides](https://lipish.github.io/xgateway/docs/apps)** - Detailed integration for each tool
+- **[Configuration](https://lipish.github.io/xgateway/docs)** - Advanced configuration options
+- **[Architecture](https://lipish.github.io/xgateway/docs/architecture)** - System design and internals
+- **[API Reference](https://lipish.github.io/xgateway/api)** - REST API documentation
 
 ## 🤝 Contributing
 
@@ -185,7 +185,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔗 Links
 
-- [Documentation Site](https://lipish.github.io/llm-link/)
-- [Crates.io](https://crates.io/crates/llm-link)
-- [GitHub Repository](https://github.com/lipish/llm-link)
-- [API Reference](https://lipish.github.io/llm-link/api)
+- [Documentation Site](https://lipish.github.io/xgateway/)
+- [Crates.io](https://crates.io/crates/xgateway)
+- [GitHub Repository](https://github.com/lipish/xgateway)
+- [API Reference](https://lipish.github.io/xgateway/api)

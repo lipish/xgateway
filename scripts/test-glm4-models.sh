@@ -37,11 +37,11 @@ models=(
   "glm-4.5-x"
 )
 
-LLM_LINK_BIN=${LLM_LINK_BIN:-"./target/release/llm-link"}
+XGATEWAY_BIN=${XGATEWAY_BIN:-"./target/release/xgateway"}
 
-# 检查并构建 llm-link
-if [[ ! -x "${LLM_LINK_BIN}" ]]; then
-  echo "🔧 构建 llm-link..."
+# 检查并构建 xgateway
+if [[ ! -x "${XGATEWAY_BIN}" ]]; then
+  echo "🔧 构建 xgateway..."
   cargo build --release
 fi
 
@@ -51,12 +51,12 @@ for model in "${models[@]}"; do
   echo "📋 测试模型: $model"
   
   # 启动服务（后台）
-  "${LLM_LINK_BIN}" \
+  "${XGATEWAY_BIN}" \
     --protocols ollama \
     --provider zhipu \
     --model "$model" \
     --llm-api-key "${ZHIPU_API_KEY}" \
-    --port 11435 > /tmp/llm-link-test.log 2>&1 &
+    --port 11435 > /tmp/xgateway-test.log 2>&1 &
   
   server_pid=$!
   

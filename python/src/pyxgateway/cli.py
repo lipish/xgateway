@@ -14,8 +14,8 @@ from pathlib import Path
 
 from . import __version__
 
-ASSET_NAME_TEMPLATE = "llm-link-v{version}-{target}.tar.gz"
-DEFAULT_RELEASE_BASE = "https://github.com/lipish/llm-link/releases/download"
+ASSET_NAME_TEMPLATE = "xgateway-v{version}-{target}.tar.gz"
+DEFAULT_RELEASE_BASE = "https://github.com/lipish/xgateway/releases/download"
 
 
 class UnsupportedPlatformError(Exception):
@@ -38,28 +38,28 @@ def detect_target() -> str:
 
 
 def cache_dir() -> Path:
-    override = os.environ.get("LLM_LINK_CACHE")
-    base = Path(override) if override else Path.home() / ".cache" / "llm-link"
+    override = os.environ.get("XGATEWAY_CACHE")
+    base = Path(override) if override else Path.home() / ".cache" / "xgateway"
     return base / __version__ / detect_target()
 
 
 def build_asset_url(version: str, target: str) -> str:
-    base = os.environ.get("LLM_LINK_DOWNLOAD_BASE", DEFAULT_RELEASE_BASE).rstrip("/")
+    base = os.environ.get("XGATEWAY_DOWNLOAD_BASE", DEFAULT_RELEASE_BASE).rstrip("/")
     asset = ASSET_NAME_TEMPLATE.format(version=version, target=target)
     return f"{base}/v{version}/{asset}"
 
 
 def ensure_binary() -> Path:
-    local_binary = os.environ.get("LLM_LINK_BINARY_PATH")
+    local_binary = os.environ.get("XGATEWAY_BINARY_PATH")
     if local_binary:
         path = Path(local_binary)
         if not path.exists():
-            raise FileNotFoundError(f"LLM_LINK_BINARY_PATH points to missing file: {path}")
+            raise FileNotFoundError(f"XGATEWAY_BINARY_PATH points to missing file: {path}")
         return path
 
     target = detect_target()
     cache = cache_dir()
-    binary_path = cache / "llm-link"
+    binary_path = cache / "xgateway"
 
     if binary_path.exists():
         return binary_path
@@ -75,15 +75,15 @@ def ensure_binary() -> Path:
             urllib.request.urlretrieve(url, tar_path)
         except urllib.error.HTTPError as exc:
             raise RuntimeError(
-                f"Failed to download llm-link binary ({exc.code}). "
-                "Ensure the release asset exists or override LLM_LINK_DOWNLOAD_BASE."
+                f"Failed to download xgateway binary ({exc.code}). "
+                "Ensure the release asset exists or override XGATEWAY_DOWNLOAD_BASE."
             ) from exc
 
         with tarfile.open(tar_path, "r:gz") as archive:
             archive.extractall(Path(tmpdir))
 
-        extracted = Path(tmpdir) / f"llm-link-v{__version__}-{target}"
-        binary_source = extracted / "llm-link"
+        extracted = Path(tmpdir) / f"xgateway-v{__version__}-{target}"
+        binary_source = extracted / "xgateway"
         shutil.move(str(binary_source), binary_path)
 
     mode = binary_path.stat().st_mode
@@ -98,7 +98,7 @@ def main() -> int:
         print(str(exc), file=sys.stderr)
         return 1
     except Exception as exc:  # pragma: no cover - best effort logging
-        print(f"Failed to prepare llm-link binary: {exc}", file=sys.stderr)
+        print(f"Failed to prepare xgateway binary: {exc}", file=sys.stderr)
         return 1
 
     result = subprocess.run([str(binary), *sys.argv[1:]])

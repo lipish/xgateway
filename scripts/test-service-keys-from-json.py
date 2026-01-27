@@ -165,9 +165,9 @@ def call_once(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Smoke test llm-link services using exported service API keys JSON")
-    parser.add_argument("--base-url", default=os.environ.get("LLM_LINK_BASE_URL", "http://127.0.0.1:3000"))
-    parser.add_argument("--keys-json", dest="keys_json", default=os.environ.get("LLM_LINK_KEYS_JSON"))
+    parser = argparse.ArgumentParser(description="Smoke test xgateway services using exported service API keys JSON")
+    parser.add_argument("--base-url", default=os.environ.get("XGATEWAY_BASE_URL", "http://127.0.0.1:3000"))
+    parser.add_argument("--keys-json", dest="keys_json", default=os.environ.get("XGATEWAY_KEYS_JSON"))
     parser.add_argument("--timeout", type=int, default=60)
     parser.add_argument("--sleep", type=float, default=0.2)
     parser.add_argument("--max-keys-per-service", type=int, default=1, help="limit keys to test per service")

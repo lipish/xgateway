@@ -42,7 +42,7 @@ pub fn build_llm_proxy_routes(
                    .route("/api/version", get(|| async {
                        axum::Json(serde_json::json!({
                            "version": "0.1.0",
-                           "build": "llm-link"
+                           "build": "xgateway"
                        }))
                    }));
 

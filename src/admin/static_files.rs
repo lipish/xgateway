@@ -64,7 +64,7 @@ pub fn admin_dashboard_html() -> String {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LLM Link 管理界面</title>
+    <title>XGateway 管理界面</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
@@ -81,7 +81,7 @@ pub fn admin_dashboard_html() -> String {
 </head>
 <body>
     <div class="header">
-        <h1> LLM Link 管理界面</h1>
+        <h1> XGateway 管理界面</h1>
         <p>多 Provider AI 网关管理</p>
     </div>
     
@@ -195,7 +195,7 @@ body {
 pub fn admin_js() -> String {
     r#"
 // Basic admin JavaScript
-console.log('LLM Link Admin Interface loaded');
+console.log('XGateway Admin Interface loaded');
 
 // Helper function for API calls
 async function apiCall(url, options = {}) {

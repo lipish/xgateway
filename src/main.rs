@@ -96,13 +96,13 @@ async fn run_multi_mode(args: Args) -> Result<()> {
         .unwrap_or(3000);
     let bind_addr = format!("0.0.0.0:{}", port);
 
-    info!("LLM Link unified service starting on http://localhost:{}", port);
+    info!("XGateway unified service starting on http://localhost:{}", port);
     info!("LLM API Proxy: http://localhost:{}/v1/chat/completions", port);
     info!("Admin API: http://localhost:{}/api/*", port);
     info!("Health check: http://localhost:{}/health", port);
 
     let listener = tokio::net::TcpListener::bind(&bind_addr).await?;
-    info!("LLM Link is ready to accept connections!");
+    info!("XGateway is ready to accept connections!");
 
     axum::serve(listener, app).await?;
 
@@ -113,7 +113,7 @@ async fn run_multi_mode(args: Args) -> Result<()> {
 
 fn initialize_logging(args: &Args) {
     let log_level = args.log_level.clone()
-        .or_else(|| std::env::var("LLM_LINK_LOG_LEVEL").ok())
+        .or_else(|| std::env::var("XGATEWAY_LOG_LEVEL").ok())
         .unwrap_or_else(|| "info".to_string());
 
     tracing_subscriber::registry()

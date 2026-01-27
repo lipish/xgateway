@@ -33,14 +33,14 @@ echo "  Endpoint: $ENDPOINT"
 echo "  Model: $MODEL"
 echo ""
 
-# Start llm-link server in background
-echo "🚀 Starting llm-link server..."
+# Start xgateway server in background
+echo "🚀 Starting xgateway server..."
 cargo run -- \
   --protocols ollama \
   --provider volcengine \
   --model "$ENDPOINT" \
   --llm-api-key "$API_KEY" \
-  > /tmp/llm-link-volcengine.log 2>&1 &
+  > /tmp/xgateway-volcengine.log 2>&1 &
 
 SERVER_PID=$!
 echo "  Server PID: $SERVER_PID"
@@ -93,7 +93,7 @@ else
   echo "❌ FAILURE: Streaming not working properly"
   echo ""
   echo "📋 Server logs:"
-  tail -50 /tmp/llm-link-volcengine.log
+  tail -50 /tmp/xgateway-volcengine.log
   exit 1
 fi
 

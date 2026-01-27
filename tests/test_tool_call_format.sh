@@ -11,13 +11,13 @@ if [ -z "$ZHIPU_API_KEY" ]; then
     exit 1
 fi
 
-echo "🚀 启动 llm-link 服务..."
-./target/release/llm-link \
+echo "🚀 启动 xgateway 服务..."
+./target/release/xgateway \
   --protocols ollama \
   --provider zhipu \
   --model glm-4.6 \
   --llm-api-key "$ZHIPU_API_KEY" \
-  > /tmp/llm-link-tool-format-test.log 2>&1 &
+  > /tmp/xgateway-tool-format-test.log 2>&1 &
 
 PID=$!
 echo "📝 PID: $PID"
@@ -100,7 +100,7 @@ fi
 
 echo ""
 echo "📋 服务日志 (最后 20 行):"
-tail -20 /tmp/llm-link-tool-format-test.log | grep -E "(tool|Tool|🔧)"
+tail -20 /tmp/xgateway-tool-format-test.log | grep -E "(tool|Tool|🔧)"
 
 # 清理
 echo ""

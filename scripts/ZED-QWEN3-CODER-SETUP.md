@@ -21,10 +21,10 @@
 2. **安装 Zed 编辑器**
    - 访问 [Zed 官网](https://zed.dev/) 下载安装
 
-3. **克隆 llm-link 项目**
+3. **克隆 xgateway 项目**
    ```bash
-   git clone https://github.com/lipish/llm-link.git
-   cd llm-link
+   git clone https://github.com/lipish/xgateway.git
+   cd xgateway
    ```
 
 ## 🚀 快速启动
@@ -54,7 +54,7 @@
 
 ## ⚙️ Zed 配置步骤
 
-### 1. 启动 llm-link 服务
+### 1. 启动 xgateway 服务
 
 ```bash
 ./scripts/zed-qwen3-coder.sh "your-aliyun-api-key"
@@ -151,7 +151,7 @@
    - 验证 DashScope 服务状态
 
 3. **Zed 无法连接**
-   - 确认 llm-link 服务正在运行
+   - 确认 xgateway 服务正在运行
    - 检查防火墙设置
    - 重启 Zed 编辑器
 
@@ -208,7 +208,7 @@ def fibonacci(n): ..."
 - [阿里云 DashScope](https://dashscope.aliyun.com/)
 - [Qwen3 模型文档](https://help.aliyun.com/zh/model-studio/models)
 - [Zed 编辑器](https://zed.dev/)
-- [llm-link 项目](https://github.com/lipish/llm-link)
+- [xgateway 项目](https://github.com/lipish/xgateway)
 
 ---
 

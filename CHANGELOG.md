@@ -183,7 +183,7 @@ This release focuses on complete Zed editor compatibility, fixing all known issu
 
 #### 🏗️ Architecture Improvements
 
-- **Proper Layer Separation**: llm-connector remains generic, llm-link handles Zed-specific adaptations
+- **Proper Layer Separation**: llm-connector remains generic, xgateway handles Zed-specific adaptations
 - **Content Filtering**: Smart filtering that preserves formatting while removing reasoning tags
 - **Model Metadata**: Complete model information including context length and capabilities
 
@@ -233,19 +233,19 @@ This release focuses on complete Zed editor compatibility, fixing all known issu
 ### 🧱 Architecture & Maintainability
 
 - Added a new `ModelResolver` in `src/normalizer/` to centralize provider-specific model resolution logic.
-  - Supports local overrides via [model-overrides.yaml](cci:7://file:///Users/mac-m4/github/llm-link/model-overrides.yaml:0:0-0:0).
+  - Supports local overrides via [model-overrides.yaml](cci:7://file:///Users/mac-m4/github/xgateway/model-overrides.yaml:0:0-0:0).
   - Applies Volcengine-specific rules (logical name → default endpoint, `ep-...` passthrough).
 - Completed the internal refactor from the old `llm` module to the **`normalizer`** module:
-  - Moved [chat.rs](cci:7://file:///Users/mac-m4/github/llm-link/src/normalizer/chat.rs:0:0-0:0), [stream.rs](cci:7://file:///Users/mac-m4/github/llm-link/src/normalizer/stream.rs:0:0-0:0), `types.rs`, `models.rs` and `minimax_client.rs` under `src/normalizer/`.
-  - Service layer now consistently depends on [normalizer::Client](cci:2://file:///Users/mac-m4/github/llm-link/src/normalizer/mod.rs:14:0-18:1).
+  - Moved [chat.rs](cci:7://file:///Users/mac-m4/github/xgateway/src/normalizer/chat.rs:0:0-0:0), [stream.rs](cci:7://file:///Users/mac-m4/github/xgateway/src/normalizer/stream.rs:0:0-0:0), `types.rs`, `models.rs` and `minimax_client.rs` under `src/normalizer/`.
+  - Service layer now consistently depends on [normalizer::Client](cci:2://file:///Users/mac-m4/github/xgateway/src/normalizer/mod.rs:14:0-18:1).
 
 ### 📚 Docs, Examples & Tests
 
-- Updated the main [README.md](cci:7://file:///Users/mac-m4/github/llm-link/README.md:0:0-0:0) with a **“Volcengine Doubao: Logical Models vs Endpoint IDs”** section explaining:
+- Updated the main [README.md](cci:7://file:///Users/mac-m4/github/xgateway/README.md:0:0-0:0) with a **“Volcengine Doubao: Logical Models vs Endpoint IDs”** section explaining:
   - How logical model names relate to endpoint IDs.
   - How the Normalizer `ModelResolver` works.
-  - How to configure [model-overrides.yaml](cci:7://file:///Users/mac-m4/github/llm-link/model-overrides.yaml:0:0-0:0) for per-user logical model → endpoint mappings.
-- Added [examples/model-overrides.example.yaml](cci:7://file:///Users/mac-m4/github/llm-link/examples/model-overrides.example.yaml:0:0-0:0) as a template for local [model-overrides.yaml](cci:7://file:///Users/mac-m4/github/llm-link/model-overrides.yaml:0:0-0:0) configuration.
+  - How to configure [model-overrides.yaml](cci:7://file:///Users/mac-m4/github/xgateway/model-overrides.yaml:0:0-0:0) for per-user logical model → endpoint mappings.
+- Added [examples/model-overrides.example.yaml](cci:7://file:///Users/mac-m4/github/xgateway/examples/model-overrides.example.yaml:0:0-0:0) as a template for local [model-overrides.yaml](cci:7://file:///Users/mac-m4/github/xgateway/model-overrides.yaml:0:0-0:0) configuration.
 - Cleaned up the Volcengine streaming test script:
   - Removed hard-coded API keys and endpoint IDs.
   - Tests now require `VOLCENGINE_API_KEY` and `VOLCENGINE_ENDPOINT` to be provided via environment variables.
@@ -328,7 +328,7 @@ This release focuses on complete Zed editor compatibility, fixing all known issu
 ### 🎉 Major Features
 
 #### Optional API Key Startup
-- **Start Without API Key** - llm-link can now start without requiring API keys
+- **Start Without API Key** - xgateway can now start without requiring API keys
   - Service starts normally and displays helpful warnings
   - API keys can be set dynamically via hot-reload API after startup
   - Perfect for containerized deployments and development workflows
@@ -376,7 +376,7 @@ This release focuses on complete Zed editor compatibility, fixing all known issu
 1. **Container Deployments**
    ```bash
    # Start container without API key
-   docker run -p 11434:11434 llm-link --app zed --provider zhipu
+   docker run -p 11434:11434 xgateway --app zed --provider zhipu
 
    # Inject API key after startup
    curl -X POST http://localhost:11434/api/config/update-key \
@@ -386,7 +386,7 @@ This release focuses on complete Zed editor compatibility, fixing all known issu
 2. **Development Workflow**
    ```bash
    # Quick start for testing
-   ./llm-link --app zed --provider zhipu
+   ./xgateway --app zed --provider zhipu
 
    # Set key when needed
    curl -X POST http://localhost:11434/api/config/update-key \
@@ -396,7 +396,7 @@ This release focuses on complete Zed editor compatibility, fixing all known issu
 3. **Dynamic Provider Switching**
    ```bash
    # Start without key
-   ./llm-link --app zed --provider zhipu
+   ./xgateway --app zed --provider zhipu
 
    # Switch providers on the fly
    curl -X POST http://localhost:11434/api/config/switch-provider \
@@ -688,7 +688,7 @@ curl -X POST http://localhost:11434/api/config/validate-key \
 This feature enables:
 - **External applications** to discover available providers and models
 - **Dynamic UI generation** based on supported models
-- **Service discovery** for LLM Link capabilities
+- **Service discovery** for XGateway capabilities
 - **Provider switching** with full visibility of available options
 
 ### 📖 API Examples
@@ -718,7 +718,7 @@ curl http://localhost:8080/v1/models
 ### 📚 Documentation Improvements
 
 #### Enhanced Claude Code Configuration Guide
-- **Detailed setup instructions** for Claude Code integration with LLM Link
+- **Detailed setup instructions** for Claude Code integration with XGateway
 - **Complete configuration examples** for `~/.claude/settings.json`
 - **Multi-provider support guide** - how to use OpenAI, Zhipu, Aliyun, Ollama with Claude Code
 - **Configuration options explanation** - ANTHROPIC_AUTH_TOKEN, ANTHROPIC_BASE_URL, API_TIMEOUT_MS
@@ -821,7 +821,7 @@ curl http://localhost:8080/v1/models
 ### Fixed
 - **Critical: `finish_reason` correction for tool_calls** 🔧
   - GLM-4.6 returns `finish_reason: "stop"` even when tool_calls are present
-  - llm-link now detects tool_calls and corrects `finish_reason` to `"tool_calls"`
+  - xgateway now detects tool_calls and corrects `finish_reason` to `"tool_calls"`
   - This fixes Codex not executing tools (Codex checks `finish_reason` to decide action)
   - Root cause: Codex's logic: `finish_reason == "tool_calls"` → execute tool, `== "stop"` → display text
 - **Streaming tool_calls extraction**: Now correctly extracts from `choices[0].delta.tool_calls`
@@ -981,10 +981,10 @@ No breaking changes. All existing configurations and usage patterns continue to 
 **Example:**
 ```bash
 # Before (still works)
-./target/release/llm-link --app codex-cli
+./target/release/xgateway --app codex-cli
 
 # After (new option)
-./target/release/llm-link --app codex-cli --provider openai --model gpt-4
+./target/release/xgateway --app codex-cli --provider openai --model gpt-4
 ```
 
 ## Contributing
@@ -995,8 +995,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this 
 
 If you encounter any issues or have questions:
 1. Check the [documentation](docs/)
-2. Search [existing issues](https://github.com/your-repo/llm-link/issues)
-3. Create a [new issue](https://github.com/your-repo/llm-link/issues/new)
+2. Search [existing issues](https://github.com/your-repo/xgateway/issues)
+3. Create a [new issue](https://github.com/your-repo/xgateway/issues/new)
 
 ---
 

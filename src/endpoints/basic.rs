@@ -6,7 +6,7 @@ use crate::endpoints::ProxyState;
 pub async fn health_check() -> Json<serde_json::Value> {
     Json(json!({
         "status": "ok",
-        "service": "llm-link",
+        "service": "xgateway",
         "version": env!("CARGO_PKG_VERSION"),
         "timestamp": chrono::Utc::now().to_rfc3339()
     }))
@@ -61,7 +61,7 @@ pub async fn info(
     }
 
     Json(json!({
-        "service": "llm-link",
+        "service": "xgateway",
         "version": env!("CARGO_PKG_VERSION"),
         "current_provider": current_provider,
         "api_endpoints": api_endpoints,

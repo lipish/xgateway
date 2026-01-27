@@ -1,4 +1,4 @@
-# LLM Link Documentation
+# XGateway Documentation
 
 ## 📚 Documentation Index
 

@@ -38,11 +38,11 @@ if [[ -z "$ALIYUN_API_KEY" || ${#ALIYUN_API_KEY} -lt 10 ]]; then
   exit 1
 fi
 
-LLM_LINK_BIN="./target/release/llm-link"
+XGATEWAY_BIN="./target/release/xgateway"
 
-# 检查并构建 llm-link
-if [[ ! -x "${LLM_LINK_BIN}" ]]; then
-  echo "🔧 构建 llm-link..."
+# 检查并构建 xgateway
+if [[ ! -x "${XGATEWAY_BIN}" ]]; then
+  echo "🔧 构建 xgateway..."
   cargo build --release
 fi
 
@@ -57,8 +57,8 @@ echo "=================================="
 echo ""
 
 # 启动服务（后台）
-echo "🚀 启动 llm-link 服务..."
-"${LLM_LINK_BIN}" \
+echo "🚀 启动 xgateway 服务..."
+"${XGATEWAY_BIN}" \
   --protocols ollama \
   --provider aliyun \
   --model qwen3-coder-plus \

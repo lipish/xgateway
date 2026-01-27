@@ -9,16 +9,16 @@ echo ""
 # 使用智谱 GLM-4.6 测试（已知支持工具调用）
 ZHIPU_API_KEY="4a46b712c9514759a1926fe96c6bd54b.6h9F0vQnlRF9SQgC"
 
-echo "🚀 启动 llm-link 服务 (Ollama 协议 + Zhipu GLM-4.6)..."
+echo "🚀 启动 xgateway 服务 (Ollama 协议 + Zhipu GLM-4.6)..."
 cargo build --release 2>&1 | grep -v "Compiling\|Finished" || true
 
-./target/release/llm-link \
+./target/release/xgateway \
   --app zed \
   --protocols ollama \
   --provider zhipu \
   --model glm-4-flash \
   --llm-api-key "$ZHIPU_API_KEY" \
-  > /tmp/llm-link-ollama-tools.log 2>&1 &
+  > /tmp/xgateway-ollama-tools.log 2>&1 &
 
 PID=$!
 echo "📝 PID: $PID"
@@ -79,7 +79,7 @@ fi
 
 echo ""
 echo "📋 服务日志:"
-tail -20 /tmp/llm-link-ollama-tools.log
+tail -20 /tmp/xgateway-ollama-tools.log
 
 # 清理
 echo ""

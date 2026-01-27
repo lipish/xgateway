@@ -36,9 +36,9 @@ jobs:
 
       - name: Package artifact
         run: |
-          ARTIFACT="llm-link-${{ github.ref_name }}-${{ matrix.target }}"
+          ARTIFACT="xgateway-${{ github.ref_name }}-${{ matrix.target }}"
           mkdir -p dist/$ARTIFACT
-          cp target/${{ matrix.target }}/release/llm-link dist/$ARTIFACT/
+          cp target/${{ matrix.target }}/release/xgateway dist/$ARTIFACT/
           cp LICENSE README.md dist/$ARTIFACT/
           tar -C dist -czf "$ARTIFACT.tar.gz" "$ARTIFACT"
           shasum -a 256 "$ARTIFACT.tar.gz" > "$ARTIFACT.tar.gz.sha256"
@@ -46,10 +46,10 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: llm-link-${{ matrix.target }}
+          name: xgateway-${{ matrix.target }}
           path: |
-            llm-link-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
-            llm-link-${{ github.ref_name }}-${{ matrix.target }}.tar.gz.sha256
+            xgateway-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+            xgateway-${{ github.ref_name }}-${{ matrix.target }}.tar.gz.sha256
 
   publish-release:
     needs: build-matrix
@@ -74,7 +74,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            dist/**/llm-link-*.tar.gz
-            dist/**/llm-link-*.tar.gz.sha256
+            dist/**/xgateway-*.tar.gz
+            dist/**/xgateway-*.tar.gz.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

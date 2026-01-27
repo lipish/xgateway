@@ -3,13 +3,13 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pyllmlink"
+name = "pyxgateway"
 version = "0.12.3"
-description = "Python wrapper that downloads and launches the llm-link binary"
+description = "Python wrapper that downloads and launches the xgateway binary"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = []
-authors = [{ name = "LLM Link Maintainers" }]
+authors = [{ name = "XGateway Maintainers" }]
 license = { text = "MIT" }
 keywords = ["llm", "proxy", "cli"]
 classifiers = [
@@ -23,12 +23,12 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/lipish/llm-link"
-Repository = "https://github.com/lipish/llm-link"
-Issues = "https://github.com/lipish/llm-link/issues"
+Homepage = "https://github.com/lipish/xgateway"
+Repository = "https://github.com/lipish/xgateway"
+Issues = "https://github.com/lipish/xgateway/issues"
 
 [project.scripts]
-llm-link = "pyllmlink.cli:main"
+xgateway = "pyxgateway.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -85,7 +85,7 @@ curl -N http://localhost:3000/v1/chat/completions \
 
 本项目的运行时配置主要来自：
 
-- 环境变量：例如 `DATABASE_URL`、`PORT`、`LLM_LINK_LOG_LEVEL`
+- 环境变量：例如 `DATABASE_URL`、`PORT`、`XGATEWAY_LOG_LEVEL`
 - 管理后台（数据库持久化）：Provider、Service、API Key、授权关系、服务限流与调度策略
 
 不建议以“本地 YAML 配置文件”作为权威配置入口；如果你需要交付脚本化初始化，请使用迁移 SQL 或管理 API 做配置写入。
@@ -103,8 +103,8 @@ curl -N http://localhost:3000/v1/chat/completions \
 
 Zed 可通过 Ollama 协议接入（用于开发体验）。基本思路是：
 
-- 启动 llm-link 并启用 Ollama 兼容端点
-- 在 Zed 设置中配置 `api_url` 指向 llm-link 的 Ollama endpoint
+- 启动 xgateway 并启用 Ollama 兼容端点
+- 在 Zed 设置中配置 `api_url` 指向 xgateway 的 Ollama endpoint
 
 具体以你的部署端口为准，常见示例：
 

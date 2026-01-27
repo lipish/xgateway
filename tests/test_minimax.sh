@@ -17,26 +17,26 @@ if [ -z "$MINIMAX_API_KEY" ]; then
 fi
 
 # 检查二进制文件是否存在
-if [ ! -f "./target/debug/llm-link" ] && [ ! -f "./target/release/llm-link" ]; then
+if [ ! -f "./target/debug/xgateway" ] && [ ! -f "./target/release/xgateway" ]; then
     echo "❌ Binary not found. Building..."
     cargo build
 fi
 
-BINARY="./target/release/llm-link"
+BINARY="./target/release/xgateway"
 if [ ! -f "$BINARY" ]; then
-    BINARY="./target/debug/llm-link"
+    BINARY="./target/debug/xgateway"
 fi
 
 echo "✅ Using binary: $BINARY"
 echo ""
 
 # 停止可能运行的实例
-pkill -f "llm-link" 2>/dev/null || true
+pkill -f "xgateway" 2>/dev/null || true
 sleep 1
 
 # 启动服务
-echo "🚀 Starting llm-link with minimax provider..."
-$BINARY --app zed --provider minimax > /tmp/llm-link-minimax-test.log 2>&1 &
+echo "🚀 Starting xgateway with minimax provider..."
+$BINARY --app zed --provider minimax > /tmp/xgateway-minimax-test.log 2>&1 &
 PID=$!
 
 echo "⏳ Waiting for service to start (PID: $PID)..."
@@ -45,7 +45,7 @@ sleep 3
 # 检查服务是否启动
 if ! ps -p $PID > /dev/null; then
     echo "❌ Service failed to start. Check logs:"
-    tail -20 /tmp/llm-link-minimax-test.log
+    tail -20 /tmp/xgateway-minimax-test.log
     exit 1
 fi
 

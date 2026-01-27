@@ -1,6 +1,6 @@
-# LLM Link Tests
+# XGateway Tests
 
-This directory will contain tests for LLM Link.
+This directory will contain tests for XGateway.
 
 ## 🚧 Status
 

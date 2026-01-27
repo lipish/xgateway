@@ -1,11 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-BASE_URL="${LLM_LINK_BASE_URL:-http://127.0.0.1:3000}"
-KEYS_JSON="${LLM_LINK_KEYS_JSON:-}"
+BASE_URL="${XGATEWAY_BASE_URL:-http://127.0.0.1:3000}"
+KEYS_JSON="${XGATEWAY_KEYS_JSON:-}"
 
 if [[ -z "${KEYS_JSON}" || ! -f "${KEYS_JSON}" ]]; then
-  echo "SKIP: set LLM_LINK_KEYS_JSON to exported service keys JSON (e.g. /Users/xinference/Downloads/keys.json)"
+  echo "SKIP: set XGATEWAY_KEYS_JSON to exported service keys JSON (e.g. /Users/xinference/Downloads/keys.json)"
   exit 0
 fi
 

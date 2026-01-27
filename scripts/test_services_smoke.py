@@ -145,14 +145,14 @@ def call_once(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Smoke test llm-link services via /v1/chat/completions")
-    parser.add_argument("--base-url", default=os.environ.get("LLM_LINK_BASE_URL", "http://127.0.0.1:3000"))
-    parser.add_argument("--config-path", default=os.environ.get("LLM_LINK_SERVICES_JSON"))
+    parser = argparse.ArgumentParser(description="Smoke test xgateway services via /v1/chat/completions")
+    parser.add_argument("--base-url", default=os.environ.get("XGATEWAY_BASE_URL", "http://127.0.0.1:3000"))
+    parser.add_argument("--config-path", default=os.environ.get("XGATEWAY_SERVICES_JSON"))
     parser.add_argument("--calls", type=int, default=0, help="fixed calls per (service_id, api_key); set >0 to disable random")
     parser.add_argument("--min-calls", type=int, default=2, help="min random calls per (service_id, api_key) when --calls is 0")
     parser.add_argument("--max-calls", type=int, default=6, help="max random calls per (service_id, api_key) when --calls is 0")
     parser.add_argument("--seed", type=int, default=None, help="random seed for reproducible runs")
-    parser.add_argument("--prompts-path", default=os.environ.get("LLM_LINK_TEST_PROMPTS"), help="optional text file with one prompt per line")
+    parser.add_argument("--prompts-path", default=os.environ.get("XGATEWAY_TEST_PROMPTS"), help="optional text file with one prompt per line")
     parser.add_argument("--timeout", type=int, default=60)
     parser.add_argument("--sleep", type=float, default=0.2)
     args = parser.parse_args()

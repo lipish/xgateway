@@ -16,7 +16,7 @@ echo ""
 
 # 启动服务
 echo "🚀 启动服务..."
-RUST_LOG=debug ./target/release/llm-link \
+RUST_LOG=debug ./target/release/xgateway \
   --protocols ollama \
   --provider aliyun \
   --model qwen3-coder-plus \

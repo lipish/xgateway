@@ -5,10 +5,10 @@
 echo "🧪 Testing /api/info endpoint..."
 echo ""
 
-# 启动 llm-link 服务（后台运行）
-echo "🚀 Starting llm-link service..."
+# 启动 xgateway 服务（后台运行）
+echo "🚀 Starting xgateway service..."
 export ZHIPU_API_KEY="test-key-for-demo"
-./target/release/llm-link --app zed --provider zhipu --model glm-4-flash &
+./target/release/xgateway --app zed --provider zhipu --model glm-4-flash &
 PID=$!
 
 # 等待服务启动

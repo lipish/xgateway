@@ -25,14 +25,14 @@ def _to_text(v):
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--base-url", default=os.environ.get("LLM_LINK_BASE_URL", "http://127.0.0.1:3000"))
-    parser.add_argument("--api-key", default=os.environ.get("LLM_LINK_API_KEY"))
-    parser.add_argument("--provider-id", type=int, default=int(os.environ.get("LLM_LINK_PROVIDER_ID", "1")))
+    parser.add_argument("--base-url", default=os.environ.get("XGATEWAY_BASE_URL", "http://127.0.0.1:3000"))
+    parser.add_argument("--api-key", default=os.environ.get("XGATEWAY_API_KEY"))
+    parser.add_argument("--provider-id", type=int, default=int(os.environ.get("XGATEWAY_PROVIDER_ID", "1")))
     parser.add_argument("--sleep", type=float, default=0.4)
     args = parser.parse_args()
 
     if not args.api_key:
-        print("missing api key: set --api-key or env LLM_LINK_API_KEY", file=sys.stderr)
+        print("missing api key: set --api-key or env XGATEWAY_API_KEY", file=sys.stderr)
         return 2
 
     headers = {"Authorization": f"Bearer {args.api_key}", "Content-Type": "application/json"}

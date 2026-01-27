@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-测试 llm-link 热更新功能的脚本
+测试 xgateway 热更新功能的脚本
 """
 
 import requests
@@ -104,12 +104,12 @@ def test_health():
 
 def main():
     """主测试函数"""
-    print("🚀 Starting llm-link hot reload tests...")
+    print("🚀 Starting xgateway hot reload tests...")
     print("=" * 50)
     
     # 测试健康检查
     if not test_health():
-        print("❌ Service is not running. Please start llm-link first.")
+        print("❌ Service is not running. Please start xgateway first.")
         sys.exit(1)
     
     print("\n" + "=" * 50)

@@ -13,17 +13,17 @@ fi
 
 # 停止旧服务
 echo "🛑 停止旧服务..."
-pkill -f "llm-link.*ollama" || true
+pkill -f "xgateway.*ollama" || true
 sleep 2
 
 # 启动新服务
 echo "🚀 启动新服务..."
-./target/release/llm-link \
+./target/release/xgateway \
   --protocols ollama \
   --provider zhipu \
   --model glm-4.6 \
   --llm-api-key "$ZHIPU_API_KEY" \
-  > /tmp/llm-link-verify.log 2>&1 &
+  > /tmp/xgateway-verify.log 2>&1 &
 
 PID=$!
 echo "📝 PID: $PID"
@@ -78,9 +78,9 @@ fi
 # 检查日志中是否有过滤记录
 echo ""
 echo "📋 检查过滤日志..."
-if grep -q "🧠 Filtered reasoning_content" /tmp/llm-link-verify.log; then
+if grep -q "🧠 Filtered reasoning_content" /tmp/xgateway-verify.log; then
     echo "✅ 检测到推理内容过滤日志:"
-    grep "🧠 Filtered reasoning_content" /tmp/llm-link-verify.log | head -3
+    grep "🧠 Filtered reasoning_content" /tmp/xgateway-verify.log | head -3
 else
     echo "⚠️ 未检测到推理内容过滤日志"
     echo "   可能原因:"
@@ -134,7 +134,7 @@ echo "=" | tr '=' '=' | head -c 60; echo ""
 echo "✅ 验证完成!"
 echo "=" | tr '=' '=' | head -c 60; echo ""
 echo ""
-echo "📝 完整日志: /tmp/llm-link-verify.log"
+echo "📝 完整日志: /tmp/xgateway-verify.log"
 echo "📝 聊天响应: /tmp/chat-response.txt"
 echo "📝 工具响应: /tmp/tool-response.json"
 

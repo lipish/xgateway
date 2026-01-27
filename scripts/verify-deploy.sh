@@ -5,7 +5,7 @@
 
 set -e
 
-echo "🚀 开始验证 LLM Link 文档站点部署..."
+echo "🚀 开始验证 XGateway 文档站点部署..."
 
 # 检查 Node.js 版本
 echo "📋 检查 Node.js 版本..."

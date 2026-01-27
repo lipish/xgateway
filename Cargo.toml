@@ -1,13 +1,13 @@
 [package]
-name = "llm-link"
+name = "xgateway"
 version = "0.12.3"
 edition = "2021"
-authors = ["LLM Link Contributors"]
+authors = ["XGateway Contributors"]
 description = "A universal LLM proxy supporting 10 providers (OpenAI, Anthropic, Zhipu, Aliyun, Volcengine, Tencent, Longcat, Moonshot, Minimax, Ollama) with dynamic model discovery API, hot-reload configuration, and optional API key startup"
 license = "MIT"
-repository = "https://github.com/lipish/llm-link"
-homepage = "https://github.com/lipish/llm-link"
-documentation = "https://github.com/lipish/llm-link/blob/master/README.md"
+repository = "https://github.com/lipish/xgateway"
+homepage = "https://github.com/lipish/xgateway"
+documentation = "https://github.com/lipish/xgateway/blob/master/README.md"
 readme = "README.md"
 keywords = ["llm", "proxy", "ollama", "openai", "anthropic"]
 categories = ["command-line-utilities", "web-programming", "api-bindings"]

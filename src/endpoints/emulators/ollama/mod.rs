@@ -264,7 +264,7 @@ pub fn build_ollama_routes(state: ProxyState, ollama_config: &settings::OllamaAp
         }))
         .route(&format!("{}/api/show", ollama_config.path), post(show_handler))
         .route(&format!("{}/api/version", ollama_config.path), get(|| async {
-            Json(json!({ "version": "0.1.0", "build": "llm-link" }))
+            Json(json!({ "version": "0.1.0", "build": "xgateway" }))
         }))
         .with_state(state_for_chat)
 }

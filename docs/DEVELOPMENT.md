@@ -4,7 +4,7 @@
 
 ## 1. 架构概览
 
-LLM Link / XGateway 提供统一协议入口（OpenAI 兼容为主），内部基于 `service_id` 将请求路由到多个 Provider（上游实例），并在入口处完成鉴权、授权、服务级流控、调度、故障切换与观测。
+XGateway / XGateway 提供统一协议入口（OpenAI 兼容为主），内部基于 `service_id` 将请求路由到多个 Provider（上游实例），并在入口处完成鉴权、授权、服务级流控、调度、故障切换与观测。
 
 关键入口：
 

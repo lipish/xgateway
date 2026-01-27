@@ -65,7 +65,7 @@ impl ConfigLoader {
         // Require --provider parameter
         let provider = Self::require_provider(app_name, args)?;
 
-        // Generate base config for the app (LLM Link auth is provided via --auth-key)
+        // Generate base config for the app (XGateway auth is provided via --auth-key)
         let mut config = AppConfigGenerator::generate_config(&app, args.auth_key.as_deref());
 
         // Apply provider/model overrides (provider is required, model is optional)
@@ -131,10 +131,10 @@ impl ConfigLoader {
                 error!("  --provider ollama      (no API key needed)");
                 error!("");
                 error!("Example:");
-                error!("  ./llm-link --app {} --provider minimax", app_name);
+                error!("  ./xgateway --app {} --provider minimax", app_name);
                 error!("");
                 error!("📚 For more information:");
-                error!("  ./llm-link --app-info {}", app_name);
+                error!("  ./xgateway --app-info {}", app_name);
                 anyhow::anyhow!("Missing required parameter: --provider")
             })
     }

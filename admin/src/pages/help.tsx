@@ -12,7 +12,7 @@ export function HelpPage() {
         title={t('help.title')}
         subtitle={t('help.subtitle')}
         action={
-          <Button variant="outline" size="sm" onClick={() => window.open('https://github.com/lipish/llm-link', '_blank')}>
+          <Button variant="outline" size="sm" onClick={() => window.open('https://github.com/lipish/xgateway', '_blank')}>
             <Github className="mr-2 h-4 w-4" />
             GitHub
           </Button>
@@ -138,10 +138,10 @@ export function HelpPage() {
             <CardTitle className="text-lg">{t('help.contact')}</CardTitle>
           </CardHeader>
           <CardContent className="flex gap-6">
-            <a href="https://github.com/lipish/llm-link" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm font-medium text-primary hover:underline">
+            <a href="https://github.com/lipish/xgateway" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm font-medium text-primary hover:underline">
               <Github className="h-4 w-4" /> {t('help.github')}
             </a>
-            <a href="https://github.com/lipish/llm-link/issues" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm font-medium text-primary hover:underline">
+            <a href="https://github.com/lipish/xgateway/issues" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm font-medium text-primary hover:underline">
               <MessageCircle className="h-4 w-4" /> {t('help.issues')}
             </a>
           </CardContent>

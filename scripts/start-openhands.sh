@@ -30,19 +30,19 @@ if [ -z "$API_KEY" ]; then
 fi
 
 # 构建项目（如果需要）
-if [ ! -f "target/release/llm-link" ]; then
-    echo "🔨 构建 llm-link..."
+if [ ! -f "target/release/xgateway" ]; then
+    echo "🔨 构建 xgateway..."
     cargo build --release
 fi
 
-echo "🚀 启动 llm-link for OpenHands..."
+echo "🚀 启动 xgateway for OpenHands..."
 echo "   Provider: $PROVIDER"
 echo "   Model: $MODEL"
 echo "   Port: $DEFAULT_PORT"
 echo ""
 
-# 启动 llm-link
-./target/release/llm-link \
+# 启动 xgateway
+./target/release/xgateway \
     --app openhands \
     --provider "$PROVIDER" \
     --model "$MODEL" \
@@ -65,6 +65,6 @@ echo "   3. 设置上述参数"
 echo ""
 echo "💡 提示:"
 echo "   - OpenHands 使用 Docker 网络，需要 host.docker.internal"
-echo "   - 支持所有 llm-link 的 LLM 提供商"
+echo "   - 支持所有 xgateway 的 LLM 提供商"
 echo "   - 查看 https://docs.openhands.dev/ 获取更多信息"
 echo "   - 对于本地模型，可以使用 'dummy' 作为 API key"

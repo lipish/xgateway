@@ -3,7 +3,7 @@ set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
   cat <<'USAGE'
-用法：scripts/start-zed-seed-code.sh <VOLCENGINE_API_KEY> [附加 llm-link 参数]
+用法：scripts/start-zed-seed-code.sh <VOLCENGINE_API_KEY> [附加 xgateway 参数]
 示例：scripts/start-zed-seed-code.sh "ark-xxx" --port 18000
 
 该脚本会以 Ollama 协议启动 Zed 服务，后端使用 Volcengine Doubao Seed Code（逻辑名 doubao-seed-code-preview-latest）。
@@ -15,10 +15,10 @@ fi
 VOLCENGINE_API_KEY="$1"
 shift
 
-LLM_LINK_BIN=${LLM_LINK_BIN:-"./target/release/llm-link"}
+XGATEWAY_BIN=${XGATEWAY_BIN:-"./target/release/xgateway"}
 
-if [[ ! -x "${LLM_LINK_BIN}" ]]; then
-  echo "🔧 未找到 ${LLM_LINK_BIN}，正在执行 cargo build --release..."
+if [[ ! -x "${XGATEWAY_BIN}" ]]; then
+  echo "🔧 未找到 ${XGATEWAY_BIN}，正在执行 cargo build --release..."
   cargo build --release
 fi
 MODEL=${MODEL:-"doubao-seed-code-preview-latest"}
@@ -35,7 +35,7 @@ for ((i=0; i<${#args[@]}; i++)); do
 done
 
 cmd=(
-  "${LLM_LINK_BIN}"
+  "${XGATEWAY_BIN}"
   --app zed
   --protocols ollama
   --provider volcengine

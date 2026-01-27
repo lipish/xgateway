@@ -10,12 +10,12 @@ echo ""
 echo "📋 测试 1: 智谱 GLM-4.6"
 echo "================================"
 
-./target/release/llm-link \
+./target/release/xgateway \
   --protocols ollama \
   --provider zhipu \
   --model glm-4.6 \
   --llm-api-key "test" \
-  > /tmp/llm-link-zed-test.log 2>&1 &
+  > /tmp/xgateway-zed-test.log 2>&1 &
 
 PID=$!
 echo "📝 PID: $PID"
@@ -62,12 +62,12 @@ if [ -n "$VOLCENGINE_API_KEY" ]; then
     echo "📋 测试 2: Volcengine Seed Code"
     echo "================================"
     
-    ./target/release/llm-link \
+    ./target/release/xgateway \
       --protocols ollama \
       --provider volcengine \
       --model doubao-seed-code-preview-latest \
       --llm-api-key "$VOLCENGINE_API_KEY" \
-      > /tmp/llm-link-volcengine-test.log 2>&1 &
+      > /tmp/xgateway-volcengine-test.log 2>&1 &
     
     PID=$!
     echo "📝 PID: $PID"

@@ -1,2 +1,0 @@
-[console_scripts]
-llm-link = pyllmlink.cli:main

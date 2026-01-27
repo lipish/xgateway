@@ -66,11 +66,11 @@ if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
   exit 1
 fi
 
-LLM_LINK_BIN="./target/release/llm-link"
+XGATEWAY_BIN="./target/release/xgateway"
 
 # 构建项目（如果需要）
-if [[ ! -x "$LLM_LINK_BIN" ]]; then
-  echo -e "${BLUE}🔧 构建 llm-link...${NC}"
+if [[ ! -x "$XGATEWAY_BIN" ]]; then
+  echo -e "${BLUE}🔧 构建 xgateway...${NC}"
   cargo build --release
 fi
 
@@ -93,7 +93,7 @@ echo -e "${YELLOW}🛑 停止服务: Ctrl+C${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
 # 启动服务
-exec "$LLM_LINK_BIN" \
+exec "$XGATEWAY_BIN" \
   --app zed \
   --protocols ollama \
   --provider zhipu \

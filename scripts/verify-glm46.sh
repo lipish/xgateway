@@ -27,20 +27,20 @@ fi
 
 echo ""
 
-# 检查 llm-link 帮助信息
-echo "📋 检查 llm-link 二进制文件..."
-if [[ -x "./target/release/llm-link" ]]; then
-    echo "✅ llm-link 二进制文件存在"
+# 检查 xgateway 帮助信息
+echo "📋 检查 xgateway 二进制文件..."
+if [[ -x "./target/release/xgateway" ]]; then
+    echo "✅ xgateway 二进制文件存在"
     
     # 测试启动（不需要真实 API 密钥）
     echo "🧪 测试启动 GLM-4.6..."
-    timeout 5s ./target/release/llm-link \
+    timeout 5s ./target/release/xgateway \
         --provider zhipu \
         --model glm-4.6 \
         --llm-api-key "test" \
         --help > /dev/null 2>&1 && echo "✅ GLM-4.6 模型参数被接受" || echo "⚠️  无法验证模型参数（可能需要有效 API 密钥）"
 else
-    echo "❌ llm-link 二进制文件不存在，请先运行 cargo build --release"
+    echo "❌ xgateway 二进制文件不存在，请先运行 cargo build --release"
 fi
 
 echo ""
