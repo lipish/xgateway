@@ -75,6 +75,16 @@ export function ApiKeyDetailCard({
               <div className="mt-1 text-sm font-medium">{getScopeLabel(apiKey.scope)}</div>
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="rounded-md bg-muted p-4">
+              <div className="text-xs text-muted-foreground">{t("apiKeys.qps")}</div>
+              <div className="mt-1 text-sm font-medium">{apiKey.qps_limit}</div>
+            </div>
+            <div className="rounded-md bg-muted p-4">
+              <div className="text-xs text-muted-foreground">{t("apiKeys.concurrency")}</div>
+              <div className="mt-1 text-sm font-medium">{apiKey.concurrency_limit}</div>
+            </div>
+          </div>
         </div>
       </div>
 

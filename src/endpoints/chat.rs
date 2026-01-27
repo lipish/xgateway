@@ -301,10 +301,37 @@ pub async fn handle_chat_completions(
         }
     }
 
-    // 4. API key soft limits (QPS + concurrency)
-    // Simplified mode: only keep Service-level limits. Do NOT apply API key-specific rate limits.
-    let _api_key_concurrency_permit = if api_key_info.is_some() {
-        None
+    // 4. API key limits (QPS + concurrency)
+    let _api_key_concurrency_permit = if let Some(key_info) = &api_key_info {
+        match pool_manager.check_api_key_limit(key_info).await {
+            RateLimitResult::Denied { retry_after } => {
+                return (
+                    StatusCode::TOO_MANY_REQUESTS,
+                    [("Retry-After", retry_after.as_secs().to_string())],
+                    axum::Json(serde_json::json!({
+                        "error": {
+                            "message": format!("API key rate limit exceeded. Retry after {} seconds.", retry_after.as_secs()),
+                            "type": "api_key_rate_limit_exceeded"
+                        }
+                    })),
+                )
+                    .into_response();
+            }
+            RateLimitResult::ConcurrencyExceeded => {
+                return (
+                    StatusCode::TOO_MANY_REQUESTS,
+                    axum::Json(serde_json::json!({
+                        "error": {
+                            "message": "API key concurrency limit exceeded. Please retry later.",
+                            "type": "api_key_concurrency_exceeded"
+                        }
+                    })),
+                )
+                    .into_response();
+            }
+            RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
+            RateLimitResult::QueueFull | RateLimitResult::WaitTimeout => unreachable!(),
+        }
     } else {
         // Backward-compat / internal mode: still apply global rate limit if no API key
         match pool_manager.check_rate_limit(None).await {

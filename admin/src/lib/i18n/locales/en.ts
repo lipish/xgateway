@@ -1,6 +1,6 @@
 export const en = {
   nav: {
-    main: 'Main Menu',
+    main: 'Services',
     dashboard: 'Dashboard',
     models: 'Models Service',
     modelTypes: 'Provider Catalog',
@@ -123,6 +123,7 @@ export const en = {
     concurrencyLimit: 'Concurrency Limit',
     maxQueueSize: 'Max Queue Size',
     maxQueueWaitMs: 'Max Queue Wait (ms)',
+    qpsConcurrencyHelp: 'QPS is the max requests per second; concurrency is the max in-flight requests.',
     bindings: 'Bound Model Services',
     bindingsPlaceholder: 'Select model services to bind',
     select: 'Select an external service from the list',

@@ -31,7 +31,6 @@ function getNavigation() {
         {
             title: t('nav.main'),
             items: [
-                { name: t('nav.dashboard'), href: "/", icon: LayoutDashboard },
                 { name: t('nav.modelTypes'), href: "/providers", icon: Library },
                 { name: t('nav.models'), href: "/models", icon: Server },
                 { name: t('nav.chat'), href: "/chat", icon: MessageSquare },
@@ -79,6 +78,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </SidebarMenu>
             </SidebarHeader>
             <SidebarContent>
+                <SidebarMenu className="px-2">
+                    {(() => {
+                        const isActive = location.pathname === "/"
+                        return (
+                            <SidebarMenuItem>
+                                <SidebarMenuButton asChild tooltip={t('nav.dashboard')} isActive={isActive}>
+                                    <Link to="/" className={cn("flex items-center gap-3")}>
+                                        <LayoutDashboard className="size-4" />
+                                        <span>{t('nav.dashboard')}</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        )
+                    })()}
+                </SidebarMenu>
                 {navigation.map((section) => (
                     <SidebarGroup key={section.title}>
                         <SidebarGroupLabel>{section.title}</SidebarGroupLabel>

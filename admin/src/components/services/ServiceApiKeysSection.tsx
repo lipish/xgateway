@@ -65,13 +65,15 @@ export function ServiceApiKeysSection({
               <TableHead className="w-[120px]">{t("apiKeys.status")}</TableHead>
               <TableHead className="w-[180px]">{t("apiKeys.createdAt")}</TableHead>
               <TableHead className="w-[220px]">{t("apiKeys.key")}</TableHead>
+              <TableHead className="w-[160px]">{t("apiKeys.qps")}</TableHead>
+              <TableHead className="w-[160px]">{t("apiKeys.concurrency")}</TableHead>
               <TableHead className="w-[200px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                   <div className="inline-flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span>{t("common.loading")}</span>
@@ -80,7 +82,7 @@ export function ServiceApiKeysSection({
               </TableRow>
             ) : apiKeys.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                   {t("apiKeys.noKeys")}
                 </TableCell>
               </TableRow>
@@ -95,6 +97,8 @@ export function ServiceApiKeysSection({
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">{new Date(k.created_at).toLocaleDateString("en-CA")}</TableCell>
                   <TableCell className="text-muted-foreground text-sm font-mono">{maskKey(k.key_hash)}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{k.qps_limit ?? 0}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{k.concurrency_limit ?? 0}</TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end">
                       <DropdownMenu modal={false}>

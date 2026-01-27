@@ -56,6 +56,8 @@ export function ServicesPage() {
 
   const [apiKeyCreateForm, setApiKeyCreateForm] = useState({
     name: "",
+    qps_limit: 100,
+    concurrency_limit: 50,
   })
 
   const [createForm, setCreateForm] = useState({
@@ -237,7 +239,7 @@ export function ServicesPage() {
   }, [selectedServiceId, fetchApiKeys])
 
   const openCreateApiKey = () => {
-    setApiKeyCreateForm({ name: "" })
+    setApiKeyCreateForm({ name: "", qps_limit: 100, concurrency_limit: 50 })
     setApiKeyCreateError(null)
     setCreatedApiKey(null)
     setRotatedApiKey(null)
@@ -257,6 +259,8 @@ export function ServicesPage() {
         service_ids: [selectedServiceId],
         provider_id: null,
         provider_ids: null,
+        qps_limit: Number(apiKeyCreateForm.qps_limit) || 0,
+        concurrency_limit: Math.floor(Number(apiKeyCreateForm.concurrency_limit) || 0),
       }
 
   const data = await apiPost<ApiResponse<{ full_key?: string }>>('/api/api-keys', payload)

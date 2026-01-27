@@ -19,6 +19,8 @@ interface ApiKeyCreateDialogProps {
     name: string
     scope: string
     service_ids: string[]
+    qps_limit: number
+    concurrency_limit: number
   }
   onFormChange: (next: ApiKeyCreateDialogProps["form"]) => void
   services: Service[]
@@ -139,6 +141,33 @@ export function ApiKeyCreateDialog({
                   </Popover>
                 </div>
               )}
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">{t("apiKeys.qps")}</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={form.qps_limit}
+                    onChange={(e) => onFormChange({ ...form, qps_limit: Number.isFinite(e.currentTarget.valueAsNumber) ? e.currentTarget.valueAsNumber : 0 })}
+                    placeholder={t("apiKeys.enterRateLimit")}
+                    className="h-10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">{t("apiKeys.concurrency")}</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={form.concurrency_limit}
+                    onChange={(e) => onFormChange({ ...form, concurrency_limit: Number.isFinite(e.currentTarget.valueAsNumber) ? e.currentTarget.valueAsNumber : 0 })}
+                    placeholder={t("apiKeys.enterConcurrency")}
+                    className="h-10"
+                  />
+                </div>
+              </div>
 
               {error && <p className="text-sm text-destructive mt-1 font-medium">{error}</p>}
             </div>

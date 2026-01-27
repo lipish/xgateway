@@ -49,6 +49,7 @@ export function ServiceDetailCard({ service }: ServiceDetailCardProps) {
             <div className="mt-1 text-sm font-medium">{service.max_queue_wait_ms}</div>
           </div>
         </div>
+        <div className="mt-3 text-xs text-muted-foreground">{t("services.qpsConcurrencyHelp")}</div>
       </div>
     </div>
   )

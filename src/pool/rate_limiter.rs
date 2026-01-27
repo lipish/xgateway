@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::{RwLock, Semaphore, OwnedSemaphorePermit};
+use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 
 /// Rate limiter configuration
@@ -254,7 +255,7 @@ impl RateLimiter {
             None
         };
 
-        // 3. Concurrency (A semantics) with wait timeout
+        // 3. Concurrency (randomized polling within wait timeout)
         let permit = if let Some(max) = config.max_concurrency {
             let max_usize = max as usize;
             let mut semaphores = self.service_semaphores.write().await;
@@ -266,11 +267,20 @@ impl RateLimiter {
                     new_sem
                 }
             };
-
-            match tokio::time::timeout(max_queue_wait, sem.acquire_owned()).await {
-                Ok(Ok(permit)) => Some(permit),
-                Ok(Err(_)) => return RateLimitResult::ConcurrencyExceeded,
-                Err(_) => return RateLimitResult::WaitTimeout,
+            let deadline = Instant::now() + max_queue_wait;
+            loop {
+                match sem.clone().try_acquire_owned() {
+                    Ok(permit) => break Some(permit),
+                    Err(_) => {
+                        if Instant::now() >= deadline {
+                            return RateLimitResult::WaitTimeout;
+                        }
+                        let jitter_ms: u64 = thread_rng().gen_range(5..=25);
+                        let remaining = deadline.saturating_duration_since(Instant::now());
+                        let sleep_for = Duration::from_millis(jitter_ms).min(remaining);
+                        tokio::time::sleep(sleep_for).await;
+                    }
+                }
             }
         } else {
             None
@@ -334,5 +344,3 @@ impl RateLimiter {
         (global.remaining(), global.config.clone())
     }
 }
-
-

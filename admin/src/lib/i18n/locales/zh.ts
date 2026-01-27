@@ -1,6 +1,6 @@
 export const zh = {
   nav: {
-    main: '主菜单',
+    main: '服务',
     dashboard: '仪表盘',
     models: '模型服务',
     modelTypes: '服务商目录',
@@ -123,6 +123,7 @@ export const zh = {
     concurrencyLimit: '并发上限',
     maxQueueSize: '最大队列长度',
     maxQueueWaitMs: '最大排队等待（毫秒）',
+    qpsConcurrencyHelp: 'QPS 表示每秒请求上限，并发表示同时处理中请求上限。',
     bindings: '绑定的模型服务',
     bindingsPlaceholder: '选择绑定的模型服务',
     select: '请先在左侧选择一个对外服务',

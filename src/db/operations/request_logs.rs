@@ -52,6 +52,21 @@ pub struct TokenUsageByService {
     pub tokens: i64,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenUsageByApiKey {
+    pub api_key_id: i64,
+    pub requests: i64,
+    pub tokens: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenUsageByUser {
+    pub user_id: i64,
+    pub username: String,
+    pub requests: i64,
+    pub tokens: i64,
+}
+
 impl DatabasePool {
     // Request Log operations
     
@@ -421,6 +436,103 @@ impl DatabasePool {
             }
         }
     }
-}
 
- 
+    pub async fn get_token_usage_by_api_key(
+        &self,
+        last_hours: i64,
+        top: i64,
+        org_id_filter: Option<i64>,
+    ) -> Result<Vec<TokenUsageByApiKey>> {
+        match self {
+            Self::Postgres(pool) => {
+                let mut qb = sqlx::QueryBuilder::new(
+                    r#"
+                    SELECT
+                        api_key_id::BIGINT as api_key_id,
+                        COUNT(*)::BIGINT as requests,
+                        COALESCE(SUM(tokens_used), 0)::BIGINT as tokens
+                    FROM request_logs
+                    WHERE created_at >= NOW() - ("#,
+                );
+                qb.push_bind(last_hours);
+                qb.push("::INT * INTERVAL '1 hour')");
+                qb.push(" AND status = 'success'");
+                qb.push(" AND request_type <> 'health_check'");
+                qb.push(" AND api_key_id IS NOT NULL");
+
+                if let Some(org_id) = org_id_filter {
+                    qb.push(" AND org_id = ").push_bind(org_id);
+                }
+
+                qb.push(" GROUP BY api_key_id");
+                qb.push(" ORDER BY tokens DESC, requests DESC, api_key_id ASC");
+                qb.push(" LIMIT ").push_bind(top);
+
+                let rows = qb.build().fetch_all(pool).await?;
+
+                let mut result = Vec::new();
+                for row in rows {
+                    result.push(TokenUsageByApiKey {
+                        api_key_id: row.try_get("api_key_id")?,
+                        requests: row.try_get("requests")?,
+                        tokens: row.try_get("tokens")?,
+                    });
+                }
+
+                Ok(result)
+            }
+        }
+    }
+
+    pub async fn get_token_usage_by_user(
+        &self,
+        last_hours: i64,
+        top: i64,
+        org_id_filter: Option<i64>,
+    ) -> Result<Vec<TokenUsageByUser>> {
+        match self {
+            Self::Postgres(pool) => {
+                let mut qb = sqlx::QueryBuilder::new(
+                    r#"
+                    SELECT
+                        ak.owner_id::BIGINT as user_id,
+                        u.username as username,
+                        COUNT(*)::BIGINT as requests,
+                        COALESCE(SUM(rl.tokens_used), 0)::BIGINT as tokens
+                    FROM request_logs rl
+                    JOIN api_keys ak ON ak.id = rl.api_key_id
+                    JOIN users u ON u.id = ak.owner_id
+                    WHERE rl.created_at >= NOW() - ("#,
+                );
+                qb.push_bind(last_hours);
+                qb.push("::INT * INTERVAL '1 hour')");
+                qb.push(" AND rl.status = 'success'");
+                qb.push(" AND rl.request_type <> 'health_check'");
+                qb.push(" AND rl.api_key_id IS NOT NULL");
+                qb.push(" AND ak.owner_id IS NOT NULL");
+
+                if let Some(org_id) = org_id_filter {
+                    qb.push(" AND rl.org_id = ").push_bind(org_id);
+                }
+
+                qb.push(" GROUP BY ak.owner_id, u.username");
+                qb.push(" ORDER BY tokens DESC, requests DESC, user_id ASC");
+                qb.push(" LIMIT ").push_bind(top);
+
+                let rows = qb.build().fetch_all(pool).await?;
+
+                let mut result = Vec::new();
+                for row in rows {
+                    result.push(TokenUsageByUser {
+                        user_id: row.try_get("user_id")?,
+                        username: row.try_get("username")?,
+                        requests: row.try_get("requests")?,
+                        tokens: row.try_get("tokens")?,
+                    });
+                }
+
+                Ok(result)
+            }
+        }
+    }
+}

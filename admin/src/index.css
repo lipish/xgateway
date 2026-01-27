@@ -36,7 +36,7 @@
 
     --border: 240 6% 90%;
     --input: 240 6% 90%;
-    --ring: 268 78% 64%;
+    --ring: 0 0% 0% / 0;
 
     --radius: 0.5rem;
 
@@ -97,7 +97,7 @@
 
     --border: 240 5% 18%;
     --input: 240 5% 18%;
-    --ring: 268 78% 64%;
+    --ring: 0 0% 0% / 0;
 
     --sidebar-background: 240 10% 6%;
     --sidebar-foreground: 240 5% 55%;

@@ -84,6 +84,8 @@ pub fn create_admin_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -
         .route("/api/logs/top-models", get(log_handlers::get_top_models_api))
         .route("/api/logs/tokens/by-org", get(log_handlers::get_token_usage_by_org_api))
         .route("/api/logs/tokens/by-service", get(log_handlers::get_token_usage_by_service_api))
+        .route("/api/logs/tokens/by-api-key", get(log_handlers::get_token_usage_by_api_key_api))
+        .route("/api/logs/tokens/by-user", get(log_handlers::get_token_usage_by_user_api))
         // API Keys management
         .route("/api/api-keys", get(api_key_handlers::list_api_keys_api).post(api_key_handlers::create_api_key_api))
         .route("/api/api-keys/:id", put(api_key_handlers::update_api_key_api).delete(api_key_handlers::delete_api_key_api))

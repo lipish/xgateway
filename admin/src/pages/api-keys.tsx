@@ -39,11 +39,15 @@ export function ApiKeysPage() {
     name: "",
     scope: "global",
     service_ids: [] as string[],
+    qps_limit: 100,
+    concurrency_limit: 50,
   })
   const [editKeyData, setEditKeyData] = useState({
     name: "",
     scope: "global",
     service_ids: [] as string[],
+    qps_limit: 100,
+    concurrency_limit: 50,
   })
   const [createdKey, setCreatedKey] = useState<string | null>(null)
   const [rotatedKey, setRotatedKey] = useState<string | null>(null)
@@ -187,6 +191,8 @@ export function ApiKeysPage() {
       name: key.name,
       scope: key.scope || 'global',
       service_ids: serviceIds,
+      qps_limit: Number.isFinite(key.qps_limit) ? key.qps_limit : 100,
+      concurrency_limit: Number.isFinite(key.concurrency_limit) ? key.concurrency_limit : 50,
     })
     setEditError(null)
     setShowEditDialog(true)
@@ -213,6 +219,8 @@ export function ApiKeysPage() {
         provider_id: null,
         provider_ids: null,
         service_ids: editKeyData.scope === 'global' ? null : editKeyData.service_ids,
+        qps_limit: editKeyData.qps_limit,
+        concurrency_limit: Math.floor(editKeyData.concurrency_limit),
       }
 
       const data = await apiPut<ApiResponse<unknown>>(`/api/api-keys/${editingApiKeyId}`, payload)
@@ -252,6 +260,8 @@ export function ApiKeysPage() {
         provider_id: null,
         provider_ids: null,
         service_ids: nextServiceIds,
+        qps_limit: key.qps_limit,
+        concurrency_limit: key.concurrency_limit,
       }
 
       const data = await apiPut<ApiResponse<unknown>>(`/api/api-keys/${key.id}`, payload)
@@ -301,6 +311,8 @@ export function ApiKeysPage() {
         provider_id: null,
         provider_ids: null,
         service_ids: newKeyData.scope === 'global' ? null : newKeyData.service_ids,
+        qps_limit: newKeyData.qps_limit,
+        concurrency_limit: Math.floor(newKeyData.concurrency_limit),
       }
       const data = await apiPost<ApiResponse<ApiKeyFullKeyResult>>('/api/api-keys', payload)
       if (data.success) {
@@ -370,6 +382,8 @@ export function ApiKeysPage() {
         provider_id: null,
         provider_ids: null,
         service_ids: legacyServiceIds,
+        qps_limit: key.qps_limit,
+        concurrency_limit: key.concurrency_limit,
       }
 
       const data = await apiPut<ApiResponse<unknown>>(`/api/api-keys/${key.id}`, payload)

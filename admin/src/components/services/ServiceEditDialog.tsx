@@ -219,6 +219,7 @@ export function ServiceEditDialog({
                 />
               </div>
             </div>
+            <div className="-mt-1 text-xs text-muted-foreground">{t("services.qpsConcurrencyHelp")}</div>
 
             <div className="grid gap-4 grid-cols-2">
               <div className="space-y-2">
