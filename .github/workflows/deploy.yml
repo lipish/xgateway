@@ -1,0 +1,39 @@
+name: deploy
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+
+    env:
+      DEPLOY_HOST: 52.83.216.97
+      DEPLOY_PORT: 22
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER || 'ubuntu' }}
+      DEPLOY_BASE: /home/ubuntu/xgateway
+      DEPLOY_RESTART_CMD: ${{ secrets.DEPLOY_RESTART_CMD }}
+
+    steps:
+      - name: Deploy and restart
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ env.DEPLOY_HOST }}
+          port: ${{ env.DEPLOY_PORT }}
+          username: ${{ env.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: DEPLOY_BASE,GITHUB_SHA,DEPLOY_RESTART_CMD
+          script: |
+            set -euo pipefail
+            cd /home/ubuntu/xgateway
+            bash scripts/deploy/deploy.sh
