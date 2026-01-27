@@ -40,19 +40,6 @@ export function LogsPage() {
   const fetchInFlightRef = useRef(false)
   const mountedRef = useRef(false)
 
-  useEffect(() => {
-    mountedRef.current = true
-    fetchLogs({ initial: true })
-
-    return () => {
-      mountedRef.current = false
-      if (refreshTimerRef.current) {
-        window.clearInterval(refreshTimerRef.current)
-        refreshTimerRef.current = null
-      }
-    }
-  }, [fetchLogs])
-
   const fetchLogs = useCallback(async ({ initial }: { initial: boolean }) => {
     if (fetchInFlightRef.current) return
     fetchInFlightRef.current = true
@@ -95,8 +82,16 @@ export function LogsPage() {
   }, [hideHealthChecks, requestTypeFilter, statusFilter])
 
   useEffect(() => {
-    if (!mountedRef.current) return
+    mountedRef.current = true
     fetchLogs({ initial: true })
+
+    return () => {
+      mountedRef.current = false
+      if (refreshTimerRef.current) {
+        window.clearInterval(refreshTimerRef.current)
+        refreshTimerRef.current = null
+      }
+    }
   }, [fetchLogs])
 
   useEffect(() => {
