@@ -1,5 +1,5 @@
 import React, { Suspense } from "react"
-import { HashRouter, Routes, Route, Navigate } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { AuthProvider, useAuth } from "@/lib/auth"
 import { PageLoading } from "@/components/ui/page-loading"
@@ -55,9 +55,9 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <HashRouter>
+      <BrowserRouter>
         <AppRoutes />
-      </HashRouter>
+      </BrowserRouter>
     </AuthProvider>
   )
 }
