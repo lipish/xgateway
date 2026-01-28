@@ -78,12 +78,12 @@ export function LoginPage() {
         const data = await response.json()
 
         if (data.success) {
-          setSuccess(data.message || t("auth.registrationSuccess"))
+          setSuccess(t("auth.registrationSuccess"))
           setTimeout(() => {
             setIsLogin(true)
           }, 2000)
         } else {
-          setError(data.message || t("auth.registrationFailed"))
+          setError(t("auth.registrationFailed"))
         }
       }
     } catch {
@@ -228,11 +228,13 @@ export function LoginPage() {
                             onChange={(e) => setPassword(e.target.value)}
                             className="h-12 bg-[#f9fafb] border-transparent focus:bg-white focus:border-primary/20 focus:ring-4 focus:ring-primary/5 transition-all rounded-xl px-4 pr-12"
                             required
+                            autoComplete={isLogin ? "current-password" : "new-password"}
                           />
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
                             className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors p-1"
+                            tabIndex={-1}
                           >
                             {showPassword ? (
                               <EyeOff className="w-5 h-5" />
@@ -275,6 +277,7 @@ export function LoginPage() {
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             className="h-12 bg-[#f9fafb] border-transparent transition-all rounded-xl px-4"
                             required
+                            autoComplete="new-password"
                           />
                         </motion.div>
                       )}

@@ -100,11 +100,20 @@ pub async fn register_api(
             };
 
             match db_pool.create_user(new_user).await {
-                Ok(_) => Json(ApiResponse {
-                    success: true,
-                    data: Some(()),
-                    message: "Registration successful".to_string(),
-                }),
+                Ok(user_id) => {
+                    if let Err(e) = db_pool.add_user_to_org(1, user_id, Some("member")).await {
+                        return Json(ApiResponse {
+                            success: false,
+                            data: None,
+                            message: format!("Registration failed: {}", e),
+                        });
+                    }
+                    Json(ApiResponse {
+                        success: true,
+                        data: Some(()),
+                        message: "Registration successful".to_string(),
+                    })
+                }
                 Err(e) => Json(ApiResponse {
                     success: false,
                     data: None,

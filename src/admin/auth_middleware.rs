@@ -84,25 +84,28 @@ pub async fn admin_auth_middleware(
         Err(_) => 1,
     };
 
-    let org_role = if is_admin {
+    let mut org_role = if is_admin {
         None
     } else {
         db_pool.get_org_user_role(org_id, user.id).await.ok().flatten()
     };
 
-    if !is_admin {
-        if org_role.is_none() {
-            return (
-                StatusCode::FORBIDDEN,
-                axum::Json(serde_json::json!({
-                    "error": {
-                        "message": "User is not a member of any organization",
-                        "type": "forbidden"
-                    }
-                })),
-            )
-                .into_response();
-        }
+    if !is_admin && org_role.is_none() {
+        let _ = db_pool.add_user_to_org(org_id, user.id, Some("member")).await;
+        org_role = db_pool.get_org_user_role(org_id, user.id).await.ok().flatten();
+    }
+
+    if !is_admin && org_role.is_none() {
+        return (
+            StatusCode::FORBIDDEN,
+            axum::Json(serde_json::json!({
+                "error": {
+                    "message": "User is not a member of any organization",
+                    "type": "forbidden"
+                }
+            })),
+        )
+            .into_response();
     }
 
     req.extensions_mut().insert(AdminUserContext {
