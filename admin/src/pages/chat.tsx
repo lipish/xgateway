@@ -84,7 +84,7 @@ export function ChatPage() {
 
   const loadConversation = async (conversationId: number, panelId: string) => {
     const result = await apiGet<{ success: boolean; data?: { id: number; provider_id: number | null; messages: Array<{ role: string; content: string }> } }>(`/api/conversations/${conversationId}`)
-    if (result.success) {
+    if (result.success && result.data) {
       const conv = result.data
       updatePanel(panelId, {
         conversationId: conv.id,
@@ -105,7 +105,7 @@ export function ChatPage() {
 
   const createConversation = async (providerId: number, title?: string): Promise<number | null> => {
     const result = await apiPost<{ success: boolean; data?: { id: number } }>("/api/conversations", { provider_id: providerId, title })
-    if (result.success) {
+    if (result.success && result.data) {
       fetchConversations()
       return result.data.id
     }

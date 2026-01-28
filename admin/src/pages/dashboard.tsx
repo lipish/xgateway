@@ -98,40 +98,43 @@ export function DashboardPage() {
         { success: boolean; data?: Array<{ created_at: string; provider_name: string; model: string; error_message?: string }>; message?: string },
       ]
 
-      if (statsResult.success) {
+      if (statsResult.success && statsResult.data) {
         setStats(statsResult.data)
       } else {
         setError(statsResult.message || t('common.error'))
       }
 
-      if (providersResult.success) {
-        const providers = providersResult.data || []
+      if (providersResult.success && providersResult.data) {
+        const providers = providersResult.data
         setRecentProviders(providers.slice(0, 4))
         setAllProviders(providers)
       } else {
         setError(providersResult.message || t('common.error'))
       }
 
-      if (todayStatsResult.success) {
+      if (todayStatsResult.success && todayStatsResult.data) {
         setTodayStats(todayStatsResult.data)
       } else {
         setError(todayStatsResult.message || t('common.error'))
       }
 
-      if (performanceStatsResult.success) {
+      if (performanceStatsResult.success && performanceStatsResult.data) {
         setPerformanceStats(performanceStatsResult.data)
       } else {
         setError(performanceStatsResult.message || t('common.error'))
       }
 
       if (logsResult.success) {
-        const errorLogs = (logsResult.data || []).map((log) => ({
-          timestamp: log.created_at,
-          provider: log.provider_name,
-          model: log.model,
-          error_type: log.error_message || 'error',
-          error_message: log.error_message
-        }))
+        const errorLogs = (logsResult.data || []).map((log) => {
+          const message = log.error_message ?? ""
+          return {
+            timestamp: log.created_at,
+            provider: log.provider_name,
+            model: log.model,
+            error_type: message || 'error',
+            error_message: message
+          }
+        })
         setRecentErrors(errorLogs)
       } else {
         setError(logsResult.message || t('common.error'))
@@ -152,16 +155,20 @@ export function DashboardPage() {
       const nextEnabled = current ? !current.enabled : true
       const result = await apiPut<{ success: boolean; data?: Provider; message?: string }>(`/api/instances/${id}`, { enabled: nextEnabled, expected_version: current?.version })
       if (result.success) {
-        setRecentProviders(recentProviders.map(p => p.id === id ? result.data : p))
-        setAllProviders(allProviders.map(p => p.id === id ? result.data : p))
+        if (result.data) {
+          const updated = result.data
+          setRecentProviders(recentProviders.map(p => p.id === id ? updated : p))
+          setAllProviders(allProviders.map(p => p.id === id ? updated : p))
+        }
         const statsResult = await apiGet<{ success: boolean; data?: ProviderStats; message?: string }>('/api/instances/stats')
-        if (statsResult.success) {
+        if (statsResult.success && statsResult.data) {
           setStats(statsResult.data)
         }
       } else {
         if (result.data) {
-          setRecentProviders(recentProviders.map(p => p.id === id ? result.data : p))
-          setAllProviders(allProviders.map(p => p.id === id ? result.data : p))
+          const updated = result.data
+          setRecentProviders(recentProviders.map(p => p.id === id ? updated : p))
+          setAllProviders(allProviders.map(p => p.id === id ? updated : p))
         }
       }
     } catch {

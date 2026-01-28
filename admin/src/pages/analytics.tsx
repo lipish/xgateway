@@ -68,7 +68,13 @@ export function AnalyticsPage() {
         return
       }
 
-      const perfData = performanceResult.data
+      const perfData = performanceResult.data ?? {
+        requests_today: 0,
+        success_rate: 0,
+        avg_response_time: 0,
+        tokens_used: 0,
+        failed_requests: 0,
+      }
       const topModels = topModelsResult?.success ? topModelsResult.data : []
       const recentErrors = errorsResult?.success ? errorsResult.data : []
       const tokenByOrg = byOrgResult?.success ? byOrgResult.data : []
@@ -82,21 +88,24 @@ export function AnalyticsPage() {
         requests_today: perfData.requests_today || 0,
         failed_requests: perfData.failed_requests || 0,
         top_models: topModels || [],
-        recent_errors: recentErrors.map((error) => ({
+        recent_errors: (recentErrors || []).map((error) => {
+          const message = error.error_message ?? ""
+          return {
           timestamp: error.created_at,
           provider: error.provider_name,
           model: error.model,
-          error_type: error.error_message?.includes('timeout') ? 'Timeout' :
-            error.error_message?.includes('rate') ? 'Rate Limit' : 'Error',
-          error_message: error.error_message
-        })),
+          error_type: message.includes('timeout') ? 'Timeout' :
+            message.includes('rate') ? 'Rate Limit' : 'Error',
+          error_message: message
+        }
+        }),
         token_by_org: (tokenByOrg || []).map((r) => ({
           org_id: r.org_id,
           tokens: r.tokens,
           requests: r.requests,
         })),
         token_by_service: (tokenByService || []).map((r) => ({
-          service_id: r.service_id,
+          service_id: r.service_id ?? "-",
           tokens: r.tokens,
           requests: r.requests,
         })),

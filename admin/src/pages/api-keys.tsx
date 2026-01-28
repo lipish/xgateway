@@ -409,7 +409,13 @@ export function ApiKeysPage() {
             size="sm"
             onClick={() => {
               setCreatedKey(null)
-              setNewKeyData({ name: "", scope: "global", service_ids: [] })
+              setNewKeyData({
+                name: "",
+                scope: "global",
+                service_ids: [],
+                qps_limit: 100,
+                concurrency_limit: 50,
+              })
               setError(null)
               setDialogKey((prev) => prev + 1)
               setShowCreateDialog(true)
@@ -432,7 +438,13 @@ export function ApiKeysPage() {
                 setCreatedKey(null)
                 setRotatedKey(null)
                 setRotateError(null)
-                setNewKeyData({ name: "", scope: "global", service_ids: [] })
+                setNewKeyData({
+                  name: "",
+                  scope: "global",
+                  service_ids: [],
+                  qps_limit: 100,
+                  concurrency_limit: 50,
+                })
                 setError(null)
               }
             }}
@@ -446,7 +458,13 @@ export function ApiKeysPage() {
             onSave={handleCreate}
             onConfirmAfterCreated={() => {
               setCreatedKey(null)
-              setNewKeyData({ name: "", scope: "global", service_ids: [] })
+              setNewKeyData({
+                name: "",
+                scope: "global",
+                service_ids: [],
+                qps_limit: 100,
+                concurrency_limit: 50,
+              })
               setError(null)
               setShowCreateDialog(false)
             }}

@@ -316,7 +316,7 @@ export function ProvidersPage() {
     setAdding(true);
     setAddError(null);
     try {
-      const payload = {
+      const payload: Record<string, unknown> = {
         name: addForm.name,
         provider_type: addForm.providerType,
         config: JSON.stringify({
@@ -412,7 +412,7 @@ export function ProvidersPage() {
 
       const isMasked = (value: string) => value.includes('*');
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         name: editForm.name,
         config: JSON.stringify({
           api_key: isMasked(editForm.apiKey) ? originalConfig.api_key : editForm.apiKey,

@@ -671,7 +671,7 @@ export function ServicesPage() {
             onOpenChange={(open) => {
               setShowCreateApiKeyDialog(open)
               if (!open) {
-                setApiKeyCreateForm({ name: "" })
+                setApiKeyCreateForm({ name: "", qps_limit: 100, concurrency_limit: 50 })
                 setApiKeyCreateError(null)
                 setCreatedApiKey(null)
               }

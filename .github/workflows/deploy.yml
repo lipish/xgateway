@@ -23,6 +23,8 @@ jobs:
       DEPLOY_USER: ${{ secrets.DEPLOY_USER || 'ubuntu' }}
       DEPLOY_BASE: /home/ubuntu/xgateway
       DEPLOY_RESTART_CMD: ${{ secrets.DEPLOY_RESTART_CMD }}
+      DEPLOY_ENV_FILE_PATH: ${{ secrets.DEPLOY_ENV_FILE_PATH || '/home/ubuntu/xgateway/.env' }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
     steps:
       - name: Deploy and restart
@@ -32,8 +34,14 @@ jobs:
           port: ${{ env.DEPLOY_PORT }}
           username: ${{ env.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: DEPLOY_BASE,GITHUB_SHA,DEPLOY_RESTART_CMD
+          envs: DEPLOY_BASE,GITHUB_SHA,DEPLOY_RESTART_CMD,DEPLOY_ENV_FILE_PATH,DATABASE_URL
           script: |
             set -euo pipefail
+            umask 077
+            if [ -z "${DATABASE_URL:-}" ]; then
+              echo "DATABASE_URL is required (set GitHub secret DATABASE_URL)" >&2
+              exit 1
+            fi
+            printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > "${DEPLOY_ENV_FILE_PATH}"
             cd /home/ubuntu/xgateway
             bash -lc 'cd /home/ubuntu/xgateway && bash scripts/deploy/deploy.sh'
