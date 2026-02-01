@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::{RwLock, Semaphore, OwnedSemaphorePermit};
-use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 
 /// Rate limiter configuration
@@ -102,10 +101,8 @@ pub enum RateLimitResult {
     /// Request denied due to concurrency limit
     ConcurrencyExceeded,
 
-    /// Service queue is full (bounded waiting queue)
     QueueFull,
 
-    /// Waiting for service concurrency permit timed out
     WaitTimeout,
 }
 
@@ -120,14 +117,6 @@ pub struct RateLimiter {
     /// Per-API-key concurrency semaphores
     api_key_semaphores: Arc<RwLock<HashMap<String, (usize, Arc<Semaphore>)>>>,
 
-    /// Per-service rate limit buckets
-    services: Arc<RwLock<HashMap<String, TokenBucket>>>,
-
-    /// Per-service concurrency semaphores
-    service_semaphores: Arc<RwLock<HashMap<String, (usize, Arc<Semaphore>)>>>,
-
-    /// Per-service bounded waiting queue semaphores
-    service_queue_semaphores: Arc<RwLock<HashMap<String, (usize, Arc<Semaphore>)>>>,
     /// Default config for new buckets
     default_config: RateLimitConfig,
     /// Provider-specific configs
@@ -142,9 +131,6 @@ impl RateLimiter {
             providers: Arc::new(RwLock::new(HashMap::new())),
             api_keys: Arc::new(RwLock::new(HashMap::new())),
             api_key_semaphores: Arc::new(RwLock::new(HashMap::new())),
-            services: Arc::new(RwLock::new(HashMap::new())),
-            service_semaphores: Arc::new(RwLock::new(HashMap::new())),
-            service_queue_semaphores: Arc::new(RwLock::new(HashMap::new())),
             default_config: global_config,
             provider_configs: Arc::new(RwLock::new(HashMap::new())),
         }
@@ -211,86 +197,6 @@ impl RateLimiter {
         }
     }
 
-    /// Check Service rate limit (RPS) + bounded queue + concurrency (with wait timeout)
-    pub async fn check_service(
-        &self,
-        service_id: &str,
-        config: RateLimitConfig,
-        max_queue_size: usize,
-        max_queue_wait: Duration,
-    ) -> RateLimitResult {
-        // 1. Check RPS
-        {
-            let mut services = self.services.write().await;
-            let bucket = services
-                .entry(service_id.to_string())
-                .or_insert_with(|| TokenBucket::new(config.clone()));
-
-            if bucket.config.requests_per_second != config.requests_per_second {
-                bucket.config = config.clone();
-            }
-
-            if !bucket.try_acquire() {
-                return RateLimitResult::Denied { retry_after: bucket.time_until_available() };
-            }
-        }
-
-        // 2. Bounded waiting queue
-        let _queue_permit = if max_queue_size > 0 {
-            let mut semaphores = self.service_queue_semaphores.write().await;
-            let sem = match semaphores.get(service_id) {
-                Some((existing_max, existing_sem)) if *existing_max == max_queue_size => existing_sem.clone(),
-                _ => {
-                    let new_sem = Arc::new(Semaphore::new(max_queue_size));
-                    semaphores.insert(service_id.to_string(), (max_queue_size, new_sem.clone()));
-                    new_sem
-                }
-            };
-
-            match sem.try_acquire_owned() {
-                Ok(permit) => Some(permit),
-                Err(_) => return RateLimitResult::QueueFull,
-            }
-        } else {
-            None
-        };
-
-        // 3. Concurrency (randomized polling within wait timeout)
-        let permit = if let Some(max) = config.max_concurrency {
-            let max_usize = max as usize;
-            let mut semaphores = self.service_semaphores.write().await;
-            let sem = match semaphores.get(service_id) {
-                Some((existing_max, existing_sem)) if *existing_max == max_usize => existing_sem.clone(),
-                _ => {
-                    let new_sem = Arc::new(Semaphore::new(max_usize));
-                    semaphores.insert(service_id.to_string(), (max_usize, new_sem.clone()));
-                    new_sem
-                }
-            };
-            let deadline = Instant::now() + max_queue_wait;
-            loop {
-                match sem.clone().try_acquire_owned() {
-                    Ok(permit) => break Some(permit),
-                    Err(_) => {
-                        if Instant::now() >= deadline {
-                            return RateLimitResult::WaitTimeout;
-                        }
-                        let jitter_ms: u64 = thread_rng().gen_range(5..=25);
-                        let remaining = deadline.saturating_duration_since(Instant::now());
-                        let sleep_for = Duration::from_millis(jitter_ms).min(remaining);
-                        tokio::time::sleep(sleep_for).await;
-                    }
-                }
-            }
-        } else {
-            None
-        };
-
-        RateLimitResult::Allowed {
-            remaining: 0,
-            concurrency_permit: permit,
-        }
-    }
 
     /// Check all rate limits (global + provider)
     pub async fn check(&self, provider_id: Option<i64>) -> RateLimitResult {

@@ -2,20 +2,31 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Select } from "@/components/ui/select"
 import { t } from "@/lib/i18n"
-import { Copy } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Check, ChevronsUpDown, Copy, Loader2 } from "lucide-react"
 import { useState } from "react"
+import type { Provider } from "./types"
+import { STRATEGY_OPTIONS } from "./types"
 
 interface ApiKeyCreateDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  serviceName?: string
   form: {
     name: string
+    provider_ids: number[]
+    strategy: string
+    fallback_chain: string
     qps_limit: number
     concurrency_limit: number
   }
   onFormChange: (next: ApiKeyCreateDialogProps["form"]) => void
+  providers: Provider[]
+  bindingBusyId: number | null
+  fallbackBusy: boolean
   onSave: () => void
   saving: boolean
   error: string | null
@@ -25,9 +36,11 @@ interface ApiKeyCreateDialogProps {
 export function ApiKeyCreateDialog({
   open,
   onOpenChange,
-  serviceName,
   form,
   onFormChange,
+  providers,
+  bindingBusyId,
+  fallbackBusy,
   onSave,
   saving,
   error,
@@ -36,6 +49,17 @@ export function ApiKeyCreateDialog({
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
   const copied = copiedKey === createdApiKey && createdApiKey !== null
+  const boundProviderIdSet = new Set(form.provider_ids)
+  const strategyOption = STRATEGY_OPTIONS.find((option) => option.value === form.strategy)
+  const selectedNames = providers.filter((p) => boundProviderIdSet.has(p.id)).map((p) => p.name)
+  const fallbackChainValue = form.fallback_chain.trim()
+  const fallbackIds = fallbackChainValue.split(",").map((value) => value.trim()).filter((value) => value.length > 0)
+  const fallbackLabel = fallbackIds
+    .map((id) => providers.find((provider) => String(provider.id) === id)?.name || id)
+    .filter((label) => label.length > 0)
+    .join(", ")
+  const fallbackIdSet = new Set(fallbackIds)
+  const fallbackOptions = providers
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -43,7 +67,6 @@ export function ApiKeyCreateDialog({
         <div className="p-6 space-y-5">
           <DialogHeader className="space-y-1.5 mb-0">
             <DialogTitle className="text-xl font-semibold tracking-tight">{t("apiKeys.create")}</DialogTitle>
-            <DialogDescription className="text-purple-600 font-medium pb-2">{serviceName}</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-5 py-2">
@@ -56,6 +79,108 @@ export function ApiKeyCreateDialog({
                 placeholder={t("apiKeys.enterName")}
                 className="h-10"
               />
+            </div>
+            <div className="space-y-2">
+              <div className="text-sm font-semibold">{t("services.bindings")}</div>
+              <Popover modal={false}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="h-10 w-full justify-between font-normal" type="button">
+                    <span className="flex-1 truncate text-left">
+                      {selectedNames.length > 0 ? selectedNames.join(", ") : t("services.bindingsPlaceholder")}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[20rem] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder={t("common.search")} />
+                    <CommandList>
+                      <CommandEmpty>{t("providers.empty")}</CommandEmpty>
+                      <CommandGroup>
+                        {providers.map((provider) => {
+                          const checked = boundProviderIdSet.has(provider.id)
+                          const busy = bindingBusyId === provider.id
+                          return (
+                            <CommandItem
+                              key={provider.id}
+                              value={`${provider.name} ${provider.provider_type}`}
+                              onSelect={() => {
+                                if (busy) return
+                                const next = checked
+                                  ? form.provider_ids.filter((id) => id !== provider.id)
+                                  : [...form.provider_ids, provider.id]
+                                onFormChange({ ...form, provider_ids: next })
+                              }}
+                              className={cn(busy && "opacity-70")}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", checked ? "opacity-100" : "opacity-0")} />
+                              <span className="truncate">{provider.name}</span>
+                              <span className="ml-auto text-xs text-muted-foreground">{provider.provider_type}</span>
+                              {busy && <Loader2 className="ml-2 h-4 w-4 animate-spin text-muted-foreground" />}
+                            </CommandItem>
+                          )
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <div className="text-sm font-semibold">{t("services.strategy")}</div>
+                <div className="relative">
+                  <Select
+                    value={form.strategy}
+                    onChange={(value) => onFormChange({ ...form, strategy: value })}
+                    options={STRATEGY_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
+                    menuSide="top"
+                  />
+                </div>
+                {strategyOption && <div className="text-sm text-muted-foreground">{t(strategyOption.descriptionKey)}</div>}
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm font-semibold">{t("services.fallbackChain")}</div>
+                <Popover modal={false}>
+                  <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="h-10 w-full justify-between font-normal" type="button">
+                      <span className="flex-1 truncate text-left">
+                        {fallbackLabel || t("services.fallbackChainPlaceholder")}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                <PopoverContent className="w-[20rem] p-0" align="start" side="top">
+                    <Command>
+                      <CommandInput placeholder={t("common.search")} />
+                      <CommandList>
+                        <CommandEmpty>{t("services.empty")}</CommandEmpty>
+                        <CommandGroup>
+                          {fallbackOptions.map((provider) => (
+                            <CommandItem
+                              key={provider.id}
+                              value={`${provider.name} ${provider.id}`}
+                              onSelect={() => {
+                                if (fallbackBusy) return
+                                const providerId = String(provider.id)
+                                const exists = fallbackIdSet.has(providerId)
+                                const next = exists ? fallbackIds.filter((id) => id !== providerId) : [...fallbackIds, providerId]
+                                onFormChange({ ...form, fallback_chain: next.join(",") })
+                              }}
+                              className={cn(fallbackBusy && "opacity-70")}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", fallbackIdSet.has(String(provider.id)) ? "opacity-100" : "opacity-0")} />
+                              <span className="truncate">{provider.name}</span>
+                              <span className="ml-auto text-xs text-muted-foreground">{provider.id}</span>
+                              {fallbackBusy && <Loader2 className="ml-2 h-4 w-4 animate-spin text-muted-foreground" />}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">

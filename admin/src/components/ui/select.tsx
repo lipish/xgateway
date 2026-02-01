@@ -18,9 +18,20 @@ interface SelectProps {
   triggerClassName?: string
   icon?: React.ReactNode
   id?: string
+  menuSide?: "top" | "bottom"
 }
 
-const Select = ({ value, onChange, options, placeholder = t('common.selectPlaceholder') || "Please select...", className, triggerClassName, icon, id }: SelectProps) => {
+const Select = ({
+  value,
+  onChange,
+  options,
+  placeholder = t('common.selectPlaceholder') || "Please select...",
+  className,
+  triggerClassName,
+  icon,
+  id,
+  menuSide = "bottom",
+}: SelectProps) => {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -56,7 +67,12 @@ const Select = ({ value, onChange, options, placeholder = t('common.selectPlaceh
         <ChevronDown className={cn("ml-auto h-3.5 w-3.5 opacity-50 transition-transform shrink-0", open && "rotate-180")} />
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md">
+        <div
+          className={cn(
+            "absolute z-50 w-full rounded-md border bg-popover shadow-md",
+            menuSide === "top" ? "bottom-full mb-2" : "mt-1"
+          )}
+        >
           <div className="max-h-60 overflow-auto p-1">
             {options.map((option) => (
               <div

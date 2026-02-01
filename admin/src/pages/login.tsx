@@ -134,7 +134,7 @@ export function LoginPage() {
             className="text-5xl font-bold text-foreground mb-4 leading-tight"
           >
             {t("auth.brandingTitle") || "统一管理您的"} <br />
-            <span className="text-primary">{t("auth.brandingSubtitle") || "AI 模型服务"}</span>
+            <span className="text-primary">{t("auth.brandingSubtitle") || "AI 模型实例"}</span>
           </motion.h1>
 
           <motion.p

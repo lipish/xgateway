@@ -6,7 +6,6 @@ pub mod provider_type_handlers;
 pub mod conversation_handlers;
 pub mod user_handlers;
 pub mod log_handlers;
-pub mod service_handlers;
 pub mod chat_handlers;
 pub mod organization_handlers;
 pub mod project_handlers;
@@ -83,7 +82,6 @@ pub fn create_admin_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -
         .route("/api/logs/performance", get(log_handlers::get_performance_stats_api))
         .route("/api/logs/top-models", get(log_handlers::get_top_models_api))
         .route("/api/logs/tokens/by-org", get(log_handlers::get_token_usage_by_org_api))
-        .route("/api/logs/tokens/by-service", get(log_handlers::get_token_usage_by_service_api))
         .route("/api/logs/tokens/by-api-key", get(log_handlers::get_token_usage_by_api_key_api))
         .route("/api/logs/tokens/by-user", get(log_handlers::get_token_usage_by_user_api))
         // API Keys management
@@ -91,17 +89,11 @@ pub fn create_admin_app(db_pool: DatabasePool, pool_manager: Arc<PoolManager>) -
         .route("/api/api-keys/:id", put(api_key_handlers::update_api_key_api).delete(api_key_handlers::delete_api_key_api))
         .route("/api/api-keys/:id/toggle", post(api_key_handlers::toggle_api_key_api))
         .route("/api/api-keys/:id/rotate", post(api_key_handlers::rotate_api_key_api))
-        .route("/api/api-keys/:id/services", get(service_handlers::list_api_key_services_api).put(service_handlers::set_api_key_services_api))
-        // Services management
-        .route("/api/services", get(service_handlers::list_services_api).post(service_handlers::create_service_api))
-        .route("/api/services/:id", get(service_handlers::get_service_api).put(service_handlers::update_service_api).delete(service_handlers::delete_service_api))
-        .route("/api/services/:id/model-services", get(service_handlers::list_service_model_services_api).post(service_handlers::bind_service_model_service_api))
-        .route("/api/services/:id/model-services/:provider_id", delete(service_handlers::unbind_service_model_service_api))
         // Conversations API
         .route("/api/conversations", get(conversation_handlers::list_conversations_api).post(conversation_handlers::create_conversation_api))
         .route("/api/conversations/:id", get(conversation_handlers::get_conversation_api).put(conversation_handlers::update_conversation_api).delete(conversation_handlers::delete_conversation_api))
         .route("/api/conversations/:id/messages", get(conversation_handlers::list_messages_api).post(conversation_handlers::create_message_api))
-        // Admin chat test API (bypass service_id)
+        // Admin chat test API
         .route("/api/chat/completions", post(chat_handlers::handle_admin_chat_completions))
         // User management
         .route("/api/users", get(user_handlers::list_users_api).post(user_handlers::create_user_api))

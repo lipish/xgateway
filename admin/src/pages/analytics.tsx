@@ -36,7 +36,7 @@ interface AnalyticsData {
   }>
 
   token_by_org: Array<{ org_id: number; tokens: number; requests: number }>
-  token_by_service: Array<{ service_id: string; tokens: number; requests: number }>
+  token_by_api_key: Array<{ api_key_id: number | string; tokens: number; requests: number }>
 }
 
 export function AnalyticsPage() {
@@ -50,17 +50,17 @@ export function AnalyticsPage() {
       setError(null)
 
        const [performanceResult, topModelsResult, errorsResult, byOrgResult, byServiceResult] = await Promise.all([
-        apiGet("/api/logs/performance"),
-        apiGet("/api/logs/top-models?limit=10&hours=24"),
-        apiGet("/api/logs?status=error&limit=10"),
-        apiGet("/api/logs/tokens/by-org?hours=24&top=20"),
-        apiGet("/api/logs/tokens/by-service?hours=24&top=20"),
-      ]) as [
+         apiGet("/api/logs/performance"),
+         apiGet("/api/logs/top-models?limit=10&hours=24"),
+         apiGet("/api/logs?status=error&limit=10"),
+         apiGet("/api/logs/tokens/by-org?hours=24&top=20"),
+         apiGet("/api/logs/tokens/by-api-key?hours=24&top=20"),
+       ]) as [
         { success: boolean; data?: { requests_today?: number; success_rate?: number; avg_response_time?: number; tokens_used?: number; failed_requests?: number }; message?: string },
         { success: boolean; data?: Array<{ model: string; requests: number; tokens: number }> },
         { success: boolean; data?: Array<{ created_at: string; provider_name: string; model: string; error_message?: string }> },
         { success: boolean; data?: Array<{ org_id: number; tokens: number; requests: number }> },
-        { success: boolean; data?: Array<{ service_id: string | null; tokens: number; requests: number }> },
+        { success: boolean; data?: Array<{ api_key_id: number | null; tokens: number; requests: number }> },
       ]
 
       if (!performanceResult.success) {
@@ -78,7 +78,7 @@ export function AnalyticsPage() {
       const topModels = topModelsResult?.success ? topModelsResult.data : []
       const recentErrors = errorsResult?.success ? errorsResult.data : []
       const tokenByOrg = byOrgResult?.success ? byOrgResult.data : []
-      const tokenByService = byServiceResult?.success ? byServiceResult.data : []
+      const tokenByApiKey = byServiceResult?.success ? byServiceResult.data : []
 
        const analyticsData: AnalyticsData = {
         total_requests: perfData.requests_today || 0,
@@ -104,8 +104,8 @@ export function AnalyticsPage() {
           tokens: r.tokens,
           requests: r.requests,
         })),
-        token_by_service: (tokenByService || []).map((r) => ({
-          service_id: r.service_id ?? "-",
+        token_by_api_key: (tokenByApiKey || []).map((r) => ({
+          api_key_id: r.api_key_id ?? "-",
           tokens: r.tokens,
           requests: r.requests,
         })),
@@ -317,12 +317,12 @@ export function AnalyticsPage() {
             <div className="rounded-xl border bg-card p-6 h-80 flex flex-col min-h-0">
               <h3 className="text-lg font-semibold mb-4">{t("services.title")} Tokens (24h)</h3>
               <div className="space-y-2 flex-1 min-h-0 overflow-auto scrollbar-hover">
-                {(data.token_by_service || []).length === 0 ? (
+                {(data.token_by_api_key || []).length === 0 ? (
                   <div className="h-full flex items-center justify-center text-sm text-muted-foreground">—</div>
                 ) : (
-                  data.token_by_service.slice(0, 10).map((row, idx) => (
+                  data.token_by_api_key.slice(0, 10).map((row, idx) => (
                     <div key={idx} className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-lg gap-3">
-                      <div className="text-sm truncate min-w-0">{row.service_id || "-"}</div>
+                      <div className="text-sm truncate min-w-0">#{row.api_key_id || "-"}</div>
                       <div className="text-right shrink-0">
                         <div className="text-sm font-medium">{Number(row.tokens).toLocaleString()}</div>
                         <div className="text-xs text-muted-foreground">{row.requests} req</div>

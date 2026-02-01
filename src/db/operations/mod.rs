@@ -22,8 +22,6 @@ pub mod api_keys;
 // User-Instance operations module
 pub mod user_instances;
 
-// Service operations module
-pub mod services;
 
 // Tenancy operations module
 pub mod tenancy;

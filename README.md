@@ -146,6 +146,20 @@ export ANTHROPIC_API_KEY="sk-ant-xxx"
 
 # XGateway authentication
 export XGATEWAY_API_KEY="your-auth-token"
+
+# XTrace observability (optional)
+export XTRACE_ENABLED="true"
+export XTRACE_BASE_URL="http://127.0.0.1:8080"
+export XTRACE_AUTH_MODE="bearer" # bearer | basic
+export XTRACE_API_BEARER_TOKEN="xtrace-token"
+# Basic auth (Langfuse compatible)
+export LANGFUSE_PUBLIC_KEY="public-key"
+export LANGFUSE_SECRET_KEY="secret-key"
+# Optional metadata
+export XTRACE_PROJECT_ID="project-id"
+export XTRACE_ENVIRONMENT="prod"
+export XTRACE_TRACE_NAME="xgateway.chat"
+# If XTrace is unavailable, xgateway continues using its DB logs without failing requests.
 ```
 
 📚 **[Advanced Configuration →](https://lipish.github.io/xgateway/docs)**

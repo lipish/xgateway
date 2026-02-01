@@ -33,7 +33,7 @@ pub async fn handle_admin_chat_completions(
         }
     };
 
-    let user = match db_pool.get_user_by_token(token).await {
+    let _user = match db_pool.get_user_by_token(token).await {
         Ok(Some(u)) => u,
         Ok(None) => {
             tracing::warn!("Token lookup failed for token prefix: {}", &token[..std::cmp::min(20, token.len())]);
@@ -62,19 +62,6 @@ pub async fn handle_admin_chat_completions(
                 .into_response();
         }
     };
-
-    if user.role_id.as_deref() != Some("admin") {
-        return (
-            StatusCode::FORBIDDEN,
-            Json(serde_json::json!({
-                "error": {
-                    "message": "Admin privileges required",
-                    "type": "forbidden"
-                }
-            })),
-        )
-            .into_response();
-    }
 
     let is_stream = request
         .get("stream")
@@ -129,13 +116,13 @@ pub async fn handle_admin_chat_completions(
         None,
         None,
         None,
-        None,
         &provider,
         &request,
         is_stream,
         None,
         &db_pool,
         &pool_manager,
+        None,
     )
     .await {
         RequestResult::Success(response) => response,

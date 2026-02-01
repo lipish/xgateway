@@ -4,11 +4,10 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { t } from "@/lib/i18n"
-import type { Provider, Service } from "./types"
+import type { Provider } from "./types"
 
 interface ServiceBindingsSectionProps {
-  service: Service
-  services: Service[]
+  fallbackChain: string | null
   providers: Provider[]
   boundProviderIdSet: Set<number>
   bindingBusyId: number | null
@@ -19,8 +18,7 @@ interface ServiceBindingsSectionProps {
 }
 
 export function ServiceBindingsSection({
-  service,
-  services,
+  fallbackChain,
   providers,
   boundProviderIdSet,
   bindingBusyId,
@@ -30,13 +28,14 @@ export function ServiceBindingsSection({
   error,
 }: ServiceBindingsSectionProps) {
   const selectedNames = providers.filter((p) => boundProviderIdSet.has(p.id)).map((p) => p.name)
-  const fallbackChain = service.fallback_chain?.trim() || ""
-  const fallbackLabel = fallbackChain
-    ? fallbackChain.split(",").map((value) => value.trim()).filter((value) => value.length > 0).join(", ")
-    : ""
-  const fallbackIds = fallbackChain.split(",").map((value) => value.trim()).filter((value) => value.length > 0)
+  const fallbackChainValue = fallbackChain?.trim() || ""
+  const fallbackIds = fallbackChainValue.split(",").map((value) => value.trim()).filter((value) => value.length > 0)
+  const fallbackLabel = fallbackIds
+    .map((id) => providers.find((provider) => String(provider.id) === id)?.name || id)
+    .filter((label) => label.length > 0)
+    .join(", ")
   const fallbackIdSet = new Set(fallbackIds)
-  const fallbackOptions = services.filter((s) => s.id !== service.id)
+  const fallbackOptions = providers
 
   return (
     <div className="rounded-lg bg-background p-5">
@@ -88,7 +87,7 @@ export function ServiceBindingsSection({
           <div className="text-sm font-semibold">{t("services.fallbackChain")}</div>
           <Popover modal={false}>
             <PopoverTrigger asChild>
-              <Button variant="outline" role="combobox" className="h-10 w-full justify-between font-normal text-xs" type="button">
+              <Button variant="outline" role="combobox" className="h-10 w-full justify-between font-normal" type="button">
                 <span className="flex-1 truncate text-left">
                   {fallbackLabel || t("services.fallbackChainPlaceholder")}
                 </span>
@@ -101,21 +100,22 @@ export function ServiceBindingsSection({
                 <CommandList>
                   <CommandEmpty>{t("services.empty")}</CommandEmpty>
                   <CommandGroup>
-                    {fallbackOptions.map((s) => (
+                    {fallbackOptions.map((provider) => (
                       <CommandItem
-                        key={s.id}
-                        value={`${s.name} ${s.id}`}
+                        key={provider.id}
+                        value={`${provider.name} ${provider.id}`}
                         onSelect={() => {
                           if (fallbackBusy) return
-                          const exists = fallbackIdSet.has(s.id)
-                          const next = exists ? fallbackIds.filter((id) => id !== s.id) : [...fallbackIds, s.id]
+                          const providerId = String(provider.id)
+                          const exists = fallbackIdSet.has(providerId)
+                          const next = exists ? fallbackIds.filter((id) => id !== providerId) : [...fallbackIds, providerId]
                           onUpdateFallbackChain(next.join(","))
                         }}
                         className={cn(fallbackBusy && "opacity-70")}
                       >
-                        <Check className={cn("mr-2 h-4 w-4", fallbackIdSet.has(s.id) ? "opacity-100" : "opacity-0")} />
-                        <span className="truncate">{s.name}</span>
-                        <span className="ml-auto text-xs text-muted-foreground">{s.id}</span>
+                        <Check className={cn("mr-2 h-4 w-4", fallbackIdSet.has(String(provider.id)) ? "opacity-100" : "opacity-0")} />
+                        <span className="truncate">{provider.name}</span>
+                        <span className="ml-auto text-xs text-muted-foreground">{provider.id}</span>
                         {fallbackBusy && <Loader2 className="ml-2 h-4 w-4 animate-spin text-muted-foreground" />}
                       </CommandItem>
                     ))}

@@ -41,38 +41,6 @@ pub struct Provider {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct Service {
-    pub id: String,
-    pub project_id: i64,
-    pub name: String,
-    pub enabled: bool,
-    pub strategy: String,
-    pub fallback_chain: Option<String>,
-    pub qps_limit: f64,
-    pub concurrency_limit: i32,
-    pub max_queue_size: i32,
-    pub max_queue_wait_ms: i32,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct ServiceModelService {
-    pub service_id: String,
-    pub provider_id: i64,
-    pub created_at: DateTime<Utc>,
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct ApiKeyService {
-    pub api_key_id: i64,
-    pub service_id: String,
-    pub created_at: DateTime<Utc>,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewProvider {
     pub name: String,
@@ -334,7 +302,6 @@ pub struct ConversationListItem {
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct RequestLog {
     pub id: i64,
-    pub service_id: Option<String>,
     pub api_key_id: Option<i64>,
     pub project_id: Option<i64>,
     pub org_id: Option<i64>,
@@ -354,7 +321,6 @@ pub struct RequestLog {
 /// New request log
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewRequestLog {
-    pub service_id: Option<String>,
     pub api_key_id: Option<i64>,
     pub project_id: Option<i64>,
     pub org_id: Option<i64>,
@@ -432,9 +398,10 @@ pub struct ApiKey {
     pub key_hash: String,
     pub name: String,
     pub scope: String,
-    pub provider_id: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub provider_ids: Option<String>,
+    pub strategy: String,
+    pub fallback_chain: Option<String>,
     pub qps_limit: f64,
     pub concurrency_limit: i32,
     pub status: String,
@@ -451,8 +418,9 @@ pub struct NewApiKey {
     pub key_hash: String,
     pub name: String,
     pub scope: String, // "global" or "instance"
-    pub provider_id: Option<i64>,
     pub provider_ids: Option<Vec<i64>>,
+    pub strategy: Option<String>,
+    pub fallback_chain: Option<String>,
     pub qps_limit: f64,
     pub concurrency_limit: i32,
     pub expires_at: Option<DateTime<Utc>>,

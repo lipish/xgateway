@@ -21,7 +21,7 @@ export function PageHeader({ title, subtitle, onRefresh, loading, action }: Page
                     </h1>
                 )}
                 {subtitle && (
-                    <p className="text-muted-foreground">
+                    <p className="text-muted-foreground text-xs leading-relaxed max-w-[520px]">
                         {subtitle}
                     </p>
                 )}

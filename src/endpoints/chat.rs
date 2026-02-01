@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use crate::adapter::{send_to_provider, RequestResult};
@@ -5,20 +6,25 @@ use crate::pool::LoadBalanceStrategy;
 use crate::pool::RateLimitResult;
 use super::types::ProxyState;
 use crate::db::NewRequestLog;
+use crate::xtrace::XTraceRequestContext;
 
-fn parse_fallback_chain(chain: Option<&str>) -> Vec<String> {
+fn parse_fallback_provider_ids(chain: Option<&str>) -> Vec<i64> {
     chain
         .unwrap_or("")
         .split(',')
-        .map(|s| s.trim())
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string())
+        .filter_map(|s| s.trim().parse::<i64>().ok())
         .collect()
+}
+
+fn parse_provider_ids(value: &Option<String>) -> Vec<i64> {
+    value
+        .as_ref()
+        .and_then(|raw| serde_json::from_str::<Vec<i64>>(raw).ok())
+        .unwrap_or_default()
 }
 
 async fn write_gateway_log(
     db_pool: &crate::db::DatabasePool,
-    service_id: Option<String>,
     api_key_id: Option<i64>,
     project_id: Option<i64>,
     org_id: Option<i64>,
@@ -28,7 +34,6 @@ async fn write_gateway_log(
     error_message: Option<String>,
 ) {
     let log = NewRequestLog {
-        service_id,
         api_key_id,
         project_id,
         org_id,
@@ -73,11 +78,6 @@ pub async fn handle_chat_completions(
         })
         .filter(|s| !s.is_empty());
 
-    let requested_service_id_for_log = request
-        .get("service_id")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
-
     let requested_model_for_log = request
         .get("model")
         .and_then(|v| v.as_str())
@@ -95,7 +95,6 @@ pub async fn handle_chat_completions(
             _ => {
                 write_gateway_log(
                     db_pool,
-                    requested_service_id_for_log.clone(),
                     None,
                     None,
                     None,
@@ -135,173 +134,25 @@ pub async fn handle_chat_completions(
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
 
-    let requested_service_id = request
-        .get("service_id")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
+    let xtrace_context = state.xtrace.as_ref().map(|client| {
+        XTraceRequestContext::new(
+            Arc::clone(client),
+            request.clone(),
+            request.get("model").and_then(|v| v.as_str()).map(|s| s.to_string()),
+            api_key_id,
+            project_id,
+            org_id,
+            is_stream,
+            std::time::Instant::now(),
+            chrono::Utc::now(),
+        )
+    });
 
     let requested_provider_id = request
         .get("provider_id")
         .and_then(|v| v.as_i64());
 
-    // 2. STRICT MODE: Require explicit service_id in request
-    let service_id = match requested_service_id {
-        Some(id) => id,
-        None => {
-            // Backward compatibility: allow provider_id to infer service_id when unambiguous.
-            if let Some(provider_id) = requested_provider_id {
-                match db_pool.list_service_ids_by_provider_id(provider_id).await {
-                    Ok(service_ids) => {
-                        if service_ids.len() == 1 {
-                            service_ids[0].clone()
-                        } else if service_ids.is_empty() {
-                            write_gateway_log(
-                                db_pool,
-                                None,
-                                api_key_id,
-                                project_id,
-                                org_id,
-                                requested_model_for_log.clone(),
-                                request_content.clone(),
-                                "error",
-                                Some("missing_service_id".to_string()),
-                            ).await;
-                            return (
-                                StatusCode::BAD_REQUEST,
-                                axum::Json(serde_json::json!({
-                                    "error": {
-                                        "message": "service_id is required in request body",
-                                        "type": "missing_service_id",
-                                        "details": "provider_id is not bound to any service"
-                                    }
-                                }))
-                            ).into_response();
-                        } else {
-                            write_gateway_log(
-                                db_pool,
-                                None,
-                                api_key_id,
-                                project_id,
-                                org_id,
-                                requested_model_for_log.clone(),
-                                request_content.clone(),
-                                "error",
-                                Some("missing_service_id".to_string()),
-                            ).await;
-                            return (
-                                StatusCode::BAD_REQUEST,
-                                axum::Json(serde_json::json!({
-                                    "error": {
-                                        "message": "service_id is required in request body",
-                                        "type": "missing_service_id",
-                                        "details": "provider_id is bound to multiple services; please specify service_id"
-                                    }
-                                }))
-                            ).into_response();
-                        }
-                    }
-                    Err(e) => {
-                        write_gateway_log(
-                            db_pool,
-                            None,
-                            api_key_id,
-                            project_id,
-                            org_id,
-                            requested_model_for_log.clone(),
-                            request_content.clone(),
-                            "error",
-                            Some(format!("Failed to infer service_id: {}", e)),
-                        ).await;
-                        return (
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            axum::Json(serde_json::json!({
-                                "error": {
-                                    "message": format!("Failed to infer service_id: {}", e),
-                                    "type": "server_error"
-                                }
-                            }))
-                        ).into_response();
-                    }
-                }
-            } else {
-                write_gateway_log(
-                    db_pool,
-                    None,
-                    api_key_id,
-                    project_id,
-                    org_id,
-                    requested_model_for_log.clone(),
-                    request_content.clone(),
-                    "error",
-                    Some("missing_service_id".to_string()),
-                ).await;
-                return (
-                    StatusCode::BAD_REQUEST,
-                    axum::Json(serde_json::json!({
-                        "error": {
-                            "message": "service_id is required in request body",
-                            "type": "missing_service_id"
-                        }
-                    }))
-                ).into_response();
-            }
-        }
-    };
-
-    // 3. Check service access control
-    if let Some(key_info) = &api_key_info {
-        match db_pool.api_key_has_service_access(key_info, &service_id).await {
-            Ok(true) => {}
-            Ok(false) => {
-                write_gateway_log(
-                    db_pool,
-                    Some(service_id.clone()),
-                    api_key_id,
-                    project_id,
-                    org_id,
-                    requested_model_for_log.clone(),
-                    request_content.clone(),
-                    "error",
-                    Some("service_access_denied".to_string()),
-                ).await;
-                return (
-                    StatusCode::FORBIDDEN,
-                    axum::Json(serde_json::json!({
-                        "error": {
-                            "message": "API key does not have access to this service",
-                            "type": "service_access_denied"
-                        }
-                    })),
-                )
-                    .into_response();
-            }
-            Err(e) => {
-                write_gateway_log(
-                    db_pool,
-                    Some(service_id.clone()),
-                    api_key_id,
-                    project_id,
-                    org_id,
-                    requested_model_for_log.clone(),
-                    request_content.clone(),
-                    "error",
-                    Some(format!("Failed to check service access: {}", e)),
-                ).await;
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    axum::Json(serde_json::json!({
-                        "error": {
-                            "message": format!("Failed to check service access: {}", e),
-                            "type": "server_error"
-                        }
-                    })),
-                )
-                    .into_response();
-            }
-        }
-    }
-
-    // 4. API key limits (QPS + concurrency)
+    // 2. API key limits (QPS + concurrency)
     let _api_key_concurrency_permit = if let Some(key_info) = &api_key_info {
         match pool_manager.check_api_key_limit(key_info).await {
             RateLimitResult::Denied { retry_after } => {
@@ -354,280 +205,171 @@ pub async fn handle_chat_completions(
         }
     };
 
-    let mut req_body = request.clone();
-    if let Some(obj) = req_body.as_object_mut() {
-        obj.remove("service_id");
-    }
+    let req_body = request.clone();
 
-    let mut services_to_try = vec![service_id.clone()];
-    let mut last_error: Option<(StatusCode, serde_json::Value)> = None;
-    let mut visited: std::collections::HashSet<String> = std::collections::HashSet::new();
-
-    while let Some(current_service_id) = services_to_try.pop() {
-        if !visited.insert(current_service_id.clone()) {
-            continue;
+    let mut providers = match db_pool.list_providers().await {
+        Ok(p) => p.into_iter().filter(|p| p.enabled).collect::<Vec<_>>(),
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                axum::Json(serde_json::json!({
+                    "error": {
+                        "message": format!("Failed to list providers: {}", e),
+                        "type": "server_error"
+                    }
+                })),
+            )
+                .into_response();
         }
+    };
 
-        if let Some(key_info) = &api_key_info {
-            match db_pool.api_key_has_service_access(key_info, &current_service_id).await {
-                Ok(true) => {}
-                Ok(false) => {
-                    continue;
-                }
-                Err(e) => {
-                    last_error = Some((
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        serde_json::json!({
-                            "error": {
-                                "message": format!("Failed to check service access: {}", e),
-                                "type": "server_error"
-                            }
-                        }),
-                    ));
-                    continue;
-                }
+    let mut candidate_provider_ids = if let Some(key_info) = &api_key_info {
+        if key_info.scope == "instance" {
+            let ids = parse_provider_ids(&key_info.provider_ids);
+            if ids.is_empty() {
+                write_gateway_log(
+                    db_pool,
+                    api_key_id,
+                    project_id,
+                    org_id,
+                    requested_model_for_log.clone(),
+                    request_content.clone(),
+                    "error",
+                    Some("missing_provider_ids".to_string()),
+                )
+                .await;
+                return (
+                    StatusCode::BAD_REQUEST,
+                    axum::Json(serde_json::json!({
+                        "error": {
+                            "message": "Instance-scoped API key requires provider_ids",
+                            "type": "missing_provider_ids"
+                        }
+                    })),
+                )
+                    .into_response();
             }
+            ids
+        } else {
+            providers.iter().map(|p| p.id).collect::<Vec<_>>()
         }
+    } else if let Some(provider_id) = requested_provider_id {
+        vec![provider_id]
+    } else {
+        providers.iter().map(|p| p.id).collect::<Vec<_>>()
+    };
 
-        let service = match db_pool.get_service(&current_service_id).await {
-            Ok(Some(s)) => s,
-            Ok(None) => {
-                write_gateway_log(
-                    db_pool,
-                    Some(current_service_id.clone()),
-                    api_key_id,
-                    project_id,
-                    org_id,
-                    requested_model_for_log.clone(),
-                    request_content.clone(),
-                    "error",
-                    Some("service_not_found".to_string()),
-                ).await;
-                last_error = Some((
-                    StatusCode::NOT_FOUND,
-                    serde_json::json!({
-                        "error": {
-                            "message": format!("Service {} not found", current_service_id),
-                            "type": "service_not_found"
-                        }
-                    }),
-                ));
-                continue;
-            }
-            Err(e) => {
-                write_gateway_log(
-                    db_pool,
-                    Some(current_service_id.clone()),
-                    api_key_id,
-                    project_id,
-                    org_id,
-                    requested_model_for_log.clone(),
-                    request_content.clone(),
-                    "error",
-                    Some(format!("Failed to get service: {}", e)),
-                ).await;
-                last_error = Some((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    serde_json::json!({
-                        "error": {
-                            "message": format!("Failed to get service: {}", e),
-                            "type": "server_error"
-                        }
-                    }),
-                ));
-                continue;
-            }
-        };
-
+    if let Some(provider_id) = requested_provider_id {
         if let Some(key_info) = &api_key_info {
-            if key_info.project_id != service.project_id {
+            if key_info.scope == "instance" && !candidate_provider_ids.contains(&provider_id) {
                 write_gateway_log(
                     db_pool,
-                    Some(current_service_id.clone()),
                     api_key_id,
                     project_id,
                     org_id,
                     requested_model_for_log.clone(),
                     request_content.clone(),
                     "error",
-                    Some("cross_project_service_access_denied".to_string()),
+                    Some("provider_access_denied".to_string()),
                 )
                 .await;
                 return (
                     StatusCode::FORBIDDEN,
                     axum::Json(serde_json::json!({
                         "error": {
-                            "message": "API key cannot access services across projects",
-                            "type": "cross_project_service_access_denied"
+                            "message": "API key does not have access to this provider",
+                            "type": "provider_access_denied"
                         }
                     })),
                 )
                     .into_response();
             }
         }
+    }
 
-        if !service.enabled {
-            write_gateway_log(
-                db_pool,
-                Some(current_service_id.clone()),
-                api_key_id,
-                project_id,
-                org_id,
-                requested_model_for_log.clone(),
-                request_content.clone(),
-                "error",
-                Some("service_disabled".to_string()),
-            ).await;
-            last_error = Some((
-                StatusCode::NOT_FOUND,
-                serde_json::json!({
-                    "error": {
-                        "message": format!("Service {} is disabled", current_service_id),
-                        "type": "service_disabled"
-                    }
-                }),
-            ));
+    let candidate_set: std::collections::HashSet<i64> = candidate_provider_ids.iter().copied().collect();
+    providers.retain(|p| candidate_set.contains(&p.id));
+    candidate_provider_ids.retain(|id| candidate_set.contains(id));
+
+    if candidate_provider_ids.is_empty() {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            axum::Json(serde_json::json!({
+                "error": {
+                    "message": "No available model service",
+                    "type": "no_available_model_service"
+                }
+            })),
+        )
+            .into_response();
+    }
+
+    let strategy_name = api_key_info
+        .as_ref()
+        .map(|k| k.strategy.as_str())
+        .unwrap_or("Priority");
+    let strategy = match strategy_name {
+        "RoundRobin" => LoadBalanceStrategy::RoundRobin,
+        "LeastConnections" => LoadBalanceStrategy::LeastConnections,
+        "Random" => LoadBalanceStrategy::Random,
+        "Priority" => LoadBalanceStrategy::Priority,
+        "LatencyBased" => LoadBalanceStrategy::LatencyBased,
+        "LowestPrice" => LoadBalanceStrategy::LowestPrice,
+        "QuotaAware" => LoadBalanceStrategy::QuotaAware,
+        _ => LoadBalanceStrategy::Priority,
+    };
+
+    let fallback_provider_ids = api_key_info
+        .as_ref()
+        .map(|k| parse_fallback_provider_ids(k.fallback_chain.as_deref()))
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|id| candidate_set.contains(id))
+        .collect::<Vec<_>>();
+
+    let provider_map: std::collections::HashMap<i64, crate::db::Provider> = providers
+        .into_iter()
+        .map(|p| (p.id, p))
+        .collect();
+
+    let mut last_error: Option<(StatusCode, serde_json::Value)> = None;
+    let mut tried: std::collections::HashSet<i64> = std::collections::HashSet::new();
+    let mut fallback_queue = fallback_provider_ids;
+
+    let mut next_provider_id = pool_manager
+        .select_provider_from_candidates_with_strategy(strategy.clone(), &candidate_provider_ids, None)
+        .await;
+
+    while let Some(provider_id) = next_provider_id {
+        if !tried.insert(provider_id) {
+            next_provider_id = None;
             continue;
         }
 
-        // Service hard limits (QPS + bounded queue + concurrency)
-        let _service_concurrency_permit = match pool_manager.check_service_limit(&service).await {
-            RateLimitResult::Denied { .. } => {
-                write_gateway_log(
-                    db_pool,
-                    Some(current_service_id.clone()),
-                    api_key_id,
-                    project_id,
-                    org_id,
-                    requested_model_for_log.clone(),
-                    request_content.clone(),
-                    "error",
-                    Some("service_rate_limit_exceeded".to_string()),
-                ).await;
-                last_error = Some((
-                    StatusCode::SERVICE_UNAVAILABLE,
-                    serde_json::json!({
-                        "error": {
-                            "message": "Service is busy. Please retry later.",
-                            "type": "service_rate_limit_exceeded"
-                        }
-                    }),
-                ));
-                continue;
-            }
-            RateLimitResult::ConcurrencyExceeded | RateLimitResult::QueueFull | RateLimitResult::WaitTimeout => {
-                write_gateway_log(
-                    db_pool,
-                    Some(current_service_id.clone()),
-                    api_key_id,
-                    project_id,
-                    org_id,
-                    requested_model_for_log.clone(),
-                    request_content.clone(),
-                    "error",
-                    Some("service_overloaded".to_string()),
-                ).await;
-                last_error = Some((
-                    StatusCode::SERVICE_UNAVAILABLE,
-                    serde_json::json!({
-                        "error": {
-                            "message": "Service is busy. Please retry later.",
-                            "type": "service_overloaded"
-                        }
-                    }),
-                ));
-                continue;
-            }
-            RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
-        };
-
-        let providers = match db_pool.list_service_providers(&current_service_id).await {
-            Ok(p) => p,
-            Err(e) => {
-                write_gateway_log(
-                    db_pool,
-                    Some(current_service_id.clone()),
-                    api_key_id,
-                    project_id,
-                    org_id,
-                    requested_model_for_log.clone(),
-                    request_content.clone(),
-                    "error",
-                    Some(format!("Failed to get providers for service: {}", e)),
-                ).await;
-                last_error = Some((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    serde_json::json!({
-                        "error": {
-                            "message": format!("Failed to get providers for service: {}", e),
-                            "type": "server_error"
-                        }
-                    }),
-                ));
-                continue;
-            }
-        };
-
-        let candidate_provider_ids: Vec<i64> = providers.iter().map(|p| p.id).collect();
-        let strategy = match service.strategy.as_str() {
-            "RoundRobin" => LoadBalanceStrategy::RoundRobin,
-            "LeastConnections" => LoadBalanceStrategy::LeastConnections,
-            "Random" => LoadBalanceStrategy::Random,
-            "Priority" => LoadBalanceStrategy::Priority,
-            "LatencyBased" => LoadBalanceStrategy::LatencyBased,
-            "LowestPrice" => LoadBalanceStrategy::LowestPrice,
-            "QuotaAware" => LoadBalanceStrategy::QuotaAware,
-            _ => LoadBalanceStrategy::Priority,
-        };
-
-        let provider_id = match pool_manager
-            .select_provider_from_candidates_with_strategy(strategy.clone(), &candidate_provider_ids, None)
-            .await
-        {
-            Some(id) => id,
-            None => {
-                last_error = Some((
-                    StatusCode::SERVICE_UNAVAILABLE,
-                    serde_json::json!({
-                        "error": {
-                            "message": format!("No available model service for service {}", current_service_id),
-                            "type": "no_available_model_service"
-                        }
-                    }),
-                ));
-
-                let mut fallbacks = parse_fallback_chain(service.fallback_chain.as_deref());
-                fallbacks.reverse();
-                for sid in fallbacks {
-                    services_to_try.push(sid);
-                }
-                continue;
-            }
-        };
-
-        let provider = match providers.iter().find(|p| p.id == provider_id) {
+        let provider = match provider_map.get(&provider_id) {
             Some(p) => p,
             None => {
-                last_error = Some((
-                    StatusCode::SERVICE_UNAVAILABLE,
-                    serde_json::json!({
-                        "error": {
-                            "message": format!("Selected model service {} is not available", provider_id),
-                            "type": "no_available_model_service"
-                        }
-                    }),
-                ));
-                let mut fallbacks = parse_fallback_chain(service.fallback_chain.as_deref());
-                fallbacks.reverse();
-                for sid in fallbacks {
-                    services_to_try.push(sid);
-                }
+                next_provider_id = None;
                 continue;
             }
         };
 
+        let xtrace_ctx = xtrace_context.as_ref().map(|ctx| XTraceRequestContext {
+            trace_id: ctx.trace_id,
+            start_time: ctx.start_time,
+            start_timestamp: ctx.start_timestamp,
+            request_payload: ctx.request_payload.clone(),
+            messages: ctx.messages.clone(),
+            requested_model: ctx.requested_model.clone(),
+            api_key_id: ctx.api_key_id,
+            project_id: ctx.project_id,
+            org_id: ctx.org_id,
+            is_stream: ctx.is_stream,
+            trace_name: ctx.trace_name.clone(),
+            client: Arc::clone(&ctx.client),
+        });
+
         match send_to_provider(
-            Some(&current_service_id),
             api_key_id,
             project_id,
             org_id,
@@ -637,63 +379,35 @@ pub async fn handle_chat_completions(
             request_content.clone(),
             db_pool,
             pool_manager,
+            xtrace_ctx,
         )
         .await
         {
             RequestResult::Success(response) => return response,
             RequestResult::Failure { error, .. } => {
-                let fallback_id = pool_manager
-                    .select_provider_from_candidates_with_strategy(strategy, &candidate_provider_ids, Some(provider_id))
+                last_error = Some((
+                    StatusCode::BAD_GATEWAY,
+                    serde_json::json!({
+                        "error": {
+                            "message": error,
+                            "type": "provider_error",
+                            "provider": provider.name
+                        }
+                    }),
+                ));
+
+                next_provider_id = pool_manager
+                    .select_provider_from_candidates_with_strategy(strategy.clone(), &candidate_provider_ids, Some(provider_id))
                     .await;
 
-                if let Some(fid) = fallback_id {
-                    if let Some(fallback_provider) = providers.iter().find(|p| p.id == fid) {
-                        match send_to_provider(
-                            Some(&current_service_id),
-                            api_key_id,
-                            project_id,
-                            org_id,
-                            fallback_provider,
-                            &req_body,
-                            is_stream,
-                            request_content.clone(),
-                            db_pool,
-                            pool_manager,
-                        )
-                        .await
-                        {
-                            RequestResult::Success(response) => return response,
-                            RequestResult::Failure { error, .. } => {
-                                last_error = Some((
-                                    StatusCode::BAD_GATEWAY,
-                                    serde_json::json!({
-                                        "error": {
-                                            "message": error,
-                                            "type": "provider_error",
-                                            "provider": fallback_provider.name
-                                        }
-                                    }),
-                                ));
-                            }
+                if next_provider_id.is_none() {
+                    while let Some(fallback_id) = fallback_queue.first().copied() {
+                        fallback_queue.remove(0);
+                        if !tried.contains(&fallback_id) {
+                            next_provider_id = Some(fallback_id);
+                            break;
                         }
                     }
-                } else {
-                    last_error = Some((
-                        StatusCode::BAD_GATEWAY,
-                        serde_json::json!({
-                            "error": {
-                                "message": error,
-                                "type": "provider_error",
-                                "provider": provider.name
-                            }
-                        }),
-                    ));
-                }
-
-                let mut fallbacks = parse_fallback_chain(service.fallback_chain.as_deref());
-                fallbacks.reverse();
-                for sid in fallbacks {
-                    services_to_try.push(sid);
                 }
             }
         }

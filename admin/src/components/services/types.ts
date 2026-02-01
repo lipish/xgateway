@@ -1,17 +1,3 @@
-export interface Service {
-  id: string
-  name: string
-  enabled: boolean
-  strategy: string
-  fallback_chain?: string | null
-  qps_limit: number
-  concurrency_limit: number
-  max_queue_size: number
-  max_queue_wait_ms: number
-  created_at: string
-  updated_at: string
-}
-
 export interface Provider {
   id: number
   name: string
@@ -25,7 +11,9 @@ export interface ApiKey {
   key_hash?: string
   name: string
   scope: string
-  service_ids?: string[] | null
+  provider_ids?: number[] | null
+  strategy?: string
+  fallback_chain?: string | null
   qps_limit: number
   concurrency_limit: number
   status: string

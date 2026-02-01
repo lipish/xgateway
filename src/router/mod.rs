@@ -21,6 +21,7 @@ pub fn build_multi_mode_app(
     pool_manager: Arc<PoolManager>,
     llm_service: Arc<RwLock<LlmService>>,
     config: Arc<RwLock<Settings>>,
+    xtrace: Option<Arc<crate::xtrace::XTraceClient>>,
 ) -> Router {
     let admin_routes = create_admin_app(db_pool.clone(), pool_manager.clone());
     let llm_proxy_routes = build_llm_proxy_routes(
@@ -28,6 +29,7 @@ pub fn build_multi_mode_app(
         pool_manager.clone(),
         llm_service.clone(),
         config.clone(),
+        xtrace.clone(),
     );
     
     // Create state for direct use in basic routes
@@ -36,6 +38,7 @@ pub fn build_multi_mode_app(
         pool_manager,
         llm_service: llm_service.clone(),
         config: config.clone(),
+        xtrace,
     };
     let basic_routes = build_basic_routes(state);
 

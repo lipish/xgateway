@@ -10,6 +10,8 @@ import {
     MessageSquare,
     Library,
     User,
+    Building2,
+    FolderTree,
 } from "lucide-react"
 
 import {
@@ -34,15 +36,15 @@ function getNavigation() {
                 { name: t('nav.modelTypes'), href: "/providers", icon: Library },
                 { name: t('nav.models'), href: "/models", icon: Server },
                 { name: t('nav.chat'), href: "/chat", icon: MessageSquare },
+                { name: t('nav.services'), href: "/services", icon: Layers },
             ],
         },
         {
             title: t('nav.management'),
             items: [
                 { name: t('nav.users'), href: "/users", icon: User },
-                { name: t('nav.organizations'), href: "/organizations", icon: Settings },
-                { name: t('nav.projects'), href: "/projects", icon: Settings },
-                { name: t('nav.services'), href: "/services", icon: Layers },
+                { name: t('nav.organizations'), href: "/organizations", icon: Building2 },
+                { name: t('nav.projects'), href: "/projects", icon: FolderTree },
             ],
         },
         {

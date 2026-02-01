@@ -14,12 +14,14 @@ pub fn build_llm_proxy_routes(
     pool_manager: Arc<PoolManager>,
     llm_service: Arc<RwLock<LlmService>>,
     config: Arc<RwLock<Settings>>,
+    xtrace: Option<Arc<crate::xtrace::XTraceClient>>,
 ) -> Router {
     let state = ProxyState { 
         db_pool, 
         pool_manager,
         llm_service,
         config,
+        xtrace,
     };
 
     let mut router = Router::new()

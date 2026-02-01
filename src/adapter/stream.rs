@@ -9,7 +9,6 @@ pub struct LoggingStream<S> {
     inner: S,
     collected_content: Arc<Mutex<String>>,
     db_pool: Arc<DatabasePool>,
-    service_id: Option<String>,
     provider_id: i64,
     provider_name: String,
     model: String,
@@ -24,7 +23,6 @@ impl<S> LoggingStream<S> {
         inner: S,
         collected_content: Arc<Mutex<String>>,
         db_pool: Arc<DatabasePool>,
-        service_id: Option<String>,
         provider_id: i64,
         provider_name: String,
         model: String,
@@ -35,7 +33,6 @@ impl<S> LoggingStream<S> {
             inner,
             collected_content,
             db_pool,
-            service_id,
             provider_id,
             provider_name,
             model,
@@ -59,7 +56,6 @@ impl<S: Stream + Unpin> Stream for LoggingStream<S> {
                     .unwrap_or(None);
 
                 let log = NewRequestLog {
-                    service_id: self.service_id.clone(),
                     api_key_id: None,
                     project_id: None,
                     org_id: None,

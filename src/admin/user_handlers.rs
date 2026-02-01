@@ -9,6 +9,13 @@ pub async fn list_users_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
     axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
 ) -> Json<ApiResponse<Vec<User>>> {
+    if !ctx.is_admin && ctx.org_role.as_deref() != Some("admin") {
+        return Json(ApiResponse {
+            success: false,
+            data: None,
+            message: "org_admin_required".to_string(),
+        });
+    }
     let result = if ctx.is_admin {
         db_pool.list_users().await
     } else {
@@ -47,6 +54,9 @@ pub async fn create_user_api(
 ) -> Json<ApiResponse<i64>> {
     if !ctx.is_admin && ctx.org_role.as_deref() != Some("admin") {
         return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+    }
+    if !ctx.is_admin && req.role_id.as_deref() == Some("admin") {
+        return Json(ApiResponse { success: false, data: None, message: "admin_required".to_string() });
     }
 
     let new_user = NewUser {
@@ -137,6 +147,9 @@ pub async fn update_user_api(
     if !ctx.is_admin {
         if ctx.org_role.as_deref() != Some("admin") {
             return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+        }
+        if req.role_id.as_deref() == Some("admin") {
+            return Json(ApiResponse { success: false, data: None, message: "admin_required".to_string() });
         }
         match db_pool.is_user_in_org(ctx.org_id, id).await {
             Ok(true) => {}

@@ -16,44 +16,6 @@ async fn api_key_belongs_to_org(db_pool: &DatabasePool, api_key_id: i64, org_id:
     }
 }
 
-fn unique_strings(mut v: Vec<String>) -> Vec<String> {
-    v.sort();
-    v.dedup();
-    v
-}
-
-async fn derive_service_ids_from_legacy(
-    db_pool: &DatabasePool,
-    provider_id: Option<i64>,
-    provider_ids: Option<&Vec<i64>>,
-) -> Result<Vec<String>, anyhow::Error> {
-    let providers = db_pool.list_providers().await?;
-    let mut ids: Vec<i64> = Vec::new();
-    if let Some(id) = provider_id {
-        ids.push(id);
-    }
-    if let Some(more) = provider_ids {
-        ids.extend(more.iter().copied());
-    }
-    ids.sort();
-    ids.dedup();
-
-    if ids.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    let mut service_ids = Vec::new();
-    for id in ids {
-        match providers.iter().find(|p| p.id == id) {
-            Some(p) => service_ids.push(p.name.clone()),
-            None => {
-                return Err(anyhow::anyhow!("Provider {} not found", id));
-            }
-        }
-    }
-
-    Ok(unique_strings(service_ids))
-}
 
 /// List API keys
 pub async fn list_api_keys_api(
@@ -63,7 +25,10 @@ pub async fn list_api_keys_api(
 ) -> Json<ApiResponse<Vec<serde_json::Value>>> {
     let effective_org_id = if ctx.is_admin { q.org_id } else { Some(ctx.org_id) };
     match db_pool.list_api_keys_filtered(q.project_id, effective_org_id).await {
-        Ok(keys) => {
+        Ok(mut keys) => {
+            if !ctx.is_admin && ctx.org_role.as_deref() != Some("admin") {
+                keys.retain(|k| k.owner_id == Some(ctx.user.id));
+            }
             let mut keys_with_parsed_ids: Vec<serde_json::Value> = Vec::new();
 
             for key in keys {
@@ -72,12 +37,6 @@ pub async fn list_api_keys_api(
                 if let Some(provider_ids_str) = &key.provider_ids {
                     if let Ok(provider_ids) = serde_json::from_str::<Vec<i64>>(provider_ids_str) {
                         json["provider_ids"] = serde_json::json!(provider_ids);
-                    }
-                }
-
-                if key.scope == "instance" {
-                    if let Ok(service_ids) = db_pool.list_api_key_service_ids(key.id).await {
-                        json["service_ids"] = serde_json::json!(service_ids);
                     }
                 }
 
@@ -108,9 +67,9 @@ pub struct ListApiKeysQuery {
 pub struct UpdateApiKeyRequest {
     pub name: String,
     pub scope: String,
-    pub provider_id: Option<i64>,
     pub provider_ids: Option<Vec<i64>>,
-    pub service_ids: Option<Vec<String>>,
+    pub strategy: Option<String>,
+    pub fallback_chain: Option<String>,
     pub qps_limit: Option<f64>,
     pub concurrency_limit: Option<i32>,
 }
@@ -148,11 +107,13 @@ pub async fn update_api_key_api(
         });
     }
 
-    let (provider_id, provider_ids) = if req.scope == "global" {
-        (None, None)
+    let provider_ids = if req.scope == "global" {
+        None
     } else {
-        (req.provider_id, req.provider_ids.clone())
+        req.provider_ids.clone()
     };
+    let strategy = req.strategy.clone().unwrap_or_else(|| "Priority".to_string());
+    let fallback_chain = req.fallback_chain.clone();
 
     let existing_limits = if req.qps_limit.is_none() || req.concurrency_limit.is_none() {
         match db_pool.get_api_key_by_id(id).await {
@@ -170,61 +131,20 @@ pub async fn update_api_key_api(
         .unwrap_or(1_000_000);
 
     let update_result = db_pool
-        .update_api_key(id, &req.name, &req.scope, provider_id, provider_ids.clone(), qps_limit, concurrency_limit)
+        .update_api_key(
+            id,
+            &req.name,
+            &req.scope,
+            provider_ids.clone(),
+            &strategy,
+            fallback_chain.as_deref(),
+            qps_limit,
+            concurrency_limit,
+        )
         .await;
 
     match update_result {
         Ok(true) => {
-            // Update api_key_services
-            if req.scope == "global" {
-                if let Err(e) = db_pool.replace_api_key_services(id, &Vec::new()).await {
-                    return Json(ApiResponse {
-                        success: false,
-                        data: None,
-                        message: format!("API key updated but failed to clear services: {}", e),
-                    });
-                }
-            } else {
-                let derived = match &req.service_ids {
-                    Some(service_ids) => Ok(unique_strings(service_ids.clone())),
-                    None => derive_service_ids_from_legacy(&db_pool, req.provider_id, provider_ids.as_ref()).await,
-                };
-
-                let service_ids = match derived {
-                    Ok(ids) => ids,
-                    Err(e) => {
-                        return Json(ApiResponse {
-                            success: false,
-                            data: None,
-                            message: format!("API key updated but invalid service mapping: {}", e),
-                        })
-                    }
-                };
-
-                if service_ids.is_empty() {
-                    return Json(ApiResponse {
-                        success: false,
-                        data: None,
-                        message: "Instance-scoped API key requires service_ids (or legacy provider_id/provider_ids)".to_string(),
-                    });
-                }
-                if service_ids.len() > 1 {
-                    return Json(ApiResponse {
-                        success: false,
-                        data: None,
-                        message: "Instance-scoped API key can only bind to one service".to_string(),
-                    });
-                }
-
-                if let Err(e) = db_pool.replace_api_key_services(id, &service_ids).await {
-                    return Json(ApiResponse {
-                        success: false,
-                        data: None,
-                        message: format!("API key updated but failed to set services: {}", e),
-                    });
-                }
-            }
-
             Json(ApiResponse {
                 success: true,
                 data: Some(()),
@@ -249,9 +169,9 @@ pub struct CreateApiKeyRequest {
     pub name: String,
     pub scope: String,
     pub project_id: Option<i64>,
-    pub provider_id: Option<i64>,
     pub provider_ids: Option<Vec<i64>>,
-    pub service_ids: Option<Vec<String>>,
+    pub strategy: Option<String>,
+    pub fallback_chain: Option<String>,
     pub qps_limit: Option<f64>,
     pub concurrency_limit: Option<i32>,
     pub expires_in_days: Option<i64>,
@@ -263,7 +183,7 @@ pub async fn create_api_key_api(
     axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
     Json(req): Json<CreateApiKeyRequest>,
 ) -> Json<ApiResponse<serde_json::Value>> {
-    if !ctx.is_admin && ctx.org_role.as_deref() != Some("admin") {
+    if !ctx.is_admin && ctx.org_role.is_none() {
         return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
     }
 
@@ -276,12 +196,11 @@ pub async fn create_api_key_api(
     });
 
     let scope = req.scope.clone();
-    let (provider_id, provider_ids) = if scope == "global" {
-        (None, None)
+    let provider_ids = if scope == "global" {
+        None
     } else {
-        (req.provider_id, req.provider_ids.clone())
+        req.provider_ids.clone()
     };
-    let service_ids = req.service_ids.clone();
 
     let qps_limit = req.qps_limit.unwrap_or(1_000_000.0);
     let concurrency_limit = req.concurrency_limit.unwrap_or(1_000_000);
@@ -316,56 +235,16 @@ pub async fn create_api_key_api(
         key_hash,
         name: req.name,
         scope: scope.clone(),
-        provider_id,
         provider_ids: provider_ids.clone(),
+        strategy: req.strategy.clone(),
+        fallback_chain: req.fallback_chain.clone(),
         qps_limit,
         concurrency_limit,
         expires_at,
     };
 
     match db_pool.create_api_key(new_key).await {
-        Ok(api_key_id) => {
-            if scope == "instance" {
-                let derived = match &service_ids {
-                    Some(service_ids) => Ok(unique_strings(service_ids.clone())),
-                    None => derive_service_ids_from_legacy(&db_pool, provider_id, provider_ids.as_ref()).await,
-                };
-
-                let service_ids = match derived {
-                    Ok(ids) => ids,
-                    Err(e) => {
-                        return Json(ApiResponse {
-                            success: false,
-                            data: None,
-                            message: format!("Failed to create API key services mapping: {}", e),
-                        })
-                    }
-                };
-
-                if service_ids.is_empty() {
-                    return Json(ApiResponse {
-                        success: false,
-                        data: None,
-                        message: "Instance-scoped API key requires service_ids (or legacy provider_id/provider_ids)".to_string(),
-                    });
-                }
-                if service_ids.len() > 1 {
-                    return Json(ApiResponse {
-                        success: false,
-                        data: None,
-                        message: "Instance-scoped API key can only bind to one service".to_string(),
-                    });
-                }
-
-                if let Err(e) = db_pool.replace_api_key_services(api_key_id, &service_ids).await {
-                    return Json(ApiResponse {
-                        success: false,
-                        data: None,
-                        message: format!("API key created but failed to set services: {}", e),
-                    });
-                }
-            }
-
+        Ok(_api_key_id) => {
             Json(ApiResponse {
                 success: true,
                 data: Some(serde_json::json!({

@@ -8,7 +8,6 @@ import { useState } from "react"
 import type { ApiKey } from "./types"
 
 interface ServiceApiKeysSectionProps {
-  selectedServiceId: string | null
   apiKeys: ApiKey[]
   loading: boolean
   apiKeyError: string | null
@@ -24,7 +23,6 @@ interface ServiceApiKeysSectionProps {
 }
 
 export function ServiceApiKeysSection({
-  selectedServiceId,
   apiKeys,
   loading,
   apiKeyError,
@@ -51,7 +49,7 @@ export function ServiceApiKeysSection({
     <div className="rounded-lg bg-background p-5">
       <div className="flex items-center justify-between gap-2">
         <div className="text-sm font-semibold">{t("apiKeys.title")}</div>
-        <Button size="sm" variant="outline" onClick={onOpenCreate} disabled={!selectedServiceId}>
+        <Button size="sm" variant="outline" onClick={onOpenCreate}>
           <Plus className="mr-2 h-4 w-4" />
           {t("apiKeys.create")}
         </Button>

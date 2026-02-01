@@ -88,6 +88,24 @@ curl -N http://localhost:3000/v1/chat/completions \
 - 环境变量：例如 `DATABASE_URL`、`PORT`、`XGATEWAY_LOG_LEVEL`
 - 管理后台（数据库持久化）：Provider、Service、API Key、授权关系、服务限流与调度策略
 
+如果需要将请求全量上报到 XTrace（包含 input/output），可配置如下环境变量：
+
+```bash
+export XTRACE_ENABLED="true"
+export XTRACE_BASE_URL="http://127.0.0.1:8080"
+export XTRACE_AUTH_MODE="bearer" # bearer | basic
+export XTRACE_API_BEARER_TOKEN="xtrace-token"
+# Basic auth (Langfuse compatible)
+export LANGFUSE_PUBLIC_KEY="public-key"
+export LANGFUSE_SECRET_KEY="secret-key"
+# Optional metadata
+export XTRACE_PROJECT_ID="project-id"
+export XTRACE_ENVIRONMENT="prod"
+export XTRACE_TRACE_NAME="xgateway.chat"
+```
+
+说明：当 XTrace 不可用或未配置时，xgateway 会继续使用自身数据库日志记录，不影响请求成功。
+
 不建议以“本地 YAML 配置文件”作为权威配置入口；如果你需要交付脚本化初始化，请使用迁移 SQL 或管理 API 做配置写入。
 
 ## 6. 权限与访问控制（简述）

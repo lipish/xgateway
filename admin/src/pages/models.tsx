@@ -97,7 +97,7 @@ export function ProvidersPage() {
   const fetchProviders = useCallback(async () => {
     try {
       setLoading(true);
-      const endpoint = isAdmin ? "/api/instances" : `/api/users/${user?.id}/instances`;
+      const endpoint = "/api/instances";
       const result = await apiGet<ApiResponse<Provider[]>>(endpoint);
 
       if (result.success) {
@@ -467,12 +467,10 @@ export function ProvidersPage() {
         title={t('models.title')}
         subtitle={t('models.description')}
         action={
-          isAdmin ? (
-            <Button size="sm" onClick={openAddDialog} className="bg-primary hover:bg-primary/90">
-              <Plus className="mr-2 h-4 w-4" />
-              {t('providers.addProvider')}
-            </Button>
-          ) : null
+          <Button size="sm" onClick={openAddDialog} className="bg-primary hover:bg-primary/90">
+            <Plus className="mr-2 h-4 w-4" />
+            {t('providers.addProvider')}
+          </Button>
         }
       />
       <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">
@@ -499,8 +497,8 @@ export function ProvidersPage() {
               <Card className="flex-1 h-full flex flex-col">
                 <CardContent className="flex-1 flex items-center justify-center p-6">
                   <div className="text-center text-muted-foreground">
-                    <p className="text-lg font-medium mb-2">No providers found</p>
-                    <p className="text-sm">Get started by adding your first AI provider.</p>
+                    <p className="text-lg font-medium mb-2">{t('providers.noProviders')}</p>
+                    <p className="text-sm">{t('providers.addProviderTip')}</p>
                   </div>
                 </CardContent>
               </Card>

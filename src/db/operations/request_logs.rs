@@ -46,13 +46,6 @@ pub struct TokenUsageByOrg {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TokenUsageByService {
-    pub service_id: String,
-    pub requests: i64,
-    pub tokens: i64,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct TokenUsageByApiKey {
     pub api_key_id: i64,
     pub requests: i64,
@@ -75,15 +68,14 @@ impl DatabasePool {
             Self::Postgres(pool) => {
                 let row = sqlx::query(
                     r#"
-                    INSERT INTO request_logs (service_id, api_key_id, project_id, org_id, provider_id, provider_name, model, status, latency_ms, tokens_used, error_message, request_type, request_content, response_content)
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-                       RETURNING id::BIGINT as id, service_id,
+                    INSERT INTO request_logs (api_key_id, project_id, org_id, provider_id, provider_name, model, status, latency_ms, tokens_used, error_message, request_type, request_content, response_content)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                       RETURNING id::BIGINT as id,
                                  api_key_id::BIGINT as api_key_id, project_id::BIGINT as project_id, org_id::BIGINT as org_id,
                                  provider_id::BIGINT as provider_id, provider_name, model, status,
                                  latency_ms::BIGINT as latency_ms, tokens_used::BIGINT as tokens_used,
                                  error_message, request_type, request_content, response_content, created_at"#
                 )
-                .bind(&log.service_id)
                 .bind(log.api_key_id)
                 .bind(log.project_id)
                 .bind(log.org_id)
@@ -100,7 +92,6 @@ impl DatabasePool {
                 .fetch_one(pool).await?;
                 Ok(RequestLog {
                     id: row.try_get("id")?,
-                    service_id: row.try_get("service_id")?,
                     api_key_id: row.try_get("api_key_id")?,
                     project_id: row.try_get("project_id")?,
                     org_id: row.try_get("org_id")?,
@@ -131,7 +122,7 @@ impl DatabasePool {
         match self {
             Self::Postgres(pool) => {
                 let mut qb = sqlx::QueryBuilder::new(
-                    r#"SELECT id::BIGINT as id, service_id,
+                    r#"SELECT id::BIGINT as id,
                        api_key_id::BIGINT as api_key_id, project_id::BIGINT as project_id, org_id::BIGINT as org_id,
                        provider_id::BIGINT as provider_id, provider_name, model, status,
                        latency_ms::BIGINT as latency_ms, tokens_used::BIGINT as tokens_used,
@@ -175,8 +166,8 @@ impl DatabasePool {
     pub async fn get_request_log(&self, id: i64) -> Result<Option<RequestLog>> {
         match self {
             Self::Postgres(pool) => {
-                Ok(sqlx::query_as::<_, RequestLog>(
-                    r#"SELECT id::BIGINT as id, service_id,
+                    Ok(sqlx::query_as::<_, RequestLog>(
+                        r#"SELECT id::BIGINT as id,
                        api_key_id::BIGINT as api_key_id, project_id::BIGINT as project_id, org_id::BIGINT as org_id,
                        provider_id::BIGINT as provider_id, provider_name, model, status,
                        latency_ms::BIGINT as latency_ms, tokens_used::BIGINT as tokens_used,
@@ -380,53 +371,6 @@ impl DatabasePool {
                 for row in rows {
                     result.push(TokenUsageByOrg {
                         org_id: row.try_get("org_id")?,
-                        requests: row.try_get("requests")?,
-                        tokens: row.try_get("tokens")?,
-                    });
-                }
-
-                Ok(result)
-            }
-        }
-    }
-
-    pub async fn get_token_usage_by_service(
-        &self,
-        last_hours: i64,
-        top: i64,
-        org_id_filter: Option<i64>,
-    ) -> Result<Vec<TokenUsageByService>> {
-        match self {
-            Self::Postgres(pool) => {
-                let mut qb = sqlx::QueryBuilder::new(
-                    r#"
-                    SELECT
-                        service_id,
-                        COUNT(*)::BIGINT as requests,
-                        COALESCE(SUM(tokens_used), 0)::BIGINT as tokens
-                    FROM request_logs
-                    WHERE created_at >= NOW() - ("#,
-                );
-                qb.push_bind(last_hours);
-                qb.push("::INT * INTERVAL '1 hour')");
-                qb.push(" AND status = 'success'");
-                qb.push(" AND request_type <> 'health_check'");
-                qb.push(" AND service_id IS NOT NULL");
-
-                if let Some(org_id) = org_id_filter {
-                    qb.push(" AND org_id = ").push_bind(org_id);
-                }
-
-                qb.push(" GROUP BY service_id");
-                qb.push(" ORDER BY tokens DESC, requests DESC, service_id ASC");
-                qb.push(" LIMIT ").push_bind(top);
-
-                let rows = qb.build().fetch_all(pool).await?;
-
-                let mut result = Vec::new();
-                for row in rows {
-                    result.push(TokenUsageByService {
-                        service_id: row.try_get::<Option<String>, _>("service_id")?.unwrap_or_default(),
                         requests: row.try_get("requests")?,
                         tokens: row.try_get("tokens")?,
                     });

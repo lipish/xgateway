@@ -11,3 +11,4 @@ pub mod admin;
 pub mod router;
 pub mod cli;
 pub mod endpoints;
+pub mod xtrace;

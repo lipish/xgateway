@@ -8,6 +8,7 @@ use crate::pool::PoolManager;
 use super::driver::{build_driver_config, DriverType};
 use super::stream::{extract_response_content, extract_tokens_used};
 use super::types::RequestResult;
+use crate::xtrace::{self, XTraceRequestContext};
 
 fn parse_messages(req_body: &serde_json::Value) -> Vec<Message> {
     req_body.get("messages")
@@ -30,7 +31,6 @@ fn parse_messages(req_body: &serde_json::Value) -> Vec<Message> {
 }
 
 pub async fn send_to_provider(
-    service_id: Option<&str>,
     api_key_id: Option<i64>,
     project_id: Option<i64>,
     org_id: Option<i64>,
@@ -40,6 +40,7 @@ pub async fn send_to_provider(
     request_content: Option<String>,
     db_pool: &DatabasePool,
     pool_manager: &Arc<PoolManager>,
+    xtrace_ctx: Option<XTraceRequestContext>,
 ) -> RequestResult {
     let start_time = std::time::Instant::now();
     let config: serde_json::Value = serde_json::from_str(&provider.config).unwrap_or_default();
@@ -87,7 +88,6 @@ pub async fn send_to_provider(
             client,
             chat_request,
             provider,
-            service_id.map(|s| s.to_string()),
             api_key_id,
             project_id,
             org_id,
@@ -96,6 +96,7 @@ pub async fn send_to_provider(
             pool_manager,
             start_time,
             driver_config.driver_type,
+            xtrace_ctx,
         ).await
     } else {
         handle_non_stream_request(
@@ -103,7 +104,6 @@ pub async fn send_to_provider(
             chat_request,
             provider,
             model,
-            service_id.map(|s| s.to_string()),
             api_key_id,
             project_id,
             org_id,
@@ -111,6 +111,7 @@ pub async fn send_to_provider(
             db_pool,
             pool_manager,
             start_time,
+            xtrace_ctx,
         ).await
     }
 }
@@ -119,7 +120,6 @@ async fn handle_stream_request(
     client: llm_connector::LlmClient,
     chat_request: ChatRequest,
     provider: &db::Provider,
-    service_id: Option<String>,
     api_key_id: Option<i64>,
     project_id: Option<i64>,
     org_id: Option<i64>,
@@ -128,6 +128,7 @@ async fn handle_stream_request(
     pool_manager: &Arc<PoolManager>,
     start_time: std::time::Instant,
     _driver_type: DriverType,
+    xtrace_ctx: Option<XTraceRequestContext>,
 ) -> RequestResult {
     match client.chat_stream(&chat_request).await {
         Ok(mut stream) => {
@@ -138,15 +139,19 @@ async fn handle_stream_request(
             let content_clone = collected_content.clone();
             let stream_error = Arc::new(std::sync::Mutex::new(None::<String>));
             let stream_error_clone = stream_error.clone();
+            let first_token_at = Arc::new(std::sync::Mutex::new(None::<std::time::Instant>));
+            let first_token_clone = first_token_at.clone();
+            let usage_snapshot = Arc::new(std::sync::Mutex::new(None::<serde_json::Value>));
+            let usage_clone = usage_snapshot.clone();
             let provider_id = provider.id;
             let provider_name = provider.name.clone();
             let model_str = chat_request.model.clone();
-            let service_id_clone = service_id.clone();
-            let api_key_id_clone = api_key_id;
+    let api_key_id_clone = api_key_id;
             let project_id_clone = project_id;
             let org_id_clone = org_id;
             let db = db_pool.clone();
             let pm = pool_manager.clone();
+            let xtrace_ctx_clone = xtrace_ctx.clone();
 
             tokio::spawn(async move {
                 while let Some(chunk) = stream.next().await {
@@ -156,6 +161,18 @@ async fn handle_stream_request(
                                 if let Some(content) = &choice.delta.content {
                                     if let Ok(mut collected) = content_clone.lock() {
                                         collected.push_str(content);
+                                    }
+                                    if let Ok(mut first_token) = first_token_clone.lock() {
+                                        if first_token.is_none() {
+                                            *first_token = Some(std::time::Instant::now());
+                                        }
+                                    }
+                                }
+                            }
+                            if let Ok(json) = serde_json::to_value(&response) {
+                                if let Some(usage) = json.get("usage") {
+                                    if let Ok(mut snapshot) = usage_clone.lock() {
+                                        *snapshot = Some(usage.clone());
                                     }
                                 }
                             }
@@ -187,11 +204,28 @@ async fn handle_stream_request(
                     if c.is_empty() { None } else { Some(c.clone()) }
                 });
 
-                let log = NewRequestLog {
-                    service_id: service_id_clone,
-                    api_key_id: api_key_id_clone,
-                    project_id: project_id_clone,
-                    org_id: org_id_clone,
+                if let Some(ctx) = xtrace_ctx_clone {
+                    let output = response_content.clone().map(serde_json::Value::String);
+                    let usage_value = usage_snapshot.lock().ok().and_then(|u| u.clone());
+                    let usage_tokens = usage_value.as_ref().and_then(|u| xtrace::usage_from_value(u));
+                    let completion_start = first_token_at.lock().ok().and_then(|t| *t);
+                    ctx.client.report_generation(
+                        &ctx,
+                        provider_id,
+                        &provider_name,
+                        &model_str,
+                        output,
+                        usage_tokens,
+                        error_message.clone(),
+                        completion_start,
+                        std::time::Instant::now(),
+                    );
+                }
+
+            let log = NewRequestLog {
+                api_key_id: api_key_id_clone,
+                project_id: project_id_clone,
+                org_id: org_id_clone,
                     provider_id: Some(provider_id),
                     provider_name,
                     model: model_str,
@@ -223,6 +257,19 @@ async fn handle_stream_request(
         Err(e) => {
             let latency_ms = start_time.elapsed().as_millis() as i64;
             pool_manager.record_failure(provider.id, Some(&e.to_string())).await;
+            if let Some(ctx) = xtrace_ctx {
+                ctx.client.report_generation(
+                    &ctx,
+                    provider.id,
+                    &provider.name,
+                    &chat_request.model,
+                    None,
+                    None,
+                    Some(format!("Stream error: {}", e)),
+                    None,
+                    std::time::Instant::now(),
+                );
+            }
             RequestResult::Failure {
                 error: format!("Stream error: {}", e),
                 latency_ms,
@@ -236,7 +283,6 @@ async fn handle_non_stream_request(
     chat_request: ChatRequest,
     provider: &db::Provider,
     model: &str,
-    service_id: Option<String>,
     api_key_id: Option<i64>,
     project_id: Option<i64>,
     org_id: Option<i64>,
@@ -244,6 +290,7 @@ async fn handle_non_stream_request(
     db_pool: &DatabasePool,
     pool_manager: &Arc<PoolManager>,
     start_time: std::time::Instant,
+    xtrace_ctx: Option<XTraceRequestContext>,
 ) -> RequestResult {
     match client.chat(&chat_request).await {
         Ok(response) => {
@@ -254,9 +301,22 @@ async fn handle_non_stream_request(
             let response_json = serde_json::to_value(&response).unwrap_or_default();
             let response_content = extract_response_content(&response_json);
             let tokens_used = extract_tokens_used(&response_json);
+            if let Some(ctx) = xtrace_ctx {
+                let usage = xtrace::usage_from_response(&response_json);
+                ctx.client.report_generation(
+                    &ctx,
+                    provider.id,
+                    &provider.name,
+                    model,
+                    Some(response_json.clone()),
+                    usage,
+                    None,
+                    None,
+                    std::time::Instant::now(),
+                );
+            }
 
             let log = NewRequestLog {
-                service_id: service_id.clone(),
                 api_key_id,
                 project_id,
                 org_id,
@@ -280,9 +340,21 @@ async fn handle_non_stream_request(
         Err(e) => {
             let latency_ms = start_time.elapsed().as_millis() as i64;
             pool_manager.record_failure(provider.id, Some(&e.to_string())).await;
+            if let Some(ctx) = xtrace_ctx {
+                ctx.client.report_generation(
+                    &ctx,
+                    provider.id,
+                    &provider.name,
+                    model,
+                    None,
+                    None,
+                    Some(e.to_string()),
+                    None,
+                    std::time::Instant::now(),
+                );
+            }
 
             let log = NewRequestLog {
-                service_id,
                 api_key_id,
                 project_id,
                 org_id,

@@ -2,7 +2,7 @@ use axum::Json;
 use serde::Deserialize;
 use crate::db::{DatabasePool, RequestLog};
 use crate::admin::auth_middleware::AdminUserContext;
-use crate::db::operations::request_logs::{HourlyRequestCount, ProviderLatency, TodayStats, PerformanceStats, TopModelUsage, TokenUsageByOrg, TokenUsageByService, TokenUsageByApiKey, TokenUsageByUser};
+use crate::db::operations::request_logs::{HourlyRequestCount, ProviderLatency, TodayStats, PerformanceStats, TopModelUsage, TokenUsageByOrg, TokenUsageByApiKey, TokenUsageByUser};
 use super::ApiResponse;
 
 #[derive(Debug, Deserialize)]
@@ -180,29 +180,6 @@ pub async fn get_token_usage_by_org_api(
             success: false,
             data: None,
             message: format!("Failed to retrieve token usage by org: {}", e),
-        }),
-    }
-}
-
-pub async fn get_token_usage_by_service_api(
-    axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
-    axum::extract::Query(query): axum::extract::Query<TokensQuery>,
-    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
-) -> Json<ApiResponse<Vec<TokenUsageByService>>> {
-    let org_filter = if ctx.is_admin { None } else { Some(ctx.org_id) };
-    match db_pool
-        .get_token_usage_by_service(query.hours, query.top, org_filter)
-        .await
-    {
-        Ok(rows) => Json(ApiResponse {
-            success: true,
-            data: Some(rows),
-            message: "Token usage by service retrieved".to_string(),
-        }),
-        Err(e) => Json(ApiResponse {
-            success: false,
-            data: None,
-            message: format!("Failed to retrieve token usage by service: {}", e),
         }),
     }
 }

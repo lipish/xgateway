@@ -17,7 +17,7 @@ use super::health::HealthStatus;
 use super::load_balancer::LoadBalanceStrategy;
 use super::metrics::ProviderMetricsSummary;
 use super::rate_limiter::{RateLimiter, RateLimitConfig, RateLimitResult};
-use crate::db::{DatabasePool, Provider, ApiKey, Service};
+use crate::db::{DatabasePool, Provider, ApiKey};
 
 /// Global provider pool manager
 pub struct PoolManager {
@@ -191,24 +191,6 @@ impl PoolManager {
         self.rate_limiter.check_api_key(&key_info.key_hash, Some(config)).await
     }
 
-    /// Check Service rate limit + bounded queue + concurrency
-    pub async fn check_service_limit(&self, service: &Service) -> RateLimitResult {
-        let config = RateLimitConfig {
-            requests_per_second: service.qps_limit,
-            burst_size: (service.qps_limit * 2.0) as u64,
-            enabled: service.enabled,
-            max_concurrency: Some(service.concurrency_limit as u32),
-        };
-
-        self.rate_limiter
-            .check_service(
-                &service.id,
-                config,
-                service.max_queue_size.max(0) as usize,
-                Duration::from_millis(service.max_queue_wait_ms.max(0) as u64),
-            )
-            .await
-    }
 
     /// Set global rate limit config
     pub async fn set_global_rate_limit(&self, config: RateLimitConfig) {
@@ -289,7 +271,6 @@ impl PoolManager {
                         .clone()
                         .unwrap_or_else(|| "unknown".to_string());
                     let error_log = crate::db::NewRequestLog {
-                        service_id: None,
                         api_key_id: None,
                         project_id: None,
                         org_id: None,
@@ -337,7 +318,6 @@ impl PoolManager {
                         }
 
                         let disabled_log = crate::db::NewRequestLog {
-                            service_id: None,
                             api_key_id: None,
                             project_id: None,
                             org_id: None,

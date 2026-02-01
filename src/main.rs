@@ -11,6 +11,7 @@ mod pool;
 mod adapter;
 mod endpoints;
 mod router;
+mod xtrace;
 
 use clap::Parser;
 use anyhow::Result;
@@ -21,6 +22,7 @@ use engine::instance::init_instance_id;
 use db::try_database;
 use pool::PoolManager;
 use router::build_multi_mode_app;
+use crate::xtrace::XTraceClient;
 use std::sync::Arc;
 
 #[tokio::main]
@@ -81,12 +83,14 @@ async fn run_multi_mode(args: Args) -> Result<()> {
 
     let llm_service = Arc::new(tokio::sync::RwLock::new(crate::service::Service::new(&settings.llm_backend)?));
     let config = Arc::new(tokio::sync::RwLock::new(settings));
+    let xtrace = XTraceClient::from_env();
     
     let app = build_multi_mode_app(
         db_pool.clone(), 
         Arc::clone(&pool_manager),
         llm_service,
         config,
+        xtrace,
     );
 
     let port = std::env::var("PORT")

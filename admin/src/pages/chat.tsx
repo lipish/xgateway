@@ -16,7 +16,6 @@ import {
 
 export function ChatPage() {
   const { user, token } = useAuth()
-  const isAdmin = user?.role_id === 'admin'
   const [searchParams, setSearchParams] = useSearchParams()
   const [providers, setProviders] = useState<Provider[]>([])
   const [conversations, setConversations] = useState<ConversationItem[]>([])
@@ -36,7 +35,7 @@ export function ChatPage() {
   }
 
   useEffect(() => {
-    const endpoint = isAdmin ? "/api/instances" : `/api/users/${user?.id}/instances`
+    const endpoint = "/api/instances"
     apiGet<{ success: boolean; data?: Provider[] }>(endpoint).then((result) => {
       if (result.success) {
         const enabledProviders = (result.data || []).filter((p) => p.enabled)
@@ -58,7 +57,7 @@ export function ChatPage() {
       }
     })
     fetchConversations()
-  }, [isAdmin, user?.id, setSearchParams, searchParams])
+  }, [user?.id, setSearchParams, searchParams])
 
   useEffect(() => {
     panels.forEach(panel => {

@@ -3,6 +3,7 @@ use tokio::sync::RwLock;
 use crate::pool::PoolManager;
 use crate::db::DatabasePool;
 use crate::settings::{Settings, LlmBackendSettings};
+use crate::xtrace::XTraceClient;
 use crate::service::Service as LlmService;
 use anyhow::Result;
 
@@ -12,6 +13,7 @@ pub struct ProxyState {
     pub pool_manager: Arc<PoolManager>,
     pub llm_service: Arc<RwLock<LlmService>>,
     pub config: Arc<RwLock<Settings>>,
+    pub xtrace: Option<Arc<XTraceClient>>,
 }
 
 impl ProxyState {
