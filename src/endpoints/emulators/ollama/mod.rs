@@ -9,6 +9,8 @@ use axum::{
 };
 use serde_json::{json, Value};
 use tracing::info;
+use chrono::Utc;
+use std::time::Instant;
 
 use crate::endpoints::ProxyState;
 use crate::endpoints::emulators::convert;
@@ -29,6 +31,28 @@ async fn chat_impl(
     state: ProxyState,
     request: OllamaChatRequest,
 ) -> Result<Response, StatusCode> {
+    let xtrace = state.xtrace.clone();
+    let start_time = Instant::now();
+    let start_timestamp = Utc::now();
+    let request_payload = serde_json::to_value(&request).ok();
+    let report = |status: StatusCode,
+                  response_payload: Option<Value>,
+                  error: Option<String>,
+                  is_stream: bool| {
+        if let Some(xtrace) = xtrace.as_ref() {
+            xtrace.report_request(
+                "POST",
+                "/api/chat",
+                status.as_u16(),
+                request_payload.clone(),
+                response_payload,
+                error,
+                is_stream,
+                start_time,
+                start_timestamp,
+            );
+        }
+    };
     // Check if this is a MiniMax request and use direct client
     let (is_minimax, minimax_api_key) = {
         let config = state.config.read().await;
@@ -39,15 +63,23 @@ async fn chat_impl(
     };
 
     if is_minimax {
-        return Ok(handle_minimax_chat(&request.model, request.messages, request.stream.unwrap_or(false), minimax_api_key).await);
+        let response = handle_minimax_chat(&request.model, request.messages, request.stream.unwrap_or(false), minimax_api_key).await;
+        report(StatusCode::OK, None, None, request.stream.unwrap_or(false));
+        return Ok(response);
     }
 
     // 验证模型
     if !request.model.is_empty() {
         let llm_service = state.llm_service.read().await;
         match llm_service.validate_model(&request.model).await {
-            Ok(false) => return Err(StatusCode::BAD_REQUEST),
-            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+            Ok(false) => {
+                report(StatusCode::BAD_REQUEST, None, Some("model_not_found".to_string()), false);
+                return Err(StatusCode::BAD_REQUEST);
+            }
+            Err(_) => {
+                report(StatusCode::INTERNAL_SERVER_ERROR, None, Some("model_validation_failed".to_string()), false);
+                return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            }
             Ok(true) => {}
         }
     }
@@ -60,20 +92,30 @@ async fn chat_impl(
 
             if request.stream.unwrap_or(false) {
                 match handle_streaming_request(headers, state.clone(), model, messages.clone(), tools.clone()).await {
-                    Ok(resp) => Ok(resp),
+                    Ok(resp) => {
+                        report(StatusCode::OK, None, None, true);
+                        Ok(resp)
+                    }
                     Err(_) => {
                         let msgs: Vec<llm_connector::types::Message> = messages;
                         let tls: Option<Vec<llm_connector::types::Tool>> = tools;
-                        Ok(handle_generic_chat_nonstream(state, model.map(|s| s.to_string()), msgs, tls).await)
+                        let resp = handle_generic_chat_nonstream(state, model.map(|s| s.to_string()), msgs, tls).await;
+                        report(StatusCode::OK, None, None, false);
+                        Ok(resp)
                     },
                 }
             } else {
                 let msgs: Vec<llm_connector::types::Message> = messages;
                 let tls: Option<Vec<llm_connector::types::Tool>> = tools;
-                Ok(handle_generic_chat_nonstream(state, model.map(|s| s.to_string()), msgs, tls).await)
+                let resp = handle_generic_chat_nonstream(state, model.map(|s| s.to_string()), msgs, tls).await;
+                report(StatusCode::OK, None, None, false);
+                Ok(resp)
             }
         }
-        Err(_) => Err(StatusCode::BAD_REQUEST),
+        Err(_) => {
+            report(StatusCode::BAD_REQUEST, None, Some("invalid_messages".to_string()), false);
+            Err(StatusCode::BAD_REQUEST)
+        }
     }
 }
 
@@ -119,6 +161,25 @@ async fn handle_generic_chat_nonstream(
 pub async fn models(
     State(state): State<ProxyState>,
 ) -> Result<Json<Value>, StatusCode> {
+    let start_time = Instant::now();
+    let start_timestamp = Utc::now();
+    let report = |status: StatusCode,
+                  response_payload: Option<Value>,
+                  error: Option<String>| {
+        if let Some(xtrace) = state.xtrace.as_ref() {
+            xtrace.report_request(
+                "GET",
+                "/api/tags",
+                status.as_u16(),
+                None,
+                response_payload,
+                error,
+                false,
+                start_time,
+                start_timestamp,
+            );
+        }
+    };
     let llm_service = state.llm_service.read().await;
     let models_result = llm_service.list_models().await;
 
@@ -143,16 +204,40 @@ pub async fn models(
                 "models": ollama_models,
                 "provider": current_provider,
             });
+            report(StatusCode::OK, Some(response.clone()), None);
             Ok(Json(response))
         }
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+        Err(_) => {
+            report(StatusCode::INTERNAL_SERVER_ERROR, None, Some("model_list_failed".to_string()));
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
 pub async fn show_handler(
-    State(_state): State<ProxyState>,
+    State(state): State<ProxyState>,
     Json(request): Json<Value>,
 ) -> Result<Json<Value>, StatusCode> {
+    let start_time = Instant::now();
+    let start_timestamp = Utc::now();
+    let request_payload = Some(request.clone());
+    let report = |status: StatusCode,
+                  response_payload: Option<Value>,
+                  error: Option<String>| {
+        if let Some(xtrace) = state.xtrace.as_ref() {
+            xtrace.report_request(
+                "POST",
+                "/api/show",
+                status.as_u16(),
+                request_payload.clone(),
+                response_payload,
+                error,
+                false,
+                start_time,
+                start_timestamp,
+            );
+        }
+    };
     let model_name = request.get("name")
         .or_else(|| request.get("model"))
         .and_then(|v| v.as_str())
@@ -178,6 +263,7 @@ pub async fn show_handler(
             "general.parameter_count": 7000000000u64,
         }
     });
+    report(StatusCode::OK, Some(response.clone()), None);
     Ok(Json(response))
 }
 
@@ -188,6 +274,8 @@ pub fn build_ollama_routes(state: ProxyState, ollama_config: &settings::OllamaAp
         .route(&format!("{}/api/tags", ollama_config.path), get(move |axum::extract::State(s): axum::extract::State<ProxyState>| {
             let db = db_pool.clone();
             async move {
+                let start_time = Instant::now();
+                let start_timestamp = Utc::now();
                 let provider_name = {
                     let cfg = s.config.read().await;
                     match &cfg.llm_backend {
@@ -219,11 +307,47 @@ pub fn build_ollama_routes(state: ProxyState, ollama_config: &settings::OllamaAp
                         "tags": tags
                     })
                 }).collect();
-                Json(json!({ "models": ollama_models }))
+                let response = json!({ "models": ollama_models });
+                if let Some(xtrace) = s.xtrace.as_ref() {
+                    xtrace.report_request(
+                        "GET",
+                        "/api/tags",
+                        StatusCode::OK.as_u16(),
+                        None,
+                        Some(response.clone()),
+                        None,
+                        false,
+                        start_time,
+                        start_timestamp,
+                    );
+                }
+                Json(response)
             }
         }))
         .route(&format!("{}/api/chat", ollama_config.path), post(move |axum::extract::State(s): axum::extract::State<ProxyState>, Json(req): Json<Value>| {
             async move {
+                let xtrace = s.xtrace.clone();
+                let start_time = Instant::now();
+                let start_timestamp = Utc::now();
+                let request_payload = Some(req.clone());
+                let report = |status: StatusCode,
+                              response_payload: Option<Value>,
+                              error: Option<String>,
+                              is_stream: bool| {
+                    if let Some(xtrace) = xtrace.as_ref() {
+                        xtrace.report_request(
+                            "POST",
+                            "/api/chat",
+                            status.as_u16(),
+                            request_payload.clone(),
+                            response_payload,
+                            error,
+                            is_stream,
+                            start_time,
+                            start_timestamp,
+                        );
+                    }
+                };
                 let model = req.get("model").and_then(|v| v.as_str()).unwrap_or("MiniMax-M2").to_string();
                 let messages_value = req.get("messages").and_then(|v| v.as_array()).cloned().unwrap_or_default();
                 let stream = req.get("stream").and_then(|v| v.as_bool()).unwrap_or(false);
@@ -237,12 +361,15 @@ pub fn build_ollama_routes(state: ProxyState, ollama_config: &settings::OllamaAp
                 drop(config);
 
                 if is_minimax {
-                    handle_minimax_chat(&model, messages_value, stream, minimax_api_key).await
+                    let response = handle_minimax_chat(&model, messages_value, stream, minimax_api_key).await;
+                    report(StatusCode::OK, None, None, stream);
+                    response
                 } else {
                     let messages = match convert::openai_messages_to_llm(messages_value) {
                         Ok(messages) => messages,
                         Err(e) => {
                             info!("Failed to convert messages: {:?}", e);
+                            report(StatusCode::BAD_REQUEST, None, Some("invalid_messages".to_string()), false);
                             return Response::builder()
                                 .status(400)
                                 .header("content-type", "application/json")
@@ -253,18 +380,38 @@ pub fn build_ollama_routes(state: ProxyState, ollama_config: &settings::OllamaAp
                     let tools = tools_value.map(|t| convert::openai_tools_to_llm(t));
                     
                     if stream {
-                        handle_generic_chat_stream(s, Some(model), messages, tools).await
+                        let resp = handle_generic_chat_stream(s, Some(model), messages, tools).await;
+                        report(StatusCode::OK, None, None, true);
+                        resp
                     } else {
                         let msgs: Vec<llm_connector::types::Message> = messages;
                         let tls: Option<Vec<llm_connector::types::Tool>> = tools;
-                        handle_generic_chat_nonstream(s, Some(model), msgs, tls).await
+                        let resp = handle_generic_chat_nonstream(s, Some(model), msgs, tls).await;
+                        report(StatusCode::OK, None, None, false);
+                        resp
                     }
                 }
             }
         }))
         .route(&format!("{}/api/show", ollama_config.path), post(show_handler))
-        .route(&format!("{}/api/version", ollama_config.path), get(|| async {
-            Json(json!({ "version": "0.1.0", "build": "xgateway" }))
+        .route(&format!("{}/api/version", ollama_config.path), get(move |axum::extract::State(s): axum::extract::State<ProxyState>| async move {
+            let start_time = Instant::now();
+            let start_timestamp = Utc::now();
+            let response = json!({ "version": "0.1.0", "build": "xgateway" });
+            if let Some(xtrace) = s.xtrace.as_ref() {
+                xtrace.report_request(
+                    "GET",
+                    "/api/version",
+                    StatusCode::OK.as_u16(),
+                    None,
+                    Some(response.clone()),
+                    None,
+                    false,
+                    start_time,
+                    start_timestamp,
+                );
+            }
+            Json(response)
         }))
         .with_state(state_for_chat)
 }

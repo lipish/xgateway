@@ -36,7 +36,7 @@ function getNavigation() {
                 { name: t('nav.modelTypes'), href: "/providers", icon: Library },
                 { name: t('nav.models'), href: "/models", icon: Server },
                 { name: t('nav.chat'), href: "/chat", icon: MessageSquare },
-                { name: t('nav.services'), href: "/services", icon: Layers },
+                { name: t('nav.services'), href: "/api-keys", icon: Layers },
             ],
         },
         {

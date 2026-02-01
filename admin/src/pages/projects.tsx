@@ -330,13 +330,13 @@ export function ProjectsPage() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-md bg-muted p-3">
+                    <div className="rounded-md bg-muted border border-border/60 p-3">
                       <div className="text-xs text-muted-foreground">{t("projects.label")}</div>
                       <div className="mt-1 text-sm font-medium">
                         {t(`projects.labelText.${selectedProject.status}`) || selectedProject.status}
                       </div>
                     </div>
-                    <div className="rounded-md bg-muted p-3">
+                    <div className="rounded-md bg-muted border border-border/60 p-3">
                       <div className="text-xs text-muted-foreground">{t("projects.updatedAt")}</div>
                       <div className="mt-1 text-sm font-medium">{formatDate(selectedProject.updated_at)}</div>
                     </div>

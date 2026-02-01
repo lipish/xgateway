@@ -9,7 +9,9 @@ use futures::StreamExt;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::convert::Infallible;
+use std::time::Instant;
 use tracing::{info, warn, error};
+use chrono::Utc;
 
 use crate::tuner::{ClientTuner, FormatDetector};
 use crate::endpoints::ProxyState;
@@ -48,8 +50,41 @@ pub async fn chat(
     State(state): State<ProxyState>,
     Json(request): Json<OpenAIChatRequest>,
 ) -> Result<Response, StatusCode> {
+    let xtrace = state.xtrace.clone();
+    let start_time = Instant::now();
+    let start_timestamp = Utc::now();
+    let request_payload = Some(json!({
+        "model": request.model,
+        "messages": request.messages,
+        "stream": request.stream,
+        "max_tokens": request.max_tokens,
+        "temperature": request.temperature,
+        "tools": request.tools,
+        "tool_choice": request.tool_choice,
+    }));
+    let report = |status: StatusCode,
+                  response_payload: Option<Value>,
+                  error: Option<String>,
+                  is_stream: bool| {
+        if let Some(xtrace) = xtrace.as_ref() {
+            xtrace.report_request(
+                "POST",
+                "/openai/v1/chat/completions",
+                status.as_u16(),
+                request_payload.clone(),
+                response_payload,
+                error,
+                is_stream,
+                start_time,
+                start_timestamp,
+            );
+        }
+    };
     // API Key 校验
-    enforce_api_key(&headers, &state).await?;
+    if let Err(err) = enforce_api_key(&headers, &state).await {
+        report(err, None, Some("unauthorized".to_string()), false);
+        return Err(err);
+    }
 
     info!("📝 Received request - model: {}, stream: {:?}, messages count: {}",
           request.model, request.stream, request.messages.len());
@@ -64,10 +99,12 @@ pub async fn chat(
         match validation_result {
             Ok(false) => {
                 error!("Model validation failed: model '{}' not found", request.model);
+                report(StatusCode::BAD_REQUEST, None, Some("model_not_found".to_string()), false);
                 return Err(StatusCode::BAD_REQUEST);
             }
             Err(e) => {
                 error!("Model validation error: {:?}", e);
+                report(StatusCode::INTERNAL_SERVER_ERROR, None, Some("model_validation_failed".to_string()), false);
                 return Err(StatusCode::INTERNAL_SERVER_ERROR);
             }
             Ok(true) => {
@@ -99,14 +136,33 @@ pub async fn chat(
                 if let Some(ref tools_ref) = tools {
                     info!("Streaming with {} tools (llm-connector 0.5.4+ fix applied)", tools_ref.len());
                 }
-                handle_streaming_request(headers, state, model, messages, tools).await
+                match handle_streaming_request(headers, state, model, messages, tools).await {
+                    Ok(resp) => {
+                        report(StatusCode::OK, None, None, true);
+                        Ok(resp)
+                    }
+                    Err(err) => {
+                        report(err, None, Some("streaming_failed".to_string()), true);
+                        Err(err)
+                    }
+                }
             } else {
                 info!("📝 Using non-streaming mode");
-                handle_non_streaming_request(state, model, messages, tools).await
+                match handle_non_streaming_request(state, model, messages, tools).await {
+                    Ok(resp) => {
+                        report(StatusCode::OK, None, None, false);
+                        Ok(resp)
+                    }
+                    Err(err) => {
+                        report(err, None, Some("chat_failed".to_string()), false);
+                        Err(err)
+                    }
+                }
             }
         }
         Err(e) => {
             error!("Failed to convert OpenAI messages: {:?}", e);
+            report(StatusCode::BAD_REQUEST, None, Some("invalid_messages".to_string()), false);
             Err(StatusCode::BAD_REQUEST)
         }
     }
@@ -227,7 +283,30 @@ pub async fn models(
     State(state): State<ProxyState>,
     Query(_params): Query<OpenAIModelsParams>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    enforce_api_key(&headers, &state).await?;
+    let xtrace = state.xtrace.clone();
+    let start_time = Instant::now();
+    let start_timestamp = Utc::now();
+    let report = |status: StatusCode,
+                  response_payload: Option<Value>,
+                  error: Option<String>| {
+        if let Some(xtrace) = xtrace.as_ref() {
+            xtrace.report_request(
+                "GET",
+                "/openai/v1/models",
+                status.as_u16(),
+                None,
+                response_payload,
+                error,
+                false,
+                start_time,
+                start_timestamp,
+            );
+        }
+    };
+    if let Err(err) = enforce_api_key(&headers, &state).await {
+        report(err, None, Some("unauthorized".to_string()));
+        return Err(err);
+    }
 
     let llm_service: tokio::sync::RwLockReadGuard<'_, LlmService> = state.llm_service.read().await;
     let models_result: Result<Vec<Model>, _> = llm_service.list_models().await;
@@ -262,9 +341,13 @@ pub async fn models(
                 "data": openai_models,
                 "provider": current_provider,
             });
+            report(StatusCode::OK, Some(response.clone()), None);
             Ok(Json(response))
         }
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+        Err(_) => {
+            report(StatusCode::INTERNAL_SERVER_ERROR, None, Some("model_list_failed".to_string()));
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 

@@ -7,7 +7,9 @@ use axum::{
 use futures_util::stream::Stream;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::time::Instant;
 use tracing::{error, info};
+use chrono::Utc;
 
 use crate::endpoints::ProxyState;
 use crate::engine::Model;
@@ -145,6 +147,27 @@ pub async fn messages(
     headers: axum::http::HeaderMap,
     Json(mut request): Json<AnthropicMessagesRequest>,
 ) -> Result<Response, StatusCode> {
+    let start_time = Instant::now();
+    let start_timestamp = Utc::now();
+    let request_payload = serde_json::to_value(&request).ok();
+    let report = |status: StatusCode,
+                  response_payload: Option<serde_json::Value>,
+                  error: Option<String>,
+                  is_stream: bool| {
+        if let Some(xtrace) = state.xtrace.as_ref() {
+            xtrace.report_request(
+                "POST",
+                "/v1/messages",
+                status.as_u16(),
+                request_payload.clone(),
+                response_payload,
+                error,
+                is_stream,
+                start_time,
+                start_timestamp,
+            );
+        }
+    };
     info!("📨 Anthropic Messages API request: client_model={}, stream={}", request.model, request.stream);
     info!("📋 Request details: messages_count={}, max_tokens={:?}, temperature={:?}",
           request.messages.len(), request.max_tokens, request.temperature);
@@ -232,10 +255,12 @@ pub async fn messages(
                 let mut response = response;
                 response.headers_mut().insert("anthropic-version", "2023-06-01".parse().unwrap());
                 response.headers_mut().insert("request-id", uuid::Uuid::new_v4().to_string().parse().unwrap());
+                report(StatusCode::OK, None, None, true);
                 Ok(response)
             }
             Err(e) => {
                 error!("Streaming error: {}", e);
+                report(StatusCode::INTERNAL_SERVER_ERROR, None, Some("streaming_failed".to_string()), true);
                 Err(StatusCode::INTERNAL_SERVER_ERROR)
             }
         }
@@ -271,14 +296,17 @@ pub async fn messages(
                     },
                 };
 
+                let response_payload = serde_json::to_value(&anthropic_response).ok();
                 let mut response = Json(anthropic_response).into_response();
                 // Add required Anthropic API headers for non-streaming responses
                 response.headers_mut().insert("anthropic-version", "2023-06-01".parse().unwrap());
                 response.headers_mut().insert("request-id", uuid::Uuid::new_v4().to_string().parse().unwrap());
+                report(StatusCode::OK, response_payload, None, false);
                 Ok(response)
             }
             Err(e) => {
                 error!("Chat error: {}", e);
+                report(StatusCode::INTERNAL_SERVER_ERROR, None, Some("chat_failed".to_string()), false);
                 Err(StatusCode::INTERNAL_SERVER_ERROR)
             }
         }
@@ -417,6 +445,25 @@ fn convert_to_anthropic_stream(
 pub async fn models(
     State(state): State<ProxyState>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let start_time = Instant::now();
+    let start_timestamp = Utc::now();
+    let report = |status: StatusCode,
+                  response_payload: Option<serde_json::Value>,
+                  error: Option<String>| {
+        if let Some(xtrace) = state.xtrace.as_ref() {
+            xtrace.report_request(
+                "GET",
+                "/v1/models",
+                status.as_u16(),
+                None,
+                response_payload,
+                error,
+                false,
+                start_time,
+                start_timestamp,
+            );
+        }
+    };
     let llm_service: tokio::sync::RwLockReadGuard<'_, LlmService> = state.llm_service.read().await;
     let models_result: Result<Vec<Model>, _> = llm_service.list_models().await;
 
@@ -449,9 +496,13 @@ pub async fn models(
                 "data": anthropic_models,
                 "provider": current_provider,
             });
+            report(StatusCode::OK, Some(response.clone()), None);
             Ok(Json(response))
         }
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+        Err(_) => {
+            report(StatusCode::INTERNAL_SERVER_ERROR, None, Some("model_list_failed".to_string()));
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -461,9 +512,29 @@ pub async fn models(
 /// 我们返回一个模拟的 token 计数响应
 #[allow(dead_code)]
 pub async fn count_tokens(
-    State(_state): State<ProxyState>,
+    State(state): State<ProxyState>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Response, StatusCode> {
+    let start_time = Instant::now();
+    let start_timestamp = Utc::now();
+    let request_payload = Some(request.clone());
+    let report = |status: StatusCode,
+                  response_payload: Option<serde_json::Value>,
+                  error: Option<String>| {
+        if let Some(xtrace) = state.xtrace.as_ref() {
+            xtrace.report_request(
+                "POST",
+                "/v1/messages/count_tokens",
+                status.as_u16(),
+                request_payload.clone(),
+                response_payload,
+                error,
+                false,
+                start_time,
+                start_timestamp,
+            );
+        }
+    };
     info!("📊 Anthropic Count Tokens API request received");
     
     // 计算整个请求的字符数来估算 token
@@ -483,6 +554,8 @@ pub async fn count_tokens(
     // Add required Anthropic API headers
     response.headers_mut().insert("anthropic-version", "2023-06-01".parse().unwrap());
     response.headers_mut().insert("request-id", uuid::Uuid::new_v4().to_string().parse().unwrap());
+    report(StatusCode::OK, Some(json!({
+        "input_tokens": estimated_tokens
+    })), None);
     Ok(response)
 }
-

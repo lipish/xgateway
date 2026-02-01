@@ -251,6 +251,93 @@ impl XTraceClient {
             observations: vec![observation],
         });
     }
+
+    pub fn report_request(
+        &self,
+        method: &str,
+        path: &str,
+        status: u16,
+        request_payload: Option<JsonValue>,
+        response_payload: Option<JsonValue>,
+        error: Option<String>,
+        is_stream: bool,
+        start_time: Instant,
+        start_timestamp: DateTime<Utc>,
+    ) {
+        let elapsed = start_time.elapsed();
+        let latency = elapsed.as_secs_f64();
+        let end_timestamp = start_timestamp
+            + chrono::Duration::milliseconds(elapsed.as_millis() as i64);
+
+        let metadata = build_request_metadata(method, path, status, error.as_deref(), is_stream);
+
+        let trace_output = response_payload.clone().or_else(|| {
+            error.as_ref().map(|msg| serde_json::json!({ "error": msg }))
+        });
+
+        let trace = TraceIngest {
+            id: Uuid::new_v4(),
+            timestamp: Some(start_timestamp),
+            name: Some(format!("{}.request", self.config.trace_name)),
+            input: request_payload,
+            output: trace_output,
+            session_id: None,
+            release: None,
+            version: None,
+            user_id: None,
+            metadata: Some(metadata.clone()),
+            tags: vec!["xgateway".to_string(), "request".to_string()],
+            public: None,
+            environment: self.config.environment.clone(),
+            external_id: None,
+            bookmarked: None,
+            latency: Some(latency),
+            total_cost: None,
+            project_id: self.config.project_id.clone(),
+        };
+
+        let observation = ObservationIngest {
+            id: Uuid::new_v4(),
+            trace_id: trace.id,
+            r#type: Some("REQUEST".to_string()),
+            name: Some("http".to_string()),
+            start_time: Some(start_timestamp),
+            end_time: Some(end_timestamp),
+            completion_start_time: None,
+            model: None,
+            model_parameters: None,
+            input: None,
+            output: response_payload,
+            usage: None,
+            level: error.as_ref().map(|_| "ERROR".to_string()),
+            status_message: error.clone(),
+            parent_observation_id: None,
+            prompt_id: None,
+            prompt_name: None,
+            prompt_version: None,
+            model_id: None,
+            input_price: None,
+            output_price: None,
+            total_price: None,
+            calculated_input_cost: None,
+            calculated_output_cost: None,
+            calculated_total_cost: None,
+            latency: Some(latency),
+            time_to_first_token: None,
+            completion_tokens: None,
+            prompt_tokens: None,
+            total_tokens: None,
+            unit: None,
+            metadata: Some(metadata),
+            environment: self.config.environment.clone(),
+            project_id: self.config.project_id.clone(),
+        };
+
+        self.enqueue(BatchIngestRequest {
+            trace: Some(trace),
+            observations: vec![observation],
+        });
+    }
 }
 
 fn env_var(key: &str) -> Option<String> {
@@ -341,6 +428,24 @@ fn build_metadata(
         map.insert("error".to_string(), JsonValue::String(error.to_string()));
     }
 
+    JsonValue::Object(map)
+}
+
+fn build_request_metadata(
+    method: &str,
+    path: &str,
+    status: u16,
+    error: Option<&str>,
+    is_stream: bool,
+) -> JsonValue {
+    let mut map = serde_json::Map::new();
+    map.insert("method".to_string(), JsonValue::String(method.to_string()));
+    map.insert("path".to_string(), JsonValue::String(path.to_string()));
+    map.insert("status".to_string(), JsonValue::Number(status.into()));
+    map.insert("stream".to_string(), JsonValue::Bool(is_stream));
+    if let Some(error) = error {
+        map.insert("error".to_string(), JsonValue::String(error.to_string()));
+    }
     JsonValue::Object(map)
 }
 

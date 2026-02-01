@@ -13,7 +13,7 @@ export function DetailPanel({ children, className, contentClassName, scroll = tr
     <div className={cn("flex-1 h-full flex flex-col min-w-0", className)}>
       <div
         className={cn(
-          "flex-1 h-full p-6 rounded-lg border bg-background",
+          "flex-1 h-full p-6 rounded-lg border border-border bg-white",
           scroll ? "overflow-y-auto" : "overflow-hidden",
           contentClassName
         )}

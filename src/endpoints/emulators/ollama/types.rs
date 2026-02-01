@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::collections::HashMap;
@@ -54,7 +54,7 @@ pub fn handle_tool_caching(
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[allow(dead_code)]
 pub struct OllamaChatRequest {
     #[allow(dead_code)]

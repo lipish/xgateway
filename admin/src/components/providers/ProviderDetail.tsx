@@ -80,12 +80,12 @@ export function ProviderDetail({ provider, onAddModel, onEditModel, onDeleteMode
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 rounded-lg bg-muted">
+          <div className="p-3 rounded-lg bg-muted border border-border/60">
             <div className="text-xs font-medium text-muted-foreground mb-1.5">{t('modelTypes.baseUrl')}</div>
             <div className="text-xs font-mono text-foreground/90 break-all">{provider.base_url || '-'}</div>
           </div>
           {/* Corrected: Removed default model block */}
-          <div className="p-3 rounded-lg bg-muted">
+          <div className="p-3 rounded-lg bg-muted border border-border/60">
             <div className="text-xs font-medium text-muted-foreground mb-1.5">{t('modelTypes.driverType')}</div>
             <div className="text-xs font-mono text-foreground/90 uppercase">{getLocalizedDriverType(provider.driver_type)}</div>
           </div>

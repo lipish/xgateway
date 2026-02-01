@@ -121,6 +121,7 @@ npm run dev
 ```
 
 The frontend dev server will be available at `http://localhost:5173/` with hot-reload enabled.
+Note: The dev proxy is configured to only match `/api/` and `/v1/` (trailing slash required) to avoid intercepting frontend routes like `/api-keys`.
 
 📚 **[Development Guide →](https://lipish.github.io/xgateway/docs/development)**
 

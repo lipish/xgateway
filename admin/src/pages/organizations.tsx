@@ -346,11 +346,11 @@ export function OrganizationsPage() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-md bg-muted p-3">
+                    <div className="rounded-md bg-muted border border-border/60 p-3">
                       <div className="text-xs text-muted-foreground">{t("organizations.label")}</div>
                       <div className="mt-1 text-sm font-medium">{t(`organizations.labelText.${selectedOrg.status}`)}</div>
                     </div>
-                    <div className="rounded-md bg-muted p-3">
+                    <div className="rounded-md bg-muted border border-border/60 p-3">
                       <div className="text-xs text-muted-foreground">{t("organizations.updatedAt")}</div>
                       <div className="mt-1 text-sm font-medium">{formatDate(selectedOrg.updated_at)}</div>
                     </div>

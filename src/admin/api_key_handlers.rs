@@ -16,6 +16,13 @@ async fn api_key_belongs_to_org(db_pool: &DatabasePool, api_key_id: i64, org_id:
     }
 }
 
+async fn api_key_owned_by_user(db_pool: &DatabasePool, api_key_id: i64, user_id: i64) -> Result<bool, String> {
+    match db_pool.get_api_key_by_id(api_key_id).await {
+        Ok(Some(k)) => Ok(k.owner_id == Some(user_id)),
+        Ok(None) => Err("api_key_not_found".to_string()),
+        Err(e) => Err(format!("Failed to get API key: {}", e)),
+    }
+}
 
 /// List API keys
 pub async fn list_api_keys_api(
@@ -95,7 +102,18 @@ pub async fn update_api_key_api(
             }
         }
         if ctx.org_role.as_deref() != Some("admin") {
-            return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+            match api_key_owned_by_user(&db_pool, id, ctx.user.id).await {
+                Ok(true) => {}
+                Ok(false) => {
+                    return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+                }
+                Err(msg) => {
+                    if msg == "api_key_not_found" {
+                        return Json(ApiResponse { success: false, data: None, message: "API key not found".to_string() });
+                    }
+                    return Json(ApiResponse { success: false, data: None, message: msg });
+                }
+            }
         }
     }
 
@@ -268,10 +286,6 @@ pub async fn delete_api_key_api(
     axum::extract::Path(id): axum::extract::Path<i64>,
     axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
 ) -> Json<ApiResponse<()>> {
-    if !ctx.is_admin && ctx.org_role.as_deref() != Some("admin") {
-        return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
-    }
-
     if !ctx.is_admin {
         match api_key_belongs_to_org(&db_pool, id, ctx.org_id).await {
             Ok(true) => {}
@@ -283,6 +297,20 @@ pub async fn delete_api_key_api(
                     return Json(ApiResponse { success: false, data: None, message: "API key not found".to_string() });
                 }
                 return Json(ApiResponse { success: false, data: None, message: msg });
+            }
+        }
+        if ctx.org_role.as_deref() != Some("admin") {
+            match api_key_owned_by_user(&db_pool, id, ctx.user.id).await {
+                Ok(true) => {}
+                Ok(false) => {
+                    return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+                }
+                Err(msg) => {
+                    if msg == "api_key_not_found" {
+                        return Json(ApiResponse { success: false, data: None, message: "API key not found".to_string() });
+                    }
+                    return Json(ApiResponse { success: false, data: None, message: msg });
+                }
             }
         }
     }
@@ -313,9 +341,6 @@ pub async fn toggle_api_key_api(
     axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
 ) -> Json<ApiResponse<()>> {
     if !ctx.is_admin {
-        if ctx.org_role.as_deref() != Some("admin") {
-            return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
-        }
         match api_key_belongs_to_org(&db_pool, id, ctx.org_id).await {
             Ok(true) => {}
             Ok(false) => {
@@ -326,6 +351,20 @@ pub async fn toggle_api_key_api(
                     return Json(ApiResponse { success: false, data: None, message: "API key not found".to_string() });
                 }
                 return Json(ApiResponse { success: false, data: None, message: msg });
+            }
+        }
+        if ctx.org_role.as_deref() != Some("admin") {
+            match api_key_owned_by_user(&db_pool, id, ctx.user.id).await {
+                Ok(true) => {}
+                Ok(false) => {
+                    return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+                }
+                Err(msg) => {
+                    if msg == "api_key_not_found" {
+                        return Json(ApiResponse { success: false, data: None, message: "API key not found".to_string() });
+                    }
+                    return Json(ApiResponse { success: false, data: None, message: msg });
+                }
             }
         }
     }
@@ -366,9 +405,6 @@ pub async fn rotate_api_key_api(
     axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
 ) -> Json<ApiResponse<serde_json::Value>> {
     if !ctx.is_admin {
-        if ctx.org_role.as_deref() != Some("admin") {
-            return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
-        }
         match api_key_belongs_to_org(&db_pool, id, ctx.org_id).await {
             Ok(true) => {}
             Ok(false) => {
@@ -379,6 +415,20 @@ pub async fn rotate_api_key_api(
                     return Json(ApiResponse { success: false, data: None, message: "API key not found".to_string() });
                 }
                 return Json(ApiResponse { success: false, data: None, message: msg });
+            }
+        }
+        if ctx.org_role.as_deref() != Some("admin") {
+            match api_key_owned_by_user(&db_pool, id, ctx.user.id).await {
+                Ok(true) => {}
+                Ok(false) => {
+                    return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+                }
+                Err(msg) => {
+                    if msg == "api_key_not_found" {
+                        return Json(ApiResponse { success: false, data: None, message: "API key not found".to_string() });
+                    }
+                    return Json(ApiResponse { success: false, data: None, message: msg });
+                }
             }
         }
     }

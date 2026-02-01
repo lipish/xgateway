@@ -4,6 +4,8 @@ export interface Provider {
   provider_type: string
   enabled: boolean
   priority?: number
+  config?: string
+  endpoint?: string | null
 }
 
 export interface ApiKey {

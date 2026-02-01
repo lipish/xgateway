@@ -20,11 +20,11 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       proxy: {
-        '/api': {
+        '^/api/': {
           target: apiUrl,
           changeOrigin: true,
         },
-        '/v1': {
+        '^/v1/': {
           target: apiUrl,
           changeOrigin: true,
         },

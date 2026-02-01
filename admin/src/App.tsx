@@ -44,7 +44,8 @@ function AppRoutes() {
           <Route path="users" element={<UsersPage />} />
           <Route path="organizations" element={<OrganizationsPage />} />
           <Route path="projects" element={<ProjectsPage />} />
-          <Route path="services" element={<ServicesPage />} />
+          <Route path="services" element={<Navigate to="/api-keys" replace />} />
+          <Route path="api-keys" element={<ServicesPage />} />
           <Route path="help" element={<HelpPage />} />
         </Route>
       </Routes>
