@@ -94,18 +94,22 @@ export function ProvidersPage() {
     }
   }, []);
 
-  const fetchProviders = useCallback(async () => {
+  const fetchProviders = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const endpoint = "/api/instances";
       const result = await apiGet<ApiResponse<Provider[]>>(endpoint);
 
       if (result.success) {
         const data = result.data || [];
         setProviders(data);
-        if (data.length > 0 && !selectedProvider) {
-          setSelectedProvider(data[0]);
-        }
+        setSelectedProvider((current) => {
+          if (current && data.some((provider) => provider.id === current.id)) {
+            return current;
+          }
+          return data[0] ?? null;
+        });
         setError(null);
       } else {
         setError(result.message || t("providers.fetchFailed"));
@@ -114,9 +118,9 @@ export function ProvidersPage() {
       setError(t("providers.fetchFailed"));
       console.error("Error fetching providers:", err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, [isAdmin, selectedProvider, user?.id]);
+  }, [isAdmin, user?.id]);
 
   useEffect(() => {
     fetchProviders();
@@ -174,7 +178,7 @@ export function ProvidersPage() {
           setSelectedProvider((sp) => (sp?.id === id ? result.data! : sp));
           setGlobalError(result.message || t("providers.modifiedRefresh"));
           setErrorDialogOpen(true);
-          fetchProviders();
+          fetchProviders({ silent: true });
         } else {
           setProviders(prevProviders);
           setSelectedProvider(prevSelectedProvider);

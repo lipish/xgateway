@@ -27,7 +27,7 @@ export function ChatHistoryDropdown({
         <ChevronDown className={cn("ml-1 h-3.5 w-3.5 transition-transform", open && "rotate-180")} />
       </Button>
       {open && (
-        <div className="absolute right-0 mt-2 w-80 bg-popover border rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+        <div className="absolute right-0 mt-2 w-[220px] bg-popover border rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
           {conversations.length === 0 ? (
             <div className="p-8 text-sm text-muted-foreground text-center">
               <MessageSquarePlus className="w-8 h-8 mx-auto mb-2 opacity-20" />

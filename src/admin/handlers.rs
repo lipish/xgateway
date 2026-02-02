@@ -285,17 +285,23 @@ pub async fn delete_provider_api(
 /// Toggle provider enabled status
 pub async fn toggle_provider_api(
     State(db_pool): State<DatabasePool>,
+    State(pool_manager): State<std::sync::Arc<crate::pool::PoolManager>>,
     Path(id): Path<i64>,
 ) -> Result<Json<SingleProviderResponse>, StatusCode> {
     match db_pool.toggle_provider(id).await {
         Ok(true) => {
             // Return updated provider
             match db_pool.get_provider(id).await {
-                Ok(Some(provider)) => Ok(Json(SingleProviderResponse {
-                    success: true,
-                    data: Some(provider),
-                    message: "Provider status toggled successfully".to_string(),
-                })),
+                Ok(Some(provider)) => {
+                    if let Err(e) = pool_manager.sync_with_db().await {
+                        tracing::warn!("Failed to sync pool with database: {}", e);
+                    }
+                    Ok(Json(SingleProviderResponse {
+                        success: true,
+                        data: Some(provider),
+                        message: "Provider status toggled successfully".to_string(),
+                    }))
+                }
                 Ok(None) => Err(StatusCode::INTERNAL_SERVER_ERROR),
                 Err(e) => {
                     tracing::error!("Failed to retrieve updated provider: {}", e);

@@ -111,7 +111,9 @@ export const ChatPanelCard = forwardRef<HTMLDivElement, ChatPanelCardProps>(
                   <p className="text-muted-foreground/70 max-w-[240px] leading-relaxed">
                     {panel.providerId
                       ? `${t('chat.sendMessageToStart')} ${provider?.name}`
-                      : t('chat.selectProviderFirst')}
+                      : panel.conversationId
+                        ? t('chat.providerDisabled')
+                        : t('chat.selectProviderFirst')}
                   </p>
                 </div>
               )}

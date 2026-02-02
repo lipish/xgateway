@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
-import { apiGet, apiPost } from "@/lib/api"
+import { apiGet, apiPost, apiDelete } from "@/lib/api"
 import { t } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
@@ -34,31 +34,38 @@ export function ChatPage() {
     }
   }
 
-  useEffect(() => {
+  const fetchProviders = async () => {
     const endpoint = "/api/instances"
-    apiGet<{ success: boolean; data?: Provider[] }>(endpoint).then((result) => {
-      if (result.success) {
-        const enabledProviders = (result.data || []).filter((p) => p.enabled)
-        setProviders(enabledProviders)
+    const result = await apiGet<{ success: boolean; data?: Provider[] }>(endpoint)
+    if (result.success) {
+      const enabledProviders = (result.data || []).filter((p) => p.enabled)
+      setProviders(enabledProviders)
+      return enabledProviders
+    }
+    return providers
+  }
 
-        const providerIdParam = searchParams.get('provider')
-        if (providerIdParam) {
-          const providerId = parseInt(providerIdParam)
-          const exists = enabledProviders.some((p) => p.id === providerId)
-          setPanels([{ id: "1", providerId: exists ? providerId : null, conversationId: null, messages: [], loading: false, input: "" }])
-          setSearchParams({}, { replace: true })
-        } else if (enabledProviders.length > 0) {
-          setPanels(prev => prev.map((p, i) => {
-            if (p.providerId !== null) return p
-            const providerIndex = Math.min(i, enabledProviders.length - 1)
-            return { ...p, providerId: enabledProviders[providerIndex].id }
-          }))
-        } else {
-          setPanels(prev => prev.map((p) => ({ ...p, providerId: null })))
-        }
-        setTimeout(() => inputRefs.current["1"]?.focus(), 100)
+  useEffect(() => {
+    const load = async () => {
+      const enabledProviders = await fetchProviders()
+      const providerIdParam = searchParams.get('provider')
+      if (providerIdParam) {
+        const providerId = parseInt(providerIdParam)
+        const exists = enabledProviders.some((p) => p.id === providerId)
+        setPanels([{ id: "1", providerId: exists ? providerId : null, conversationId: null, messages: [], loading: false, input: "" }])
+        setSearchParams({}, { replace: true })
+      } else if (enabledProviders.length > 0) {
+        setPanels(prev => prev.map((p, i) => {
+          if (p.providerId !== null) return p
+          const providerIndex = Math.min(i, enabledProviders.length - 1)
+          return { ...p, providerId: enabledProviders[providerIndex].id }
+        }))
+      } else {
+        setPanels(prev => prev.map((p) => ({ ...p, providerId: null })))
       }
-    })
+      setTimeout(() => inputRefs.current["1"]?.focus(), 100)
+    }
+    load()
     fetchConversations()
   }, [user?.id, setSearchParams, searchParams])
 
@@ -88,13 +95,20 @@ export function ChatPage() {
     const result = await apiGet<{ success: boolean; data?: { id: number; provider_id: number | null; messages: Array<{ role: string; content: string }> } }>(`/api/conversations/${conversationId}`)
     if (result.success && result.data) {
       const conv = result.data
+      const enabledProviders = await fetchProviders()
+      const providerId = conv.provider_id
+      const providerAvailable = providerId !== null && enabledProviders.some((p) => p.id === providerId)
+      const warningMessage = providerAvailable ? [] : [{ role: "assistant" as const, content: t("chat.providerDisabled") }]
       updatePanel(panelId, {
         conversationId: conv.id,
-        providerId: conv.provider_id,
-        messages: conv.messages.map((m: { role: string; content: string }) => ({
-          role: m.role as "user" | "assistant",
-          content: m.content
-        }))
+        providerId: providerAvailable ? providerId : null,
+        messages: [
+          ...warningMessage,
+          ...conv.messages.map((m: { role: string; content: string }) => ({
+            role: m.role as "user" | "assistant",
+            content: m.content
+          }))
+        ]
       })
       setTimeout(() => inputRefs.current[panelId]?.focus(), 100)
     }
@@ -115,7 +129,7 @@ export function ChatPage() {
   }
 
   const deleteConversation = async (conversationId: number) => {
-    await fetch(`/api/conversations/${conversationId}`, { method: "DELETE" })
+    await apiDelete(`/api/conversations/${conversationId}`)
     fetchConversations()
     setPanels(prev => prev.map(p => p.conversationId === conversationId ? { ...p, conversationId: null, messages: [] } : p))
   }
@@ -123,6 +137,13 @@ export function ChatPage() {
   const sendMessage = async (panelId: string) => {
     const panel = panels.find(p => p.id === panelId)
     if (!panel || !panel.input.trim() || !panel.providerId) return
+    const enabledProviders = await fetchProviders()
+    if (!enabledProviders.some((p) => p.id === panel.providerId)) {
+      updatePanel(panelId, {
+        messages: [...panel.messages, { role: "assistant" as const, content: t("chat.providerDisabled") }]
+      })
+      return
+    }
 
     const userMessage = panel.input.trim()
     let conversationId = panel.conversationId

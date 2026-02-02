@@ -110,22 +110,23 @@ export function ServicesPage() {
     }
   }, [])
 
-  const fetchApiKeys = useCallback(async () => {
+  const fetchApiKeys = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false
     try {
-      setApiKeyLoading(true)
+      if (!silent) setApiKeyLoading(true)
       setApiKeyError(null)
       const data = await apiGet<ApiResponse<ApiKey[]>>("/api/api-keys")
       if (!data.success) {
         setApiKeyError(data.message || t("common.networkError"))
-        setApiKeys([])
+        if (!silent) setApiKeys([])
         return
       }
       setApiKeys(data.data || [])
     } catch {
       setApiKeyError(t("common.networkError"))
-      setApiKeys([])
+      if (!silent) setApiKeys([])
     } finally {
-      setApiKeyLoading(false)
+      if (!silent) setApiKeyLoading(false)
     }
   }, [])
 
@@ -189,7 +190,7 @@ export function ServicesPage() {
       }
 
       setCreatedApiKey(data.data?.full_key || null)
-      await fetchApiKeys()
+      await fetchApiKeys({ silent: true })
     } catch {
       setApiKeyCreateError(t('common.networkError'))
     } finally {
@@ -198,16 +199,27 @@ export function ServicesPage() {
   }
 
   const toggleApiKeyStatus = async (id: number) => {
+    const currentStatus = apiKeys.find((key) => key.id === id)?.status
     try {
       setApiKeyStatusUpdatingId(id)
+      if (currentStatus) {
+        const optimisticStatus = currentStatus === "active" ? "disabled" : "active"
+        setApiKeys((current) => current.map((key) => (key.id === id ? { ...key, status: optimisticStatus } : key)))
+      }
       const data = await apiPost<ApiResponse<unknown>>(`/api/api-keys/${id}/toggle`)
       if (!data.success) {
         setApiKeyError(data.message || t('common.networkError'))
+        if (currentStatus) {
+          setApiKeys((current) => current.map((key) => (key.id === id ? { ...key, status: currentStatus } : key)))
+        }
         return
       }
-      await fetchApiKeys()
+      await fetchApiKeys({ silent: true })
     } catch {
       setApiKeyError(t('common.networkError'))
+      if (currentStatus) {
+        setApiKeys((current) => current.map((key) => (key.id === id ? { ...key, status: currentStatus } : key)))
+      }
     } finally {
       setApiKeyStatusUpdatingId((cur) => (cur === id ? null : cur))
     }
@@ -463,6 +475,7 @@ export function ServicesPage() {
                                     size="icon"
                                     variant="ghost"
                                     onClick={() => selectedApiKey && toggleApiKeyStatus(selectedApiKey.id)}
+                                    disabled={apiKeyStatusUpdatingId === selectedApiKey.id}
                                     aria-label={selectedApiKey.status === "active" ? t("apiKeys.disable") : t("apiKeys.enable")}
                                   >
                                     <Power className="h-4 w-4" />
@@ -478,6 +491,7 @@ export function ServicesPage() {
                                     size="icon"
                                     variant="ghost"
                                     onClick={() => selectedApiKey && rotateApiKey(selectedApiKey.id)}
+                                    disabled={rotatingKeyId === selectedApiKey.id}
                                     aria-label={t("apiKeys.resetKey")}
                                   >
                                     <RotateCcw className="h-4 w-4" />
@@ -572,7 +586,16 @@ export function ServicesPage() {
                               </div>
                             </div>
                           </div>
-                        {rotateError && <p className="text-sm text-destructive font-medium">{rotateError}</p>}
+                        {apiKeyError && (
+                          <p className="text-sm text-destructive font-medium">
+                            {t("apiKeys.error")}: {apiKeyError}
+                          </p>
+                        )}
+                        {rotateError && (
+                          <p className="text-sm text-destructive font-medium">
+                            {t("apiKeys.rotateError")}: {rotateError}
+                          </p>
+                        )}
                         {rotatedApiKey && (
                           <div className="rounded-xl bg-muted/30 p-3">
                             <div className="text-xs text-muted-foreground">{t("apiKeys.key")}</div>
