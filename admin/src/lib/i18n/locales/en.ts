@@ -55,6 +55,7 @@ export const en = {
     confirmRemoveMember: 'Remove Member',
     removeMemberWarning: 'This action cannot be undone. It will remove the user from this organization.',
     createSuccess: 'Organization created successfully.',
+    membersForbidden: 'You are not allowed to view members of this organization.',
   },
   projects: {
     add: 'Add Project',

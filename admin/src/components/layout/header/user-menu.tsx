@@ -28,7 +28,9 @@ import { useAuth } from "@/lib/auth";
 
 export default function UserMenu() {
     const navigate = useNavigate();
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
+    const roleLabel = user?.role_id ? t(`users.role.${user.role_id}`) || user.role_id : t("users.roleUser");
+    const userLabel = user?.username || "-";
     const [showPasswordDialog, setShowPasswordDialog] = useState(false);
     const [oldPassword, setOldPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
@@ -90,38 +92,38 @@ export default function UserMenu() {
                     </AvatarFallback>
                 </Avatar>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" sideOffset={10}>
+            <DropdownMenuContent className="w-48" align="end" sideOffset={10}>
                 <DropdownMenuLabel className="p-0">
                     <div className="flex items-center gap-2 px-2 py-1.5 text-left text-sm">
-                        <Avatar className="h-8 w-8 text-muted-foreground">
+                        <Avatar className="h-4 w-4 text-muted-foreground">
                             <AvatarImage src="" alt="Admin" />
-                            <AvatarFallback className="rounded-lg bg-transparent">
+                            <AvatarFallback className="rounded-md bg-transparent">
                                 <UserCircle className="h-4 w-4" />
                             </AvatarFallback>
                         </Avatar>
                         <div className="grid flex-1 text-left text-sm leading-tight">
-                            <span className="truncate font-semibold">{t('common.admin')}</span>
-                            <span className="text-muted-foreground truncate text-xs">admin@xgateway.io</span>
+                            <span className="truncate font-semibold">{roleLabel}</span>
+                            <span className="text-muted-foreground truncate text-xs">{userLabel}</span>
                         </div>
                     </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                    <DropdownMenuItem onClick={() => navigate('/settings')}>
+                    <DropdownMenuItem onClick={() => navigate('/settings')} className="justify-start">
                         <Settings className="mr-2 h-4 w-4" />
                         <span>{t('nav.settings')}</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/help')}>
+                    <DropdownMenuItem onClick={() => navigate('/help')} className="justify-start">
                         <HelpCircle className="mr-2 h-4 w-4" />
                         <span>{t('nav.help')}</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setShowPasswordDialog(true)}>
+                    <DropdownMenuItem onClick={() => setShowPasswordDialog(true)} className="justify-start">
                         <KeyRound className="mr-2 h-4 w-4" />
                         <span>{t('settings.changePassword') || 'Change Password'}</span>
                     </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleLogout}>
+                <DropdownMenuItem className="text-destructive focus:text-destructive justify-start" onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>{t('common.logout') || 'Logout'}</span>
                 </DropdownMenuItem>

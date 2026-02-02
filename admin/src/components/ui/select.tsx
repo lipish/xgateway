@@ -71,7 +71,7 @@ const Select = ({
       {open && (
         <div
           className={cn(
-            "absolute z-50 w-full rounded-md border bg-popover shadow-md",
+            "absolute z-[60] w-full rounded-md border bg-popover shadow-md",
             menuSide === "top" ? "bottom-full mb-2" : "mt-1"
           )}
         >

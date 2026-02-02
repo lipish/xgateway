@@ -5,7 +5,7 @@ use crate::db::{DatabasePool, Organization};
 impl DatabasePool {
     pub async fn list_organizations(&self) -> Result<Vec<Organization>> {
         let query = r#"
-            SELECT id::BIGINT as id, name, status, created_at, updated_at
+            SELECT id::BIGINT as id, name, status, owner_id::BIGINT as owner_id, created_at, updated_at
             FROM organizations
             ORDER BY id ASC
         "#;
@@ -17,10 +17,10 @@ impl DatabasePool {
         }
     }
 
-    pub async fn create_organization(&self, name: &str) -> Result<i64> {
+    pub async fn create_organization(&self, name: &str, owner_id: Option<i64>) -> Result<i64> {
         let query = r#"
-            INSERT INTO organizations (name)
-            VALUES ($1)
+            INSERT INTO organizations (name, owner_id)
+            VALUES ($1, $2)
             RETURNING id
         "#;
 
@@ -28,10 +28,22 @@ impl DatabasePool {
             Self::Postgres(pool) => {
                 let id: i64 = sqlx::query_scalar(query)
                     .bind(name)
+                    .bind(owner_id)
                     .fetch_one(pool)
                     .await?;
                 Ok(id)
             }
+        }
+    }
+
+    pub async fn get_organization_owner_id(&self, id: i64) -> Result<Option<i64>> {
+        let query = "SELECT owner_id::BIGINT as owner_id FROM organizations WHERE id = $1";
+
+        match self {
+            Self::Postgres(pool) => Ok(sqlx::query_scalar(query)
+                .bind(id)
+                .fetch_optional(pool)
+                .await?),
         }
     }
 

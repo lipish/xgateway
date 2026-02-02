@@ -57,7 +57,7 @@ pub async fn create_organization_api(
         });
     }
 
-    match db_pool.create_organization(req.name.trim()).await {
+    match db_pool.create_organization(req.name.trim(), Some(ctx.user.id)).await {
         Ok(id) => match db_pool.list_organizations().await {
             Ok(orgs) => {
                 let org = orgs.into_iter().find(|o| o.id == id);

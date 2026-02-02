@@ -12,6 +12,23 @@ pub async fn list_org_users_api(
     axum::extract::Path(org_id): axum::extract::Path<i64>,
     axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
 ) -> axum::response::Response {
+    if !ctx.is_admin {
+        match db_pool.get_organization_owner_id(org_id).await {
+            Ok(Some(owner_id)) if owner_id == ctx.user.id => {}
+            Ok(Some(_)) | Ok(None) | Err(_) => {
+                return (
+                    StatusCode::FORBIDDEN,
+                    Json(ApiResponse::<()> {
+                        success: false,
+                        data: None,
+                        message: "forbidden".to_string(),
+                    }),
+                )
+                    .into_response();
+            }
+        }
+    }
+
     if !ctx.is_admin && ctx.org_id != org_id {
         return (
             StatusCode::FORBIDDEN,
@@ -52,6 +69,23 @@ pub async fn add_org_user_api(
     axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
     Json(req): Json<AddOrgUserRequest>,
 ) -> axum::response::Response {
+    if !ctx.is_admin {
+        match db_pool.get_organization_owner_id(org_id).await {
+            Ok(Some(owner_id)) if owner_id == ctx.user.id => {}
+            Ok(Some(_)) | Ok(None) | Err(_) => {
+                return (
+                    StatusCode::FORBIDDEN,
+                    Json(ApiResponse::<()> {
+                        success: false,
+                        data: None,
+                        message: "forbidden".to_string(),
+                    }),
+                )
+                    .into_response();
+            }
+        }
+    }
+
     if !ctx.is_admin && ctx.org_id != org_id {
         return (
             StatusCode::FORBIDDEN,
@@ -100,6 +134,23 @@ pub async fn remove_org_user_api(
     axum::extract::Path((org_id, user_id)): axum::extract::Path<(i64, i64)>,
     axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
 ) -> axum::response::Response {
+    if !ctx.is_admin {
+        match db_pool.get_organization_owner_id(org_id).await {
+            Ok(Some(owner_id)) if owner_id == ctx.user.id => {}
+            Ok(Some(_)) | Ok(None) | Err(_) => {
+                return (
+                    StatusCode::FORBIDDEN,
+                    Json(ApiResponse::<()> {
+                        success: false,
+                        data: None,
+                        message: "forbidden".to_string(),
+                    }),
+                )
+                    .into_response();
+            }
+        }
+    }
+
     if !ctx.is_admin && ctx.org_id != org_id {
         return (
             StatusCode::FORBIDDEN,

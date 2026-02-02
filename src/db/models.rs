@@ -7,6 +7,7 @@ pub struct Organization {
     pub id: i64,
     pub name: String,
     pub status: String,
+    pub owner_id: Option<i64>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

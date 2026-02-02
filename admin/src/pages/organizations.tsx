@@ -54,6 +54,7 @@ export function OrganizationsPage() {
 
   const [orgUsers, setOrgUsers] = useState<OrgUser[]>([])
   const [orgUsersLoading, setOrgUsersLoading] = useState(false)
+  const [orgUsersForbidden, setOrgUsersForbidden] = useState(false)
   const [addUserId, setAddUserId] = useState("")
   const [addRole, setAddRole] = useState<"admin" | "member">("member")
   const [removeUserId, setRemoveUserId] = useState<number | null>(null)
@@ -103,9 +104,15 @@ export function OrganizationsPage() {
     try {
       setOrgUsersLoading(true)
       setError(null)
+      setOrgUsersForbidden(false)
       const resp = await apiGet<ApiResponse<OrgUser[]>>(`/api/organizations/${orgId}/users`)
       if (!resp.success) {
         setOrgUsers([])
+        if (resp.message === "forbidden") {
+          setOrgUsersForbidden(true)
+          setError(null)
+          return
+        }
         setError(resp.message || t("common.networkError"))
         return
       }
@@ -113,6 +120,11 @@ export function OrganizationsPage() {
     } catch (e) {
       setOrgUsers([])
       const msg = e instanceof Error ? e.message : null
+      if (msg?.includes("403")) {
+        setOrgUsersForbidden(true)
+        setError(null)
+        return
+      }
       setError(msg || t("common.networkError"))
     } finally {
       setOrgUsersLoading(false)
@@ -122,6 +134,7 @@ export function OrganizationsPage() {
   useEffect(() => {
     if (!selectedOrg) {
       setOrgUsers([])
+      setOrgUsersForbidden(false)
       return
     }
     fetchOrgUsers(selectedOrg.id)
@@ -357,73 +370,82 @@ export function OrganizationsPage() {
                   </div>
 
 
-                  <Card>
-                    <CardContent className="p-4 space-y-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="text-sm font-medium">{t("organizations.membersTitle")}</div>
-                        <Button size="sm" variant="outline" onClick={() => setMemberDialogOpen(true)}>
-                          <Plus className="mr-2 h-4 w-4" />
-                          {t("organizations.addMember")}
-                        </Button>
-                      </div>
-
-                      {orgUsersLoading ? (
-                        <div className="text-sm text-muted-foreground">{t("common.loading")}</div>
-                      ) : orgUsers.length === 0 ? (
-                        <div className="text-sm text-muted-foreground">{t("organizations.membersEmpty")}</div>
-                      ) : (
-                        <div className="overflow-hidden rounded-lg">
-                          <Table>
-                            <TableHeader className="sticky top-0 bg-white">
-                              <TableRow>
-                                <TableHead className="text-left pl-4">{t("users.username")}</TableHead>
-                                <TableHead className="text-center w-[120px]">{t("users.roleLabel")}</TableHead>
-                                <TableHead className="text-center w-[120px]">{t("users.statusLabel")}</TableHead>
-                                <TableHead className="text-center w-[80px]">{t("common.idLabel")}</TableHead>
-                                <TableHead className="text-center w-[64px]"></TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {orgUsers.map((u) => (
-                                <TableRow key={u.id} className="hover:bg-muted/50">
-                                  <TableCell className="text-left pl-4">
-                                    <div className="text-sm font-medium truncate">{u.username}</div>
-                                  </TableCell>
-                                  <TableCell className="text-center text-xs">{t(`users.role.${u.role_id}`)}</TableCell>
-                                  <TableCell className="text-center text-xs">{t(`users.status.${u.status}`)}</TableCell>
-                                  <TableCell className="text-center text-xs text-muted-foreground">{u.id}</TableCell>
-                                  <TableCell className="text-center">
-                                    <DropdownMenu modal={false}>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                          aria-label={t("common.actions") || "Actions"}
-                                        >
-                                          <MoreVertical className="h-4 w-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuItem
-                                          onClick={() => setRemoveUserId(u.id)}
-                                          disabled={saving}
-                                          className="text-destructive focus:text-destructive"
-                                        >
-                                          <Trash2 className="h-4 w-4 mr-2" />
-                                          {t("common.delete")}
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
+                  {!orgUsersForbidden && (
+                    <Card>
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-sm font-medium">{t("organizations.membersTitle")}</div>
+                          <Button size="sm" variant="outline" onClick={() => setMemberDialogOpen(true)}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            {t("organizations.addMember")}
+                          </Button>
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
+
+                        {orgUsersLoading ? (
+                          <div className="text-sm text-muted-foreground">{t("common.loading")}</div>
+                        ) : orgUsers.length === 0 ? (
+                          <div className="text-sm text-muted-foreground">{t("organizations.membersEmpty")}</div>
+                        ) : (
+                          <div className="overflow-hidden rounded-lg">
+                            <Table>
+                              <TableHeader className="sticky top-0 bg-white">
+                                <TableRow>
+                                  <TableHead className="text-left pl-4">{t("users.username")}</TableHead>
+                                  <TableHead className="text-center w-[120px]">{t("users.roleLabel")}</TableHead>
+                                  <TableHead className="text-center w-[120px]">{t("users.statusLabel")}</TableHead>
+                                  <TableHead className="text-center w-[80px]">{t("common.idLabel")}</TableHead>
+                                  <TableHead className="text-center w-[64px]"></TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {orgUsers.map((u) => (
+                                  <TableRow key={u.id} className="hover:bg-muted/50">
+                                    <TableCell className="text-left pl-4">
+                                      <div className="text-sm font-medium truncate">{u.username}</div>
+                                    </TableCell>
+                                    <TableCell className="text-center text-xs">{t(`users.role.${u.role_id}`)}</TableCell>
+                                    <TableCell className="text-center text-xs">{t(`users.status.${u.status}`)}</TableCell>
+                                    <TableCell className="text-center text-xs text-muted-foreground">{u.id}</TableCell>
+                                    <TableCell className="text-center">
+                                      <DropdownMenu modal={false}>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                            aria-label={t("common.actions") || "Actions"}
+                                          >
+                                            <MoreVertical className="h-4 w-4" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                          <DropdownMenuItem
+                                            onClick={() => setRemoveUserId(u.id)}
+                                            disabled={saving}
+                                            className="text-destructive focus:text-destructive"
+                                          >
+                                            <Trash2 className="h-4 w-4 mr-2" />
+                                            {t("common.delete")}
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+                  {orgUsersForbidden && (
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="text-sm text-muted-foreground">{t("organizations.membersForbidden")}</div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               )}
             </DetailPanel>

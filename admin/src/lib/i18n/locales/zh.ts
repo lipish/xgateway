@@ -55,6 +55,7 @@ export const zh = {
     confirmRemoveMember: '移除成员',
     removeMemberWarning: '此操作不可撤销，将把该用户从组织中移除。',
     createSuccess: '组织创建成功。',
+    membersForbidden: '你没有权限查看该组织的成员。',
   },
   projects: {
     add: '添加项目',
