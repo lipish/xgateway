@@ -59,6 +59,7 @@ export const ChatPanelCard = forwardRef<HTMLDivElement, ChatPanelCardProps>(
                   onChange={v => onProviderChange(parseInt(v))}
                   options={providers.map(p => ({ value: p.id.toString(), label: `${p.name} ` }))}
                   placeholder={t('chat.selectProviderPlaceholder')}
+                  emptyText={t("providers.empty")}
                   className="w-auto min-w-[120px]"
                   triggerClassName="h-8 rounded-full bg-card border-0 hover:bg-muted/30 font-medium text-xs px-3 gap-1.5"
                 />

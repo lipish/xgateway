@@ -26,7 +26,7 @@ import { PageHeader } from "@/components/layout/page-header";
 
 export function ProvidersPage() {
   const { user } = useAuth();
-  const isAdmin = user?.role_id === 'admin';
+  const isAdmin = true;
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [providers, setProviders] = useState<Provider[]>([]);

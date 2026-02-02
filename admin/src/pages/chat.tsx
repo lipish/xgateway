@@ -44,7 +44,8 @@ export function ChatPage() {
         const providerIdParam = searchParams.get('provider')
         if (providerIdParam) {
           const providerId = parseInt(providerIdParam)
-          setPanels([{ id: "1", providerId, conversationId: null, messages: [], loading: false, input: "" }])
+          const exists = enabledProviders.some((p) => p.id === providerId)
+          setPanels([{ id: "1", providerId: exists ? providerId : null, conversationId: null, messages: [], loading: false, input: "" }])
           setSearchParams({}, { replace: true })
         } else if (enabledProviders.length > 0) {
           setPanels(prev => prev.map((p, i) => {
@@ -52,6 +53,8 @@ export function ChatPage() {
             const providerIndex = Math.min(i, enabledProviders.length - 1)
             return { ...p, providerId: enabledProviders[providerIndex].id }
           }))
+        } else {
+          setPanels(prev => prev.map((p) => ({ ...p, providerId: null })))
         }
         setTimeout(() => inputRefs.current["1"]?.focus(), 100)
       }

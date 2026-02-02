@@ -19,6 +19,7 @@ interface SelectProps {
   icon?: React.ReactNode
   id?: string
   menuSide?: "top" | "bottom"
+  emptyText?: string
 }
 
 const Select = ({
@@ -31,6 +32,7 @@ const Select = ({
   icon,
   id,
   menuSide = "bottom",
+  emptyText,
 }: SelectProps) => {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -74,22 +76,28 @@ const Select = ({
           )}
         >
           <div className="max-h-60 overflow-auto p-1">
-            {options.map((option) => (
-              <div
-                key={option.value}
-                onClick={() => {
-                  onChange?.(option.value)
-                  setOpen(false)
-                }}
-                className={cn(
-                  "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
-                  value === option.value && "bg-accent"
-                )}
-              >
-                <span className="flex-1">{option.label}</span>
-                {value === option.value && <Check className="h-4 w-4" />}
+            {options.length === 0 ? (
+              <div className="px-2 py-2 text-sm text-muted-foreground">
+                {emptyText || t("common.empty") || "No options"}
               </div>
-            ))}
+            ) : (
+              options.map((option) => (
+                <div
+                  key={option.value}
+                  onClick={() => {
+                    onChange?.(option.value)
+                    setOpen(false)
+                  }}
+                  className={cn(
+                    "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                    value === option.value && "bg-accent"
+                  )}
+                >
+                  <span className="flex-1">{option.label}</span>
+                  {value === option.value && <Check className="h-4 w-4" />}
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
