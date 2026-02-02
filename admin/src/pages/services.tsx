@@ -4,9 +4,9 @@ import { TwoPanelLayout } from "@/components/layout/two-panel-layout"
 import { DetailPanel } from "@/components/layout/detail-panel"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { t } from "@/lib/i18n"
+import { t, useI18n } from "@/lib/i18n"
 import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api"
-import { cn } from "@/lib/utils"
+import { cn, formatDateTime } from "@/lib/utils"
 import { ApiKeyCreateDialog } from "@/components/services/ApiKeyCreateDialog"
 import { DeleteApiKeyConfirmDialog } from "@/components/services/DeleteApiKeyConfirmDialog"
 import { ServiceBindingsSection } from "@/components/services/ServiceBindingsSection"
@@ -15,6 +15,7 @@ import { STRATEGY_OPTIONS, type ApiKey, type ApiResponse, type Provider } from "
 import { BadgeCheck, Copy, Eye, EyeOff, KeyRound, Power, RotateCcw, Trash2 } from "lucide-react"
 
 export function ServicesPage() {
+  const { language } = useI18n()
   const [providers, setProviders] = useState<Provider[]>([])
   const [selectedApiKeyId, setSelectedApiKeyId] = useState<number | null>(null)
   const [inlineSaving, setInlineSaving] = useState(false)
@@ -357,7 +358,7 @@ export function ServicesPage() {
         <div className="flex-1 min-h-0 flex flex-col gap-4 h-full">
           <TwoPanelLayout
             left={
-              <div className={apiKeys.length === 0 ? "flex-1 min-w-0" : undefined}>
+              <div className={cn("w-full md:w-[320px] lg:w-[360px] shrink-0", apiKeys.length === 0 && "min-w-0")}>
                 <div className="rounded-2xl bg-white p-4 h-full border border-border">
                   <div className="flex items-center gap-2 text-sm font-semibold mb-3">
                     <KeyRound className="h-4 w-4 text-muted-foreground" />
@@ -383,19 +384,14 @@ export function ServicesPage() {
                           type="button"
                           onClick={() => setSelectedApiKeyId(key.id)}
                           className={cn(
-                            "w-full text-left rounded-2xl border border-border px-3 py-3 transition-colors",
+                            "w-full text-left rounded-2xl border border-transparent px-3 py-3 transition-colors",
                             selectedApiKeyId === key.id
-                              ? "border-violet-300 bg-violet-50"
-                              : "border-transparent hover:bg-muted/40"
+                              ? "bg-violet-50"
+                              : "hover:bg-muted/40"
                           )}
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-3">
-                              <div className="h-9 w-9 rounded-xl bg-violet-100 flex items-center justify-center text-violet-600">
-                                <KeyRound className="h-4 w-4" />
-                              </div>
-                              <div className="text-sm font-medium truncate">{key.name}</div>
-                            </div>
+                            <div className="text-sm font-medium truncate">{key.name}</div>
                             <div
                               className={cn(
                                 "text-xs font-medium px-2 py-0.5 rounded-full",
@@ -424,15 +420,15 @@ export function ServicesPage() {
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="rounded-2xl bg-muted/70 border border-border/60 p-5 space-y-3">
                           <div className="text-sm font-semibold">{t("services.strategy")}</div>
-                          <div className="rounded-xl bg-muted/60 px-4 py-2">
+                          <div>
                             <Select
                               value={selectedApiKey.strategy || "Priority"}
                               onChange={(value) => handleInlineUpdate({ strategy: value })}
                               options={STRATEGY_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
-                              triggerClassName={inlineSaving ? "opacity-60 pointer-events-none" : undefined}
+                              triggerClassName={cn("h-10 px-4", inlineSaving ? "opacity-60 pointer-events-none" : undefined)}
                             />
                           </div>
-                          <div className="text-xs text-muted-foreground ml-2">
+                          <div className="text-xs text-muted-foreground">
                             {selectedStrategyDescription
                               || selectedStrategyLabel
                               || t("services.strategyDescriptions.priority")}
@@ -444,7 +440,7 @@ export function ServicesPage() {
                             <div className="space-y-2 text-sm text-muted-foreground">
                               <div className="flex flex-wrap gap-2">
                                 {selectedApiKeyModels.map((model) => (
-                                  <span key={model} className="rounded-full bg-violet-50 px-3 py-1 text-xs text-violet-700">
+                                  <span key={model} className="rounded-full bg-violet-100 px-3 py-1 text-xs text-violet-700">
                                     {model}
                                   </span>
                                 ))}
@@ -456,9 +452,9 @@ export function ServicesPage() {
                           )}
                         </div>
                       </div>
-                      <div className="rounded-2xl bg-muted/70 border border-border/60 p-5 space-y-4">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="text-sm font-semibold">{t("apiKeys.title")}</div>
+                        <div className="rounded-2xl bg-muted/70 border border-border/60 p-5 space-y-4">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="text-sm font-semibold">{t("apiKeys.title")}</div>
                           <TooltipProvider>
                             <div className="flex items-center gap-2">
                               <Tooltip>
@@ -505,75 +501,77 @@ export function ServicesPage() {
                             </div>
                           </TooltipProvider>
                         </div>
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <div className="space-y-2">
-                             <div className="text-xs text-muted-foreground">{t("apiKeys.key")}</div>
-                             <div className="flex items-center gap-3">
-                               <div className="flex-1 rounded-xl bg-muted/20 px-4 py-2 text-sm font-mono">
-                                 {showKeyId === selectedApiKey.id ? selectedApiKey.key_hash : maskKey(selectedApiKey.key_hash)}
-                               </div>
-                               <TooltipProvider>
-                                 <Tooltip>
-                                   <TooltipTrigger asChild>
-                                     <Button
-                                       size="icon"
-                                       variant="ghost"
-                                       onClick={() =>
-                                         setShowKeyId((current) => (current === selectedApiKey.id ? null : selectedApiKey.id))
-                                       }
-                                       aria-label={t("common.copy") || t("apiKeys.key")}
-                                     >
-                                       {showKeyId === selectedApiKey.id ? (
-                                         <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                       ) : (
-                                         <Eye className="h-4 w-4 text-muted-foreground" />
-                                       )}
-                                     </Button>
-                                   </TooltipTrigger>
-                                   <TooltipContent>
-                                     {showKeyId === selectedApiKey.id ? t("apiKeys.hideKey") : t("apiKeys.showKey")}
-                                   </TooltipContent>
-                                 </Tooltip>
-                               </TooltipProvider>
-                               <TooltipProvider>
-                                 <Tooltip>
-                                   <TooltipTrigger asChild>
-                                     <Button
-                                       size="icon"
-                                       variant="ghost"
-                                       onClick={async () => {
-                                         if (!selectedApiKey.key_hash) return
-                                         try {
-                                           await navigator.clipboard.writeText(selectedApiKey.key_hash)
-                                           setCopiedApiKeyId(selectedApiKey.id)
-                                           window.setTimeout(() => setCopiedApiKeyId(null), 1500)
-                                         } catch {
-                                           setCopiedApiKeyId(null)
-                                         }
-                                       }}
-                                       aria-label={t("common.copy") || t("apiKeys.key")}
-                                     >
-                                       {copiedApiKeyId === selectedApiKey.id ? (
-                                         <BadgeCheck className="h-4 w-4 text-muted-foreground" />
-                                       ) : (
-                                         <Copy className="h-4 w-4 text-muted-foreground" />
-                                       )}
-                                     </Button>
-                                   </TooltipTrigger>
-                                   <TooltipContent>
-                                     {copiedApiKeyId === selectedApiKey.id ? t("apiKeys.copiedToClipboard") : (t("common.copy") || t("apiKeys.key"))}
-                                   </TooltipContent>
-                                 </Tooltip>
-                               </TooltipProvider>
-                             </div>
-                          </div>
-                          <div className="space-y-2">
-                            <div className="text-xs text-muted-foreground">{t("apiKeys.createdAt")}</div>
-                             <div className="rounded-xl bg-muted/20 px-4 py-2 text-sm">
-                              {new Date(selectedApiKey.created_at).toLocaleString("en-CA")}
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <div className="text-xs text-muted-foreground px-4">{t("apiKeys.key")}</div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="flex-1 rounded-xl bg-muted/20 px-4 py-2 text-sm font-mono">
+                                  {showKeyId === selectedApiKey.id ? selectedApiKey.key_hash : maskKey(selectedApiKey.key_hash)}
+                                </div>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-7 w-7 p-0"
+                                        onClick={() =>
+                                          setShowKeyId((current) => (current === selectedApiKey.id ? null : selectedApiKey.id))
+                                        }
+                                        aria-label={t("apiKeys.copy")}
+                                      >
+                                        {showKeyId === selectedApiKey.id ? (
+                                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                        ) : (
+                                          <Eye className="h-4 w-4 text-muted-foreground" />
+                                        )}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      {showKeyId === selectedApiKey.id ? t("apiKeys.hideKey") : t("apiKeys.showKey")}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-7 w-7 p-0"
+                                        onClick={async () => {
+                                          if (!selectedApiKey.key_hash) return
+                                          try {
+                                            await navigator.clipboard.writeText(selectedApiKey.key_hash)
+                                            setCopiedApiKeyId(selectedApiKey.id)
+                                            window.setTimeout(() => setCopiedApiKeyId(null), 1500)
+                                          } catch {
+                                            setCopiedApiKeyId(null)
+                                          }
+                                        }}
+                                        aria-label={t("apiKeys.copy")}
+                                      >
+                                        {copiedApiKeyId === selectedApiKey.id ? (
+                                          <BadgeCheck className="h-4 w-4 text-muted-foreground" />
+                                        ) : (
+                                          <Copy className="h-4 w-4 text-muted-foreground" />
+                                        )}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      {copiedApiKeyId === selectedApiKey.id ? t("apiKeys.copiedToClipboard") : t("apiKeys.copy")}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="text-xs text-muted-foreground px-4">{t("apiKeys.createdAt")}</div>
+                              <div className="rounded-xl bg-muted/20 px-4 py-2 text-sm">
+                                {formatDateTime(selectedApiKey.created_at, language)}
+                              </div>
                             </div>
                           </div>
-                        </div>
                         {rotateError && <p className="text-sm text-destructive font-medium">{rotateError}</p>}
                         {rotatedApiKey && (
                           <div className="rounded-xl bg-muted/30 p-3">

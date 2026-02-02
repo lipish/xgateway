@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { apiGet } from "@/lib/api"
 import { PageHeader } from "@/components/layout/page-header"
-import { t } from "@/lib/i18n"
+import { t, useI18n } from "@/lib/i18n"
+import { formatDateTime } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,6 +28,7 @@ interface RequestLog {
 }
 
 export function LogsPage() {
+  const { language } = useI18n()
   const [logs, setLogs] = useState<RequestLog[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -264,7 +266,7 @@ export function LogsPage() {
                         className={`cursor-pointer hover:bg-muted/50 ${selectedLog?.id === log.id ? 'bg-violet-50 border-l-2 border-l-violet-400' : ''}`}
                         onClick={() => setSelectedLog(log)}
                       >
-                        <TableCell className="text-sm whitespace-nowrap pl-6">{new Date(log.created_at).toLocaleString()}</TableCell>
+                        <TableCell className="text-sm whitespace-nowrap pl-6">{formatDateTime(log.created_at, language)}</TableCell>
                         <TableCell>{log.service_id || '-'}</TableCell>
                         <TableCell>{log.provider_name}</TableCell>
                         <TableCell>
@@ -335,7 +337,7 @@ export function LogsPage() {
                   <div className="space-y-2 pt-3 border-t">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Clock className="h-4 w-4" />
-                      <span>{new Date(selectedLog.created_at).toLocaleString()}</span>
+                      <span>{formatDateTime(selectedLog.created_at, language)}</span>
                     </div>
                   </div>
 

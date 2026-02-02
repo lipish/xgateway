@@ -65,7 +65,7 @@ export function ModelTypesPage() {
     } finally {
       setLoading(false)
     }
-  }, [selectedType])
+  }, [])
 
   useEffect(() => {
     fetchProviderTypes()
@@ -235,6 +235,15 @@ export function ModelTypesPage() {
       return b.models.length - a.models.length
     }
   })
+
+  useEffect(() => {
+    if (!providerTypes.length) return
+    if (!selectedType) return
+    const next = providerTypes.find((type) => type.id === selectedType.id)
+    if (next && next !== selectedType) {
+      setSelectedType(next)
+    }
+  }, [providerTypes, selectedType])
 
   return (
     <div className="flex-1 min-h-0 h-full flex flex-col page-transition overflow-y-auto px-6 pb-6 pt-4 scrollbar-hide">

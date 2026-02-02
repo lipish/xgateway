@@ -1,6 +1,6 @@
 export const zh = {
   nav: {
-    main: 'API 密钥',
+    main: '服务',
     dashboard: '仪表盘',
     models: '模型实例',
     modelTypes: '服务商目录',

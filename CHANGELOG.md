@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.4] - 2026-02-02
+
+### 🎛️ Admin
+
+- API 密钥详情页与列表样式细节优化（对齐、间距与样式）。
+- 管理台文案与交互细节调整（菜单命名、复制提示、多语言日期格式）。
+- 服务商目录切换详情时减少闪烁。
+
 ## [0.12.1] - 2026-01-13
 
 ### 🧰 CI / Release
