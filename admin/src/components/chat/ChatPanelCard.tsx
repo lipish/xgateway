@@ -46,7 +46,7 @@ export const ChatPanelCard = forwardRef<HTMLDivElement, ChatPanelCardProps>(
         ref={ref}
         className={cn(
           "flex h-full min-h-0",
-          panelCount === 1 ? "max-w-[50%] mx-auto w-full" : "",
+          panelCount === 1 && !panel.maximized ? "max-w-[50%] mx-auto w-full" : "w-full",
           panel.maximized && "fixed inset-0 z-50 bg-background p-4"
         )}
       >
@@ -71,7 +71,7 @@ export const ChatPanelCard = forwardRef<HTMLDivElement, ChatPanelCardProps>(
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 hover:bg-muted rounded-lg"
-                  onClick={() => navigate(`/instances?select=${panel.providerId}`)}
+                  onClick={() => navigate(`/models?select=${panel.providerId}`)}
                   title={t('providers.edit')}
                 >
                   <Settings className="w-4 h-4" />

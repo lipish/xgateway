@@ -272,7 +272,10 @@ export function ChatPage() {
                 open={historyOpen}
                 onOpenChange={setHistoryOpen}
                 conversations={conversations}
-                onSelect={(id) => loadConversation(id, panels[0].id)}
+                onSelect={(id) => {
+                  const targetPanel = panels.find((p) => p.messages.length === 0) || panels[0]
+                  loadConversation(id, targetPanel.id)
+                }}
                 onDelete={deleteConversation}
               />
               <Button
