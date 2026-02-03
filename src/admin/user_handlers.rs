@@ -9,30 +9,27 @@ pub async fn list_users_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
     axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
 ) -> Json<ApiResponse<Vec<User>>> {
-    if !ctx.is_admin && ctx.org_role.as_deref() != Some("admin") {
-        return Json(ApiResponse {
-            success: false,
-            data: None,
-            message: "org_admin_required".to_string(),
-        });
-    }
-    let result = if ctx.is_admin {
-        db_pool.list_users().await
+    if ctx.is_admin {
+        match db_pool.list_users().await {
+            Ok(users) => Json(ApiResponse {
+                success: true,
+                data: Some(users),
+                message: "Users retrieved".to_string(),
+            }),
+            Err(e) => Json(ApiResponse {
+                success: false,
+                data: None,
+                message: format!("Failed to list users: {}", e),
+            }),
+        }
     } else {
-        db_pool.list_users_by_org_id(ctx.org_id).await
-    };
-
-    match result {
-        Ok(users) => Json(ApiResponse {
+        let mut user = ctx.user.clone();
+        user.org_id = Some(ctx.org_id);
+        Json(ApiResponse {
             success: true,
-            data: Some(users),
+            data: Some(vec![user]),
             message: "Users retrieved".to_string(),
-        }),
-        Err(e) => Json(ApiResponse {
-            success: false,
-            data: None,
-            message: format!("Failed to list users: {}", e),
-        }),
+        })
     }
 }
 

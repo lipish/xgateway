@@ -1,7 +1,9 @@
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
+import { ConfirmAlertDialog } from "@/components/ui/confirm-alert-dialog"
 import { t } from "@/lib/i18n"
 import { Plus, Server, Trash2 } from "lucide-react"
 
@@ -32,6 +34,7 @@ export function GrantInstanceDialog({
   onGrant,
   onRevoke,
 }: GrantInstanceDialogProps) {
+  const [pendingRevokeId, setPendingRevokeId] = useState<number | null>(null)
   const availableProviderOptions = providers
     .filter((p) => !userInstances.find((ui) => ui.provider_id === p.id))
     .map((p) => ({ value: p.id.toString(), label: p.name }))
@@ -95,7 +98,7 @@ export function GrantInstanceDialog({
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => onRevoke(ui.provider_id)}
+                          onClick={() => setPendingRevokeId(ui.provider_id)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -114,6 +117,21 @@ export function GrantInstanceDialog({
             </DialogFooter>
         </div>
       </DialogContent>
+      <ConfirmAlertDialog
+        open={pendingRevokeId != null}
+        onOpenChange={(open) => !open && setPendingRevokeId(null)}
+        title={t("users.confirmRevokeInstance")}
+        description={t("users.revokeInstanceWarning")}
+        cancelText={t("common.cancel")}
+        confirmText={t("common.delete")}
+        onConfirm={() => {
+          if (pendingRevokeId != null) {
+            onRevoke(pendingRevokeId)
+            setPendingRevokeId(null)
+          }
+        }}
+        confirmClassName="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+      />
     </Dialog>
   )
 }

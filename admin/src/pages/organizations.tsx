@@ -16,6 +16,7 @@ import { cn, formatDate } from "@/lib/utils"
 import { TwoPanelLayout } from "@/components/layout/two-panel-layout"
 import { MoreVertical, Pencil, Plus, Trash2 } from "lucide-react"
 import { DetailPanel } from "@/components/layout/detail-panel"
+import { useAuth } from "@/lib/auth"
 
 type ApiResponse<T> = {
   success: boolean
@@ -58,6 +59,7 @@ export function OrganizationsPage() {
   const [addUserId, setAddUserId] = useState("")
   const [addRole, setAddRole] = useState<"admin" | "member">("member")
   const [removeUserId, setRemoveUserId] = useState<number | null>(null)
+  const { user } = useAuth()
 
   const selectedOrg = useMemo(() => orgs.find((o) => o.id === selectedId) || null, [orgs, selectedId])
 
@@ -137,8 +139,13 @@ export function OrganizationsPage() {
       setOrgUsersForbidden(false)
       return
     }
+    if (user?.role_id !== "admin") {
+      setOrgUsers([])
+      setOrgUsersForbidden(true)
+      return
+    }
     fetchOrgUsers(selectedOrg.id)
-  }, [selectedOrg, fetchOrgUsers])
+  }, [selectedOrg, fetchOrgUsers, user])
 
 
   const handleAddOrgUser = async () => {
@@ -251,10 +258,12 @@ export function OrganizationsPage() {
         title={t("organizations.title")}
         subtitle={t("organizations.description")}
         action={
-          <Button size="sm" onClick={() => setCreateDialogOpen(true)} className="bg-primary hover:bg-primary/90">
-            <Plus className="mr-2 h-4 w-4" />
-            {t("organizations.add") || t("organizations.create")}
-          </Button>
+          user?.role_id === "admin" ? (
+            <Button size="sm" onClick={() => setCreateDialogOpen(true)} className="bg-primary hover:bg-primary/90">
+              <Plus className="mr-2 h-4 w-4" />
+              {t("organizations.add") || t("organizations.create")}
+            </Button>
+          ) : null
         }
       />
 

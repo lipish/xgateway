@@ -17,6 +17,7 @@ interface ApiKeyCreateDialogProps {
   onOpenChange: (open: boolean) => void
   form: {
     name: string
+    project_id: string
     provider_ids: number[]
     strategy: string
     fallback_chain: string
@@ -24,6 +25,7 @@ interface ApiKeyCreateDialogProps {
     concurrency_limit: number
   }
   onFormChange: (next: ApiKeyCreateDialogProps["form"]) => void
+  projectOptions: { value: string; label: string }[]
   providers: Provider[]
   bindingBusyId: number | null
   fallbackBusy: boolean
@@ -38,6 +40,7 @@ export function ApiKeyCreateDialog({
   onOpenChange,
   form,
   onFormChange,
+  projectOptions,
   providers,
   bindingBusyId,
   fallbackBusy,
@@ -79,6 +82,19 @@ export function ApiKeyCreateDialog({
                 placeholder={t("apiKeys.enterName")}
                 className="h-10"
               />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">{t("apiKeys.project")}</Label>
+              <Select
+                value={form.project_id}
+                onChange={(value) => onFormChange({ ...form, project_id: value })}
+                options={projectOptions}
+                placeholder={t("apiKeys.selectProject")}
+                triggerClassName="h-10"
+              />
+              {projectOptions.length === 0 && (
+                <p className="text-xs text-muted-foreground">{t("projects.empty")}</p>
+              )}
             </div>
             <div className="space-y-2">
               <div className="text-sm font-semibold">{t("services.bindings")}</div>

@@ -6,6 +6,7 @@ export interface Provider {
   priority?: number
   config?: string
   endpoint?: string | null
+  owner_id?: number | null
 }
 
 export interface ApiKey {

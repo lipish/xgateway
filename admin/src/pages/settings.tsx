@@ -124,7 +124,7 @@ export function SettingsPage() {
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+              <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm relative z-10">
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-2 text-purple-600 mb-1">
                     <Zap className="h-5 w-5" />
@@ -145,7 +145,7 @@ export function SettingsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+              <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm relative z-0">
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-2 text-purple-600 mb-1">
                     <Heart className="h-5 w-5" />

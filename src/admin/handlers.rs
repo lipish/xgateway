@@ -4,8 +4,9 @@ use axum::{
     response::Json,
 };
 use serde::{Deserialize, Serialize};
-use crate::db::{DatabasePool, Provider, NewProvider, UpdateProvider};
+use crate::db::{DatabasePool, Provider, NewProvider, UpdateProvider, NewUserInstance};
 use anyhow::Result;
+use crate::admin::auth_middleware::AdminUserContext;
 
 #[derive(Debug, Serialize)]
 pub struct ProviderResponse {
@@ -63,8 +64,15 @@ pub struct ProviderStatsResponse {
 /// List all providers
 pub async fn list_providers_api(
     State(db_pool): State<DatabasePool>,
+    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
 ) -> Result<Json<ProviderResponse>, StatusCode> {
-    match db_pool.list_providers().await {
+    let result = if ctx.is_admin {
+        db_pool.list_providers().await
+    } else {
+        db_pool.list_providers_for_user(ctx.user.id).await
+    };
+
+    match result {
         Ok(providers) => Ok(Json(ProviderResponse {
             success: true,
             data: Some(providers),
@@ -104,6 +112,7 @@ pub async fn get_provider_api(
 pub async fn create_provider_api(
     State(db_pool): State<DatabasePool>,
     State(pool_manager): State<std::sync::Arc<crate::pool::PoolManager>>,
+    axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
     Json(request): Json<CreateProviderRequest>,
 ) -> Result<Json<SingleProviderResponse>, StatusCode> {
     // Validate request
@@ -133,10 +142,18 @@ pub async fn create_provider_api(
         endpoint: request.endpoint,
         secret_id: request.secret_id,
         secret_key: request.secret_key,
+        owner_id: Some(ctx.user.id),
     };
     
     match db_pool.create_provider(new_provider).await {
         Ok(provider_id) => {
+            let _ = db_pool
+                .grant_user_instance(NewUserInstance {
+                    user_id: ctx.user.id,
+                    provider_id: provider_id,
+                    granted_by: Some(ctx.user.id),
+                })
+                .await;
             // Return the created provider
             match db_pool.get_provider(provider_id).await {
                 Ok(Some(provider)) => {

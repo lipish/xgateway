@@ -130,6 +130,36 @@ pub async fn update_api_key_api(
     } else {
         req.provider_ids.clone()
     };
+    if !ctx.is_admin {
+        if let Some(ids) = &provider_ids {
+            match db_pool.list_providers_for_user(ctx.user.id).await {
+                Ok(providers) => {
+                    let allowed: std::collections::HashSet<i64> = providers.into_iter().map(|p| p.id).collect();
+                    if ids.iter().any(|id| !allowed.contains(id)) {
+                        return Json(ApiResponse { success: false, data: None, message: "forbidden_provider".to_string() });
+                    }
+                }
+                Err(_) => {
+                    return Json(ApiResponse { success: false, data: None, message: "forbidden_provider".to_string() });
+                }
+            }
+        }
+    }
+    if !ctx.is_admin {
+        if let Some(ids) = &provider_ids {
+            match db_pool.list_providers_for_user(ctx.user.id).await {
+                Ok(providers) => {
+                    let allowed: std::collections::HashSet<i64> = providers.into_iter().map(|p| p.id).collect();
+                    if ids.iter().any(|id| !allowed.contains(id)) {
+                        return Json(ApiResponse { success: false, data: None, message: "forbidden_provider".to_string() });
+                    }
+                }
+                Err(_) => {
+                    return Json(ApiResponse { success: false, data: None, message: "forbidden_provider".to_string() });
+                }
+            }
+        }
+    }
     let strategy = req.strategy.clone().unwrap_or_else(|| "Priority".to_string());
     let fallback_chain = req.fallback_chain.clone();
 
@@ -219,6 +249,36 @@ pub async fn create_api_key_api(
     } else {
         req.provider_ids.clone()
     };
+    if !ctx.is_admin {
+        if let Some(ids) = &provider_ids {
+            match db_pool.list_providers_for_user(ctx.user.id).await {
+                Ok(providers) => {
+                    let allowed: std::collections::HashSet<i64> = providers.into_iter().map(|p| p.id).collect();
+                    if ids.iter().any(|id| !allowed.contains(id)) {
+                        return Json(ApiResponse { success: false, data: None, message: "forbidden_provider".to_string() });
+                    }
+                }
+                Err(_) => {
+                    return Json(ApiResponse { success: false, data: None, message: "forbidden_provider".to_string() });
+                }
+            }
+        }
+    }
+    if !ctx.is_admin {
+        if let Some(ids) = &provider_ids {
+            match db_pool.list_providers_for_user(ctx.user.id).await {
+                Ok(providers) => {
+                    let allowed: std::collections::HashSet<i64> = providers.into_iter().map(|p| p.id).collect();
+                    if ids.iter().any(|id| !allowed.contains(id)) {
+                        return Json(ApiResponse { success: false, data: None, message: "forbidden_provider".to_string() });
+                    }
+                }
+                Err(_) => {
+                    return Json(ApiResponse { success: false, data: None, message: "forbidden_provider".to_string() });
+                }
+            }
+        }
+    }
 
     let qps_limit = req.qps_limit.unwrap_or(1_000_000.0);
     let concurrency_limit = req.concurrency_limit.unwrap_or(1_000_000);

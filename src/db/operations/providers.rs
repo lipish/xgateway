@@ -7,7 +7,7 @@ impl DatabasePool {
         match self {
             Self::Postgres(pool) => {
                 let row = sqlx::query(
-                    "INSERT INTO providers (name, type, config, enabled, priority, endpoint, secret_id, secret_key) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id::BIGINT as id"
+                    "INSERT INTO providers (name, type, config, enabled, priority, endpoint, secret_id, secret_key, owner_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id::BIGINT as id"
                 )
                 .bind(&provider.name)
                 .bind(&provider.provider_type)
@@ -17,6 +17,7 @@ impl DatabasePool {
                 .bind(&provider.endpoint)
                 .bind(&provider.secret_id)
                 .bind(&provider.secret_key)
+                .bind(provider.owner_id)
                 .fetch_one(pool)
                 .await?;
                 Ok(row.try_get("id")?)
@@ -26,7 +27,7 @@ impl DatabasePool {
 
     pub async fn list_providers(&self) -> Result<Vec<Provider>> {
         let query = r#"
-            SELECT id::BIGINT as id, name, type, config, enabled, priority, endpoint, secret_id, secret_key, version, created_at, updated_at
+            SELECT id::BIGINT as id, name, type, config, enabled, priority, endpoint, secret_id, secret_key, owner_id::BIGINT as owner_id, version, created_at, updated_at
             FROM providers 
             ORDER BY priority DESC, created_at ASC
         "#;
@@ -42,7 +43,7 @@ impl DatabasePool {
         match self {
             Self::Postgres(pool) => {
                 Ok(sqlx::query_as::<_, Provider>(
-                    "SELECT id::BIGINT as id, name, type, config, enabled, priority, endpoint, secret_id, secret_key, version, created_at, updated_at FROM providers WHERE id = $1"
+                    "SELECT id::BIGINT as id, name, type, config, enabled, priority, endpoint, secret_id, secret_key, owner_id::BIGINT as owner_id, version, created_at, updated_at FROM providers WHERE id = $1"
                 )
                 .bind(id)
                 .fetch_optional(pool)
@@ -54,7 +55,7 @@ impl DatabasePool {
     #[allow(dead_code)]
     pub async fn get_enabled_providers(&self) -> Result<Vec<Provider>> {
         let query = r#"
-            SELECT id::BIGINT as id, name, type, config, enabled, priority, endpoint, secret_id, secret_key, version, created_at, updated_at
+            SELECT id::BIGINT as id, name, type, config, enabled, priority, endpoint, secret_id, secret_key, owner_id::BIGINT as owner_id, version, created_at, updated_at
             FROM providers 
             WHERE enabled = true
             ORDER BY priority DESC, created_at ASC
@@ -70,6 +71,26 @@ impl DatabasePool {
     pub async fn update_provider(&self, id: i64, update: UpdateProvider) -> Result<bool> {
         match self {
             Self::Postgres(pool) => self.update_provider_postgres(pool, id, update).await,
+        }
+    }
+
+    pub async fn list_providers_for_user(&self, user_id: i64) -> Result<Vec<Provider>> {
+        let query = r#"
+            SELECT p.id::BIGINT as id, p.name, p.type, p.config, p.enabled, p.priority, p.endpoint, p.secret_id, p.secret_key, p.owner_id::BIGINT as owner_id, p.version, p.created_at, p.updated_at
+            FROM providers p
+            WHERE p.owner_id = $1 OR EXISTS (
+                SELECT 1
+                FROM user_instances ui
+                WHERE ui.user_id = $1 AND ui.provider_id = p.id
+            )
+            ORDER BY p.priority DESC, p.created_at ASC
+        "#;
+
+        match self {
+            Self::Postgres(pool) => Ok(sqlx::query_as::<_, Provider>(query)
+                .bind(user_id)
+                .fetch_all(pool)
+                .await?),
         }
     }
 

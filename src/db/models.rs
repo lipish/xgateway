@@ -37,6 +37,7 @@ pub struct Provider {
     pub secret_id: Option<String>,  // Secret ID for Tencent Cloud
     #[serde(default)]
     pub secret_key: Option<String>,  // Secret Key for Tencent Cloud
+    pub owner_id: Option<i64>,
     pub version: i64,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -55,6 +56,7 @@ pub struct NewProvider {
     pub secret_id: Option<String>,
     #[serde(default)]
     pub secret_key: Option<String>,
+    pub owner_id: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -101,6 +103,7 @@ impl Provider {
             endpoint: None,
             secret_id: None,
             secret_key: None,
+            owner_id: None,
             version: 0,
             created_at: now,
             updated_at: now,
@@ -120,6 +123,7 @@ impl Provider {
             endpoint: new_provider.endpoint,
             secret_id: new_provider.secret_id,
             secret_key: new_provider.secret_key,
+            owner_id: new_provider.owner_id,
             version: 0,
             created_at: now,
             updated_at: now,
@@ -139,6 +143,7 @@ impl NewProvider {
             endpoint: None,
             secret_id: None,
             secret_key: None,
+            owner_id: None,
         }
     }
 }

@@ -17,6 +17,7 @@ import { BadgeCheck, Copy, Eye, EyeOff, KeyRound, Power, RotateCcw, Trash2 } fro
 export function ServicesPage() {
   const { language } = useI18n()
   const [providers, setProviders] = useState<Provider[]>([])
+  const [projects, setProjects] = useState<{ id: number; name: string }[]>([])
   const [selectedApiKeyId, setSelectedApiKeyId] = useState<number | null>(null)
   const [inlineSaving, setInlineSaving] = useState(false)
 
@@ -44,6 +45,7 @@ export function ServicesPage() {
   const [error, setError] = useState<string | null>(null)
   const [apiKeyCreateForm, setApiKeyCreateForm] = useState({
     name: "",
+    project_id: "",
     provider_ids: [] as number[],
     strategy: "Priority",
     fallback_chain: "",
@@ -60,6 +62,7 @@ export function ServicesPage() {
     const ids = (selectedApiKey?.provider_ids || []).filter((value): value is number => typeof value === "number")
     return new Set(ids)
   }, [selectedApiKey])
+
 
   const selectedApiKeyModels = useMemo(() => {
     if (!selectedApiKey) return []
@@ -117,7 +120,11 @@ export function ServicesPage() {
       setApiKeyError(null)
       const data = await apiGet<ApiResponse<ApiKey[]>>("/api/api-keys")
       if (!data.success) {
-        setApiKeyError(data.message || t("common.networkError"))
+        if (data.message === "forbidden_provider") {
+          setApiKeyError(t("users.forbiddenProvider"))
+        } else {
+          setApiKeyError(data.message || t("common.networkError"))
+        }
         if (!silent) setApiKeys([])
         return
       }
@@ -130,18 +137,34 @@ export function ServicesPage() {
     }
   }, [])
 
+  const fetchProjects = useCallback(async () => {
+    try {
+      const data = await apiGet<ApiResponse<{ id: number; name: string }[]>>("/api/projects")
+      if (!data.success) {
+        return
+      }
+      const list = data.data || []
+      setProjects(list)
+      if (list.length > 0) {
+        setApiKeyCreateForm((prev) => ({ ...prev, project_id: prev.project_id || list[0].id.toString() }))
+      }
+    } catch {
+      setProjects([])
+    }
+  }, [])
+
   useEffect(() => {
     const fetchAll = async () => {
       try {
         setLoading(true)
         setError(null)
-        await Promise.all([fetchProviders(), fetchApiKeys()])
+        await Promise.all([fetchProviders(), fetchApiKeys(), fetchProjects()])
       } finally {
         setLoading(false)
       }
     }
     fetchAll()
-  }, [fetchProviders, fetchApiKeys])
+  }, [fetchProviders, fetchApiKeys, fetchProjects])
 
   useEffect(() => {
     if (!selectedApiKeyId && apiKeys.length > 0) {
@@ -155,6 +178,7 @@ export function ServicesPage() {
   const openCreateApiKey = () => {
     setApiKeyCreateForm({
       name: "",
+      project_id: projects[0]?.id?.toString() || "",
       provider_ids: [],
       strategy: "Priority",
       fallback_chain: "",
@@ -176,6 +200,7 @@ export function ServicesPage() {
       const payload = {
         name: apiKeyCreateForm.name,
         scope: "instance",
+        project_id: apiKeyCreateForm.project_id ? Number(apiKeyCreateForm.project_id) : undefined,
         provider_ids: apiKeyCreateForm.provider_ids,
         strategy: apiKeyCreateForm.strategy,
         fallback_chain: apiKeyCreateForm.fallback_chain.trim() ? apiKeyCreateForm.fallback_chain.trim() : null,
@@ -185,6 +210,10 @@ export function ServicesPage() {
 
       const data = await apiPost<ApiResponse<{ full_key?: string }>>("/api/api-keys", payload)
       if (!data.success) {
+        if (data.message === "forbidden_provider") {
+          setApiKeyCreateError(t("users.forbiddenProvider"))
+          return
+        }
         setApiKeyCreateError(data.message || t('common.networkError'))
         return
       }
@@ -208,7 +237,11 @@ export function ServicesPage() {
       }
       const data = await apiPost<ApiResponse<unknown>>(`/api/api-keys/${id}/toggle`)
       if (!data.success) {
-        setApiKeyError(data.message || t('common.networkError'))
+        if (data.message === "forbidden_provider") {
+          setApiKeyError(t("users.forbiddenProvider"))
+        } else {
+          setApiKeyError(data.message || t('common.networkError'))
+        }
         if (currentStatus) {
           setApiKeys((current) => current.map((key) => (key.id === id ? { ...key, status: currentStatus } : key)))
         }
@@ -249,7 +282,11 @@ export function ServicesPage() {
     try {
       const data = await apiDelete<ApiResponse<unknown>>(`/api/api-keys/${apiKeyToDelete}`)
       if (!data.success) {
-        setApiKeyError(data.message || t('common.networkError'))
+        if (data.message === "forbidden_provider") {
+          setApiKeyError(t("users.forbiddenProvider"))
+        } else {
+          setApiKeyError(data.message || t('common.networkError'))
+        }
         return
       }
       await fetchApiKeys()
@@ -623,13 +660,14 @@ export function ServicesPage() {
             }
           />
 
-            <ApiKeyCreateDialog
-              open={showCreateApiKeyDialog}
-              onOpenChange={(open) => {
-                setShowCreateApiKeyDialog(open)
-                if (!open) {
+              <ApiKeyCreateDialog
+                open={showCreateApiKeyDialog}
+                onOpenChange={(open) => {
+                  setShowCreateApiKeyDialog(open)
+                  if (!open) {
                 setApiKeyCreateForm({
                   name: "",
+                  project_id: projects[0]?.id?.toString() || "",
                   provider_ids: [],
                   strategy: "Priority",
                   fallback_chain: "",
@@ -642,6 +680,10 @@ export function ServicesPage() {
               }}
               form={apiKeyCreateForm}
               onFormChange={setApiKeyCreateForm}
+              projectOptions={projects.map((project) => ({
+                value: project.id.toString(),
+                label: project.id === 1 && project.name === "default" ? t("projects.defaultName") : project.name,
+              }))}
               providers={providers}
               bindingBusyId={bindingBusyId}
               fallbackBusy={fallbackBusy}

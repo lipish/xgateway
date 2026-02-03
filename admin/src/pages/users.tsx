@@ -19,6 +19,7 @@ type Organization = {
 import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api"
 import { t } from "@/lib/i18n"
 import { RefreshCw, UserPlus } from "lucide-react"
+import { useAuth } from "@/lib/auth"
 
 type ApiResponse<T> = {
     success: boolean
@@ -27,6 +28,7 @@ type ApiResponse<T> = {
 }
 
 export function UsersPage() {
+    const { user } = useAuth()
     const [users, setUsers] = useState<User[]>([])
     const [providers, setProviders] = useState<Provider[]>([])
     const [loading, setLoading] = useState(true)
@@ -104,11 +106,23 @@ export function UsersPage() {
             setLoading(true)
             const data = await apiGet<ApiResponse<User[]>>('/api/users')
             if (!data.success) {
+                if (data.message === "org_admin_required") {
+                    setUsers([])
+                    setSelectedUser(null)
+                    setUserInstances([])
+                    setError(null)
+                    return []
+                }
                 setError(data.message || t('users.fetchUsersFailed'))
                 return []
             }
             const list: User[] = data.data || []
-            setUsers(list)
+            if (!user || user.role_id === "admin") {
+                setUsers(list)
+            } else {
+                const filtered = list.filter((entry) => entry.id === user.id)
+                setUsers(filtered)
+            }
 
             if (list.length === 0) {
                 setSelectedUser(null)
@@ -129,7 +143,7 @@ export function UsersPage() {
         } finally {
             setLoading(false)
         }
-    }, [fetchUserInstances, selectedUser])
+    }, [fetchUserInstances, selectedUser, user])
 
     useEffect(() => {
         fetchUsers()
@@ -267,10 +281,12 @@ export function UsersPage() {
                 title={t('users.title')}
                 subtitle={t('users.description')}
                 action={
-                    <Button size="sm" onClick={() => setShowCreateDialog(true)} className="bg-primary hover:bg-primary/90">
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        {t('users.addUser')}
-                    </Button>
+                    user?.role_id === "admin" ? (
+                        <Button size="sm" onClick={() => setShowCreateDialog(true)} className="bg-primary hover:bg-primary/90">
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            {t('users.addUser')}
+                        </Button>
+                    ) : null
                 }
             />
 
@@ -281,7 +297,7 @@ export function UsersPage() {
                         value={orgFilterId}
                         onChange={setOrgFilterId}
                         options={[
-                            { value: 'all', label: t('common.all') },
+                            ...(user && user.role_id !== "admin" ? [] : [{ value: 'all', label: t('common.all') }]),
                             ...organizations.map((org) => ({
                                 value: org.id.toString(),
                                 label: org.id === 1 && org.name === 'default' ? t('organizations.defaultName') : org.name,
@@ -345,19 +361,21 @@ export function UsersPage() {
                     )}
                 </div>
 
-                <CreateUserDialog
-                    open={showCreateDialog}
-                    onOpenChange={setShowCreateDialog}
-                    newUser={newUser}
-                    organizationOptions={organizations.map((org) => ({
-                        value: org.id.toString(),
-                        label: org.id === 1 && org.name === 'default' ? t('organizations.defaultName') : org.name,
-                    }))}
-                    onNewUserChange={setNewUser}
-                    error={error}
-                    creating={creating}
-                    onCreate={handleCreate}
-                />
+                {user && user.role_id === "admin" && (
+                    <CreateUserDialog
+                        open={showCreateDialog}
+                        onOpenChange={setShowCreateDialog}
+                        newUser={newUser}
+                        organizationOptions={organizations.map((org) => ({
+                            value: org.id.toString(),
+                            label: org.id === 1 && org.name === 'default' ? t('organizations.defaultName') : org.name,
+                        }))}
+                        onNewUserChange={setNewUser}
+                        error={error}
+                        creating={creating}
+                        onCreate={handleCreate}
+                    />
+                )}
 
                 <EditUserDialog
                     open={showEditDialog}
