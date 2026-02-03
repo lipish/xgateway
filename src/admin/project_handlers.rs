@@ -41,21 +41,12 @@ pub async fn create_project_api(
     axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
     Json(req): Json<CreateProjectRequest>,
 ) -> Json<ApiResponse<crate::db::Project>> {
-    if !ctx.is_admin {
-        if ctx.org_id != req.org_id {
-            return Json(ApiResponse {
-                success: false,
-                data: None,
-                message: "forbidden".to_string(),
-            });
-        }
-        if ctx.org_role.as_deref() != Some("admin") {
-            return Json(ApiResponse {
-                success: false,
-                data: None,
-                message: "org_admin_required".to_string(),
-            });
-        }
+    if !ctx.is_admin && ctx.org_id != req.org_id {
+        return Json(ApiResponse {
+            success: false,
+            data: None,
+            message: "forbidden".to_string(),
+        });
     }
 
     if req.name.trim().is_empty() {
