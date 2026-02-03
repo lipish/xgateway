@@ -46,6 +46,7 @@ export function ServicesPage() {
   const [apiKeyCreateForm, setApiKeyCreateForm] = useState({
     name: "",
     project_id: "",
+    protocol: "openai",
     provider_ids: [] as number[],
     strategy: "Priority",
     fallback_chain: "",
@@ -80,6 +81,11 @@ export function ServicesPage() {
       .filter((value) => value && String(value).trim().length > 0)
   }, [providers, selectedApiKey])
 
+  const selectedProtocolLabel = useMemo(() => {
+    if (!selectedApiKey) return null
+    return selectedApiKey.protocol === "anthropic" ? t("services.protocolAnthropic") : t("services.protocolOpenAI")
+  }, [selectedApiKey])
+
   const selectedStrategyLabel = useMemo(() => {
     if (!selectedApiKey) return null
     const option = STRATEGY_OPTIONS.find((strategy) => strategy.value === selectedApiKey.strategy)
@@ -95,7 +101,7 @@ export function ServicesPage() {
   const maskKey = (key?: string | null) => {
     if (!key) return "-"
     if (key.length <= 8) return key
-    return `${key.slice(0, 4)}****${key.slice(-4)}`
+    return `${key.slice(0, 4)}**********${key.slice(-4)}`
   }
 
   const fetchProviders = useCallback(async () => {
@@ -179,6 +185,7 @@ export function ServicesPage() {
     setApiKeyCreateForm({
       name: "",
       project_id: projects[0]?.id?.toString() || "",
+      protocol: "openai",
       provider_ids: [],
       strategy: "Priority",
       fallback_chain: "",
@@ -200,6 +207,7 @@ export function ServicesPage() {
       const payload = {
         name: apiKeyCreateForm.name,
         scope: "instance",
+        protocol: apiKeyCreateForm.protocol,
         project_id: apiKeyCreateForm.project_id ? Number(apiKeyCreateForm.project_id) : undefined,
         provider_ids: apiKeyCreateForm.provider_ids,
         strategy: apiKeyCreateForm.strategy,
@@ -312,6 +320,7 @@ export function ServicesPage() {
       const payload = {
         name: selectedApiKey.name,
         scope: selectedApiKey.scope,
+        protocol: selectedApiKey.protocol ?? "openai",
         provider_ids: nextIds,
         strategy: selectedApiKey.strategy ?? "Priority",
         fallback_chain: selectedApiKey.fallback_chain ?? null,
@@ -338,6 +347,7 @@ export function ServicesPage() {
       const payload = {
         name: selectedApiKey.name,
         scope: selectedApiKey.scope,
+        protocol: selectedApiKey.protocol ?? "openai",
         provider_ids: selectedApiKey.provider_ids ?? [],
         strategy: selectedApiKey.strategy ?? "Priority",
         fallback_chain: nextChain.length > 0 ? nextChain : null,
@@ -365,12 +375,14 @@ export function ServicesPage() {
       provider_ids: updates.provider_ids ?? selectedApiKey.provider_ids ?? [],
       strategy: updates.strategy ?? selectedApiKey.strategy ?? "Priority",
       fallback_chain: updates.fallback_chain ?? selectedApiKey.fallback_chain ?? null,
+      protocol: updates.protocol ?? selectedApiKey.protocol ?? "openai",
     }
     try {
       setInlineSaving(true)
       const payload = {
         name: nextApiKey.name,
         scope: nextApiKey.scope,
+        protocol: nextApiKey.protocol ?? "openai",
         provider_ids: nextApiKey.provider_ids ?? [],
         strategy: nextApiKey.strategy ?? "Priority",
         fallback_chain: nextApiKey.fallback_chain ?? null,
@@ -407,7 +419,7 @@ export function ServicesPage() {
         <div className="flex-1 min-h-0 flex flex-col gap-4 h-full">
           <TwoPanelLayout
             left={
-              <div className={cn("w-full md:w-[320px] lg:w-[360px] shrink-0", apiKeys.length === 0 && "min-w-0")}>
+              <div className={cn("w-full md:w-[280px] lg:w-[320px] shrink-0", apiKeys.length === 0 && "min-w-0")}>
                 <div className="rounded-2xl bg-white p-4 h-full border border-border">
                   <div className="flex items-center gap-2 text-sm font-semibold mb-3">
                     <KeyRound className="h-4 w-4 text-muted-foreground" />
@@ -503,9 +515,9 @@ export function ServicesPage() {
                       </div>
                         <div className="rounded-2xl bg-muted/70 border border-border/60 p-5 space-y-4">
                           <div className="flex items-center justify-between gap-2">
-                            <div className="text-sm font-semibold">{t("apiKeys.title")}</div>
-                          <TooltipProvider>
-                            <div className="flex items-center gap-2">
+                            <div className="text-sm font-semibold">{t("apiKeys.keyContent")}</div>
+                            <TooltipProvider>
+                              <div className="flex items-center gap-2">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button
@@ -552,11 +564,10 @@ export function ServicesPage() {
                             </div>
                           </TooltipProvider>
                         </div>
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2">
-                              <div className="text-xs text-muted-foreground px-4">{t("apiKeys.key")}</div>
-                              <div className="flex items-center gap-1.5">
-                                <div className="flex-1 rounded-xl bg-muted/20 px-4 py-2 text-sm font-mono">
+                          <div className="grid gap-4 md:grid-cols-2 items-center">
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1.5 flex-1">
+                                <div className="flex-1 rounded-xl bg-muted/20 px-0 py-2 text-sm font-mono text-left">
                                   {showKeyId === selectedApiKey.id ? selectedApiKey.key_hash : maskKey(selectedApiKey.key_hash)}
                                 </div>
                                 <TooltipProvider>
@@ -616,13 +627,21 @@ export function ServicesPage() {
                                 </TooltipProvider>
                               </div>
                             </div>
-                            <div className="space-y-2">
-                              <div className="text-xs text-muted-foreground px-4">{t("apiKeys.createdAt")}</div>
-                              <div className="rounded-xl bg-muted/20 px-4 py-2 text-sm">
-                                {formatDateTime(selectedApiKey.created_at, language)}
+                            <div className="flex items-center justify-end gap-3">
+                              <div className="w-60">
+                                <Select
+                                  value={selectedApiKey.protocol || "openai"}
+                                  onChange={(value) => handleInlineUpdate({ protocol: value })}
+                                  options={[
+                                    { value: "openai", label: t("services.protocolOpenAI") },
+                                    { value: "anthropic", label: t("services.protocolAnthropic") },
+                                  ]}
+                                  triggerClassName={cn("h-10 px-4", inlineSaving ? "opacity-60 pointer-events-none" : undefined)}
+                                />
                               </div>
                             </div>
                           </div>
+                          <div className="text-xs text-muted-foreground text-right">{t("services.protocolHint")}</div>
                         {apiKeyError && (
                           <p className="text-sm text-destructive font-medium">
                             {t("apiKeys.error")}: {apiKeyError}
@@ -652,6 +671,33 @@ export function ServicesPage() {
                           error={error}
                         />
                       </div>
+                      <div className="rounded-2xl bg-muted/70 border border-border/60 p-5 space-y-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-sm font-semibold">{t("services.usageTitle")}</div>
+                          <a href="/help" className="text-xs text-primary hover:underline">
+                            {t("services.usageGuideLink")}
+                          </a>
+                        </div>
+                        <div className="space-y-2 text-xs text-muted-foreground">
+                          <div>{t("services.usageAuth")}</div>
+                          <div>{t("services.usageBaseUrl")}</div>
+                          <div>
+                            {selectedApiKey.protocol === "anthropic"
+                              ? t("services.protocolEndpointsAnthropic")
+                              : t("services.protocolEndpointsOpenAI")}
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                              {selectedProtocolLabel || t("services.protocolOpenAI")}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="rounded-xl bg-background/70 border border-border/60 px-3 py-2 text-xs font-mono text-muted-foreground whitespace-pre-wrap">
+                          {selectedApiKey.protocol === "anthropic"
+                            ? `curl -X POST http://localhost:3000/v1/messages \\\n  -H "Authorization: Bearer {API_KEY}" \\\n  -H "Content-Type: application/json" \\\n  -d '{\"model\":\"claude-3-5-sonnet-20241022\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}'`
+                            : `curl -X POST http://localhost:3000/v1/chat/completions \\\n  -H "Authorization: Bearer {API_KEY}" \\\n  -H "Content-Type: application/json" \\\n  -d '{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}'`}
+                        </div>
+                      </div>
 
                     </div>
                   )}
@@ -668,6 +714,7 @@ export function ServicesPage() {
                 setApiKeyCreateForm({
                   name: "",
                   project_id: projects[0]?.id?.toString() || "",
+                  protocol: "openai",
                   provider_ids: [],
                   strategy: "Priority",
                   fallback_chain: "",

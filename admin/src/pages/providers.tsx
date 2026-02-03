@@ -388,7 +388,7 @@ export function ModelTypesPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>{t('modelTypes.confirmDeleteModel')}</AlertDialogTitle>
               <AlertDialogDescription>
-                {t('modelTypes.deleteModelWarning') || 'This action cannot be undone. This will permanently delete the model definition.'}
+                {t('modelTypes.deleteModelWarning') || 'This action cannot be undone. This will permanently delete the model definition'}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -405,7 +405,7 @@ export function ModelTypesPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>{t('modelTypes.confirmDelete')}</AlertDialogTitle>
               <AlertDialogDescription>
-                {t('modelTypes.deleteProviderWarning') || 'This action cannot be undone. This will permanently delete the provider and all its models.'}
+                {t('modelTypes.deleteProviderWarning') || 'This action cannot be undone. This will permanently delete the provider and all its models'}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

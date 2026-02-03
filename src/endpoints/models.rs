@@ -50,7 +50,20 @@ pub async fn handle_list_models(
 
     let api_key_info = if let Some(key) = api_key {
         match db_pool.get_api_key_by_hash(key).await {
-            Ok(Some(info)) => Some(info),
+            Ok(Some(info)) => {
+                if info.protocol != "openai" {
+                    let status = StatusCode::FORBIDDEN;
+                    let body = serde_json::json!({
+                        "error": {
+                            "message": "API key protocol does not allow this endpoint",
+                            "type": "invalid_protocol"
+                        }
+                    });
+                    report(status, Some(body.clone()), Some("invalid_protocol".to_string()));
+                    return (status, axum::Json(body));
+                }
+                Some(info)
+            },
             _ => {
                 let status = StatusCode::UNAUTHORIZED;
                 let body = serde_json::json!({
@@ -176,7 +189,20 @@ pub async fn handle_get_model(
 
     let api_key_info = if let Some(key) = api_key {
         match db_pool.get_api_key_by_hash(key).await {
-            Ok(Some(info)) => Some(info),
+            Ok(Some(info)) => {
+                if info.protocol != "openai" {
+                    let status = StatusCode::FORBIDDEN;
+                    let body = serde_json::json!({
+                        "error": {
+                            "message": "API key protocol does not allow this endpoint",
+                            "type": "invalid_protocol"
+                        }
+                    });
+                    report(status, Some(body.clone()), Some("invalid_protocol".to_string()));
+                    return (status, axum::Json(body));
+                }
+                Some(info)
+            },
             _ => {
                 let status = StatusCode::UNAUTHORIZED;
                 let body = serde_json::json!({

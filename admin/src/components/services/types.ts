@@ -14,6 +14,7 @@ export interface ApiKey {
   key_hash?: string
   name: string
   scope: string
+  protocol: string
   provider_ids?: number[] | null
   strategy?: string
   fallback_chain?: string | null

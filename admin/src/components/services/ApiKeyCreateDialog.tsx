@@ -18,6 +18,7 @@ interface ApiKeyCreateDialogProps {
   form: {
     name: string
     project_id: string
+    protocol: string
     provider_ids: number[]
     strategy: string
     fallback_chain: string
@@ -83,18 +84,33 @@ export function ApiKeyCreateDialog({
                 className="h-10"
               />
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">{t("apiKeys.project")}</Label>
-              <Select
-                value={form.project_id}
-                onChange={(value) => onFormChange({ ...form, project_id: value })}
-                options={projectOptions}
-                placeholder={t("apiKeys.selectProject")}
-                triggerClassName="h-10"
-              />
-              {projectOptions.length === 0 && (
-                <p className="text-xs text-muted-foreground">{t("projects.empty")}</p>
-              )}
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">{t("apiKeys.project")}</Label>
+                <Select
+                  value={form.project_id}
+                  onChange={(value) => onFormChange({ ...form, project_id: value })}
+                  options={projectOptions}
+                  placeholder={t("apiKeys.selectProject")}
+                  triggerClassName="h-10"
+                />
+                {projectOptions.length === 0 && (
+                  <p className="text-xs text-muted-foreground">{t("projects.empty")}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">{t("services.protocolTitle")}</Label>
+                <Select
+                  value={form.protocol}
+                  onChange={(value) => onFormChange({ ...form, protocol: value })}
+                  options={[
+                    { value: "openai", label: t("services.protocolOpenAI") },
+                    { value: "anthropic", label: t("services.protocolAnthropic") },
+                  ]}
+                  triggerClassName="h-10"
+                />
+                <p className="text-xs text-muted-foreground">{t("services.protocolHint")}</p>
+              </div>
             </div>
             <div className="space-y-2">
               <div className="text-sm font-semibold">{t("services.bindings")}</div>

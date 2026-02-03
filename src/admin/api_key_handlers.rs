@@ -74,6 +74,7 @@ pub struct ListApiKeysQuery {
 pub struct UpdateApiKeyRequest {
     pub name: String,
     pub scope: String,
+    pub protocol: Option<String>,
     pub provider_ids: Option<Vec<i64>>,
     pub strategy: Option<String>,
     pub fallback_chain: Option<String>,
@@ -124,42 +125,20 @@ pub async fn update_api_key_api(
             message: "Invalid scope".to_string(),
         });
     }
+    let protocol = req.protocol.clone().unwrap_or_else(|| "openai".to_string());
+    if protocol != "openai" && protocol != "anthropic" {
+        return Json(ApiResponse {
+            success: false,
+            data: None,
+            message: "Invalid protocol".to_string(),
+        });
+    }
 
     let provider_ids = if req.scope == "global" {
         None
     } else {
         req.provider_ids.clone()
     };
-    if !ctx.is_admin {
-        if let Some(ids) = &provider_ids {
-            match db_pool.list_providers_for_user(ctx.user.id).await {
-                Ok(providers) => {
-                    let allowed: std::collections::HashSet<i64> = providers.into_iter().map(|p| p.id).collect();
-                    if ids.iter().any(|id| !allowed.contains(id)) {
-                        return Json(ApiResponse { success: false, data: None, message: "forbidden_provider".to_string() });
-                    }
-                }
-                Err(_) => {
-                    return Json(ApiResponse { success: false, data: None, message: "forbidden_provider".to_string() });
-                }
-            }
-        }
-    }
-    if !ctx.is_admin {
-        if let Some(ids) = &provider_ids {
-            match db_pool.list_providers_for_user(ctx.user.id).await {
-                Ok(providers) => {
-                    let allowed: std::collections::HashSet<i64> = providers.into_iter().map(|p| p.id).collect();
-                    if ids.iter().any(|id| !allowed.contains(id)) {
-                        return Json(ApiResponse { success: false, data: None, message: "forbidden_provider".to_string() });
-                    }
-                }
-                Err(_) => {
-                    return Json(ApiResponse { success: false, data: None, message: "forbidden_provider".to_string() });
-                }
-            }
-        }
-    }
     let strategy = req.strategy.clone().unwrap_or_else(|| "Priority".to_string());
     let fallback_chain = req.fallback_chain.clone();
 
@@ -188,6 +167,7 @@ pub async fn update_api_key_api(
             fallback_chain.as_deref(),
             qps_limit,
             concurrency_limit,
+            &protocol,
         )
         .await;
 
@@ -216,6 +196,7 @@ pub async fn update_api_key_api(
 pub struct CreateApiKeyRequest {
     pub name: String,
     pub scope: String,
+    pub protocol: Option<String>,
     pub project_id: Option<i64>,
     pub provider_ids: Option<Vec<i64>>,
     pub strategy: Option<String>,
@@ -244,6 +225,14 @@ pub async fn create_api_key_api(
     });
 
     let scope = req.scope.clone();
+    let protocol = req.protocol.clone().unwrap_or_else(|| "openai".to_string());
+    if protocol != "openai" && protocol != "anthropic" {
+        return Json(ApiResponse {
+            success: false,
+            data: None,
+            message: "Invalid protocol".to_string(),
+        });
+    }
     let provider_ids = if scope == "global" {
         None
     } else {
@@ -313,6 +302,7 @@ pub async fn create_api_key_api(
         key_hash,
         name: req.name,
         scope: scope.clone(),
+        protocol,
         provider_ids: provider_ids.clone(),
         strategy: req.strategy.clone(),
         fallback_chain: req.fallback_chain.clone(),

@@ -91,7 +91,30 @@ pub async fn handle_chat_completions(
 
     let api_key_info = if let Some(key) = api_key {
         match db_pool.get_api_key_by_hash(key).await {
-            Ok(Some(info)) => Some(info),
+            Ok(Some(info)) => {
+                if info.protocol != "openai" {
+                    write_gateway_log(
+                        db_pool,
+                        None,
+                        None,
+                        None,
+                        requested_model_for_log.clone(),
+                        request_content.clone(),
+                        "error",
+                        Some("invalid_protocol".to_string()),
+                    ).await;
+                    return (
+                        StatusCode::FORBIDDEN,
+                        axum::Json(serde_json::json!({
+                            "error": {
+                                "message": "API key protocol does not allow this endpoint",
+                                "type": "invalid_protocol"
+                            }
+                        }))
+                    ).into_response();
+                }
+                Some(info)
+            }
             _ => {
                 write_gateway_log(
                     db_pool,

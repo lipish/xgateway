@@ -15,6 +15,7 @@ use crate::endpoints::ProxyState;
 use crate::engine::Model;
 use crate::service::Service as LlmService;
 use llm_connector::types::{ImageSource, Message as LlmMessage, MessageBlock, Role as LlmRole};
+use axum::http::header::AUTHORIZATION;
 
 /// Anthropic Messages API Request
 #[derive(Debug, Deserialize, Serialize)]
@@ -172,24 +173,21 @@ pub async fn messages(
     info!("📋 Request details: messages_count={}, max_tokens={:?}, temperature={:?}",
           request.messages.len(), request.max_tokens, request.temperature);
     
-    // Debug: Check Authorization header
-    if let Some(auth_header) = headers.get("authorization") {
-        info!("🔍 DEBUG: Client Authorization header: {:?}", auth_header);
-    } else {
-        info!("🔍 DEBUG: No Authorization header from client");
-    }
-    
-    // Debug: Log request size and first message content for debugging
-    let request_json = serde_json::to_string(&request).unwrap_or_default();
-    info!("🔍 DEBUG: Request size: {} bytes", request_json.len());
-    if !request.messages.is_empty() {
-        if let Some(first_content) = request.messages[0].content.get(0) {
-            match first_content {
-                MessageBlock::Text { text } => {
-                    let preview = if text.len() > 200 { &text[..200] } else { text };
-                    info!("🔍 DEBUG: First message preview: {}", preview);
+    let api_key = headers
+        .get(AUTHORIZATION)
+        .and_then(|h| h.to_str().ok())
+        .and_then(|s| s.strip_prefix("Bearer "));
+    if let Some(key) = api_key {
+        match state.db_pool.get_api_key_by_hash(key).await {
+            Ok(Some(info)) => {
+                if info.protocol != "anthropic" {
+                    report(StatusCode::FORBIDDEN, None, Some("invalid_protocol".to_string()), request.stream);
+                    return Err(StatusCode::FORBIDDEN);
                 }
-                _ => info!("🔍 DEBUG: First message is not text"),
+            }
+            _ => {
+                report(StatusCode::UNAUTHORIZED, None, Some("invalid_api_key".to_string()), request.stream);
+                return Err(StatusCode::UNAUTHORIZED);
             }
         }
     }

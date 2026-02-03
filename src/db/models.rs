@@ -404,6 +404,7 @@ pub struct ApiKey {
     pub key_hash: String,
     pub name: String,
     pub scope: String,
+    pub protocol: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub provider_ids: Option<String>,
     pub strategy: String,
@@ -424,6 +425,7 @@ pub struct NewApiKey {
     pub key_hash: String,
     pub name: String,
     pub scope: String, // "global" or "instance"
+    pub protocol: String,
     pub provider_ids: Option<Vec<i64>>,
     pub strategy: Option<String>,
     pub fallback_chain: Option<String>,
