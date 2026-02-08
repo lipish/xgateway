@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use serde::{Deserialize, Serialize};
+use rand::Rng;
 
 use super::health::HealthChecker;
 use super::metrics::ProviderMetrics;
@@ -209,7 +210,7 @@ impl LoadBalancer {
             return self.select_random(providers);
         }
 
-        let mut rng_value = rand_simple() % total_weight;
+        let mut rng_value = rand::thread_rng().gen_range(0..total_weight);
         for &id in providers {
             let weight = weights.get(&id).copied().unwrap_or(1);
             if rng_value < weight {
@@ -226,7 +227,7 @@ impl LoadBalancer {
         if providers.is_empty() {
             return None;
         }
-        let index = rand_simple() as usize % providers.len();
+        let index = rand::thread_rng().gen_range(0..providers.len());
         Some(providers[index])
     }
 
@@ -300,17 +301,6 @@ impl LoadBalancer {
         // Among eligible providers, select the cheapest one
         self.select_by_price(&eligible).await
     }
-}
-
-/// Simple random number generator (not cryptographically secure)
-fn rand_simple() -> u32 {
-    use std::time::SystemTime;
-    let duration = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap_or_default();
-    ((duration.as_nanos() % u32::MAX as u128) as u32)
-        .wrapping_mul(1103515245)
-        .wrapping_add(12345)
 }
 
 #[cfg(test)]

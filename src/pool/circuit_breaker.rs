@@ -188,12 +188,14 @@ impl CircuitBreaker {
     }
 
     /// Force open the circuit
+    #[allow(dead_code)]
     pub async fn force_open(&self) {
         self.transition_to(CircuitState::Open).await;
         tracing::warn!("Circuit breaker force opened");
     }
 
     /// Force close the circuit
+    #[allow(dead_code)]
     pub async fn force_close(&self) {
         self.transition_to(CircuitState::Closed).await;
         tracing::info!("Circuit breaker force closed");
@@ -209,6 +211,7 @@ impl CircuitBreaker {
     }
 
     /// Get statistics
+    #[allow(dead_code)]
     pub fn stats(&self) -> CircuitBreakerStats {
         CircuitBreakerStats {
             total_requests: self.total_requests.load(Ordering::Relaxed),
@@ -219,6 +222,7 @@ impl CircuitBreaker {
     }
 
     /// Get configuration
+    #[allow(dead_code)]
     pub fn config(&self) -> &CircuitBreakerConfig {
         &self.config
     }
@@ -232,6 +236,7 @@ impl Default for CircuitBreaker {
 
 /// Statistics for circuit breaker
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct CircuitBreakerStats {
     pub total_requests: u64,
     pub total_failures: u64,
@@ -240,6 +245,7 @@ pub struct CircuitBreakerStats {
 }
 
 impl CircuitBreakerStats {
+    #[allow(dead_code)]
     pub fn failure_rate(&self) -> f64 {
         if self.total_requests == 0 {
             0.0

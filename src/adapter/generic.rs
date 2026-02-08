@@ -43,7 +43,13 @@ pub async fn send_to_provider(
     xtrace_ctx: Option<XTraceRequestContext>,
 ) -> RequestResult {
     let start_time = std::time::Instant::now();
-    let config: serde_json::Value = serde_json::from_str(&provider.config).unwrap_or_default();
+    let config: serde_json::Value = serde_json::from_str(&provider.config).unwrap_or_else(|e| {
+        tracing::warn!(
+            "Failed to parse provider config for '{}' (id={}): {}",
+            provider.name, provider.id, e
+        );
+        serde_json::Value::default()
+    });
     
     let api_key = config.get("api_key").and_then(|v| v.as_str());
     let base_url = config.get("base_url").and_then(|v| v.as_str());
