@@ -73,7 +73,13 @@ impl PoolManager {
     /// Add a provider to the pool
     pub async fn add_provider(&self, provider: &Provider) -> Result<()> {
         let config: serde_json::Value = serde_json::from_str(&provider.config)
-            .unwrap_or_default();
+            .unwrap_or_else(|e| {
+                tracing::warn!(
+                    "Failed to parse provider config for '{}' (id={}): {}",
+                    provider.name, provider.id, e
+                );
+                serde_json::Value::default()
+            });
 
         // Use endpoint if provided (for Volcengine ep-*), otherwise fall back to model from config
         let model = if let Some(endpoint) = &provider.endpoint {

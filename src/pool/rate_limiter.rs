@@ -250,3 +250,223 @@ impl RateLimiter {
         (global.remaining(), global.config.clone())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_global_rate_limit_allows_within_burst() {
+        let config = RateLimitConfig {
+            requests_per_second: 10.0,
+            burst_size: 5,
+            enabled: true,
+            max_concurrency: None,
+        };
+        let limiter = RateLimiter::new(config);
+
+        // Should allow up to burst_size requests
+        for _ in 0..5 {
+            match limiter.check_global().await {
+                RateLimitResult::Allowed { .. } => {}
+                other => panic!("Expected Allowed, got {:?}", other),
+            }
+        }
+
+        // Next request should be denied
+        match limiter.check_global().await {
+            RateLimitResult::Denied { retry_after } => {
+                assert!(retry_after > Duration::ZERO);
+            }
+            other => panic!("Expected Denied, got {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_disabled_rate_limit_always_allows() {
+        let config = RateLimitConfig {
+            requests_per_second: 1.0,
+            burst_size: 1,
+            enabled: false,
+            max_concurrency: None,
+        };
+        let limiter = RateLimiter::new(config);
+
+        // Even with burst_size=1 and sending many requests, all should be allowed when disabled
+        for _ in 0..100 {
+            match limiter.check_global().await {
+                RateLimitResult::Allowed { .. } => {}
+                other => panic!("Expected Allowed when disabled, got {:?}", other),
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_api_key_rate_limit() {
+        let global_config = RateLimitConfig {
+            requests_per_second: 1000.0,
+            burst_size: 1000,
+            enabled: false,
+            max_concurrency: None,
+        };
+        let limiter = RateLimiter::new(global_config);
+
+        let key_config = RateLimitConfig {
+            requests_per_second: 10.0,
+            burst_size: 3,
+            enabled: true,
+            max_concurrency: None,
+        };
+
+        // Should allow up to burst_size
+        for _ in 0..3 {
+            match limiter.check_api_key("test-key", Some(key_config.clone())).await {
+                RateLimitResult::Allowed { .. } => {}
+                other => panic!("Expected Allowed, got {:?}", other),
+            }
+        }
+
+        // Next should be denied
+        match limiter.check_api_key("test-key", Some(key_config.clone())).await {
+            RateLimitResult::Denied { .. } => {}
+            other => panic!("Expected Denied, got {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_api_key_concurrency_limit() {
+        let global_config = RateLimitConfig {
+            requests_per_second: 1000.0,
+            burst_size: 1000,
+            enabled: false,
+            max_concurrency: None,
+        };
+        let limiter = RateLimiter::new(global_config);
+
+        let key_config = RateLimitConfig {
+            requests_per_second: 1000.0,
+            burst_size: 1000,
+            enabled: true,
+            max_concurrency: Some(2),
+        };
+
+        // Acquire 2 concurrency permits
+        let permit1 = match limiter.check_api_key("key1", Some(key_config.clone())).await {
+            RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
+            other => panic!("Expected Allowed, got {:?}", other),
+        };
+        let _permit2 = match limiter.check_api_key("key1", Some(key_config.clone())).await {
+            RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
+            other => panic!("Expected Allowed, got {:?}", other),
+        };
+
+        // Third should exceed concurrency
+        match limiter.check_api_key("key1", Some(key_config.clone())).await {
+            RateLimitResult::ConcurrencyExceeded => {}
+            other => panic!("Expected ConcurrencyExceeded, got {:?}", other),
+        }
+
+        // Drop first permit, should allow again
+        drop(permit1);
+        match limiter.check_api_key("key1", Some(key_config.clone())).await {
+            RateLimitResult::Allowed { .. } => {}
+            other => panic!("Expected Allowed after dropping permit, got {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_different_api_keys_independent() {
+        let global_config = RateLimitConfig {
+            requests_per_second: 1000.0,
+            burst_size: 1000,
+            enabled: false,
+            max_concurrency: None,
+        };
+        let limiter = RateLimiter::new(global_config);
+
+        let key_config = RateLimitConfig {
+            requests_per_second: 10.0,
+            burst_size: 2,
+            enabled: true,
+            max_concurrency: None,
+        };
+
+        // Exhaust key-a
+        limiter.check_api_key("key-a", Some(key_config.clone())).await;
+        limiter.check_api_key("key-a", Some(key_config.clone())).await;
+        match limiter.check_api_key("key-a", Some(key_config.clone())).await {
+            RateLimitResult::Denied { .. } => {}
+            other => panic!("key-a should be denied, got {:?}", other),
+        }
+
+        // key-b should still work
+        match limiter.check_api_key("key-b", Some(key_config.clone())).await {
+            RateLimitResult::Allowed { .. } => {}
+            other => panic!("key-b should be allowed, got {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_provider_rate_limit() {
+        let config = RateLimitConfig {
+            requests_per_second: 10.0,
+            burst_size: 3,
+            enabled: true,
+            max_concurrency: None,
+        };
+        let limiter = RateLimiter::new(config.clone());
+        limiter.set_provider_config(1, RateLimitConfig {
+            requests_per_second: 10.0,
+            burst_size: 2,
+            enabled: true,
+            max_concurrency: None,
+        }).await;
+
+        // Provider 1 should be limited by its own config (burst=2)
+        match limiter.check(Some(1)).await {
+            RateLimitResult::Allowed { .. } => {}
+            other => panic!("Expected Allowed, got {:?}", other),
+        }
+        match limiter.check(Some(1)).await {
+            RateLimitResult::Allowed { .. } => {}
+            other => panic!("Expected Allowed, got {:?}", other),
+        }
+        // Third request on provider 1 should be denied (provider burst=2 exhausted)
+        match limiter.check(Some(1)).await {
+            RateLimitResult::Denied { .. } => {}
+            other => panic!("Expected Denied for provider, got {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_tokens_replenish_over_time() {
+        let config = RateLimitConfig {
+            requests_per_second: 100.0,  // 1 token per 10ms
+            burst_size: 1,
+            enabled: true,
+            max_concurrency: None,
+        };
+        let limiter = RateLimiter::new(config);
+
+        // Use the one token
+        match limiter.check_global().await {
+            RateLimitResult::Allowed { .. } => {}
+            other => panic!("Expected Allowed, got {:?}", other),
+        }
+
+        // Denied immediately
+        match limiter.check_global().await {
+            RateLimitResult::Denied { .. } => {}
+            other => panic!("Expected Denied, got {:?}", other),
+        }
+
+        // Wait for replenishment
+        tokio::time::sleep(Duration::from_millis(20)).await;
+
+        // Should be allowed again
+        match limiter.check_global().await {
+            RateLimitResult::Allowed { .. } => {}
+            other => panic!("Expected Allowed after wait, got {:?}", other),
+        }
+    }
+}

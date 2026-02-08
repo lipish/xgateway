@@ -266,3 +266,163 @@ impl Default for HealthChecker {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_register_and_initial_status() {
+        let hc = HealthChecker::new();
+        hc.register_provider(1).await;
+
+        assert_eq!(hc.get_status(1).await, HealthStatus::Unknown);
+        // Unknown providers are not "healthy"
+        assert!(!hc.is_healthy(1).await);
+    }
+
+    #[tokio::test]
+    async fn test_unregistered_provider_is_unknown() {
+        let hc = HealthChecker::new();
+        assert_eq!(hc.get_status(999).await, HealthStatus::Unknown);
+        assert!(!hc.is_healthy(999).await);
+    }
+
+    #[tokio::test]
+    async fn test_set_status() {
+        let hc = HealthChecker::new();
+        hc.register_provider(1).await;
+        hc.set_status(1, HealthStatus::Healthy).await;
+        assert_eq!(hc.get_status(1).await, HealthStatus::Healthy);
+        assert!(hc.is_healthy(1).await);
+    }
+
+    #[tokio::test]
+    async fn test_becomes_healthy_after_consecutive_successes() {
+        let config = HealthCheckerConfig {
+            healthy_threshold: 2,
+            unhealthy_threshold: 3,
+            degraded_latency_threshold_ms: 5000,
+            ..Default::default()
+        };
+        let hc = HealthChecker::with_config(config);
+        hc.register_provider(1).await;
+
+        // Single success should not make healthy (threshold is 2)
+        hc.record_success(1, 100).await;
+        // After 1 success: consecutive_successes=1 < threshold=2, so not yet Healthy
+        // (initially Unknown, single success doesn't reach threshold)
+        let status = hc.get_status(1).await;
+        assert_ne!(status, HealthStatus::Healthy);
+
+        // Second success should meet threshold
+        hc.record_success(1, 100).await;
+        assert_eq!(hc.get_status(1).await, HealthStatus::Healthy);
+    }
+
+    #[tokio::test]
+    async fn test_becomes_degraded_on_high_latency() {
+        let config = HealthCheckerConfig {
+            degraded_latency_threshold_ms: 500,
+            healthy_threshold: 1,
+            ..Default::default()
+        };
+        let hc = HealthChecker::with_config(config);
+        hc.register_provider(1).await;
+
+        // Success but with high latency
+        hc.record_success(1, 1000).await;
+        assert_eq!(hc.get_status(1).await, HealthStatus::Degraded);
+        // Degraded is still considered "healthy" for routing
+        assert!(hc.is_healthy(1).await);
+    }
+
+    #[tokio::test]
+    async fn test_becomes_unhealthy_after_consecutive_failures() {
+        let config = HealthCheckerConfig {
+            unhealthy_threshold: 3,
+            ..Default::default()
+        };
+        let hc = HealthChecker::with_config(config);
+        hc.register_provider(1).await;
+
+        hc.record_failure(1, Some("error 1")).await;
+        assert_eq!(hc.get_status(1).await, HealthStatus::Degraded);
+
+        hc.record_failure(1, Some("error 2")).await;
+        assert_eq!(hc.get_status(1).await, HealthStatus::Degraded);
+
+        hc.record_failure(1, Some("error 3")).await;
+        assert_eq!(hc.get_status(1).await, HealthStatus::Unhealthy);
+        assert!(!hc.is_healthy(1).await);
+    }
+
+    #[tokio::test]
+    async fn test_success_resets_failure_count() {
+        let config = HealthCheckerConfig {
+            unhealthy_threshold: 3,
+            healthy_threshold: 1,
+            degraded_latency_threshold_ms: 5000,
+            ..Default::default()
+        };
+        let hc = HealthChecker::with_config(config);
+        hc.register_provider(1).await;
+
+        hc.record_failure(1, None).await;
+        hc.record_failure(1, None).await;
+        // 2 failures, still degraded
+        assert_eq!(hc.get_status(1).await, HealthStatus::Degraded);
+
+        // A success resets the counter
+        hc.record_success(1, 100).await;
+        assert_eq!(hc.get_status(1).await, HealthStatus::Healthy);
+
+        // Now need 3 more failures to become unhealthy
+        hc.record_failure(1, None).await;
+        hc.record_failure(1, None).await;
+        assert_ne!(hc.get_status(1).await, HealthStatus::Unhealthy);
+    }
+
+    #[tokio::test]
+    async fn test_unregister_provider() {
+        let hc = HealthChecker::new();
+        hc.register_provider(1).await;
+        hc.set_status(1, HealthStatus::Healthy).await;
+        assert!(hc.is_healthy(1).await);
+
+        hc.unregister_provider(1).await;
+        assert!(!hc.is_healthy(1).await);
+        assert_eq!(hc.get_status(1).await, HealthStatus::Unknown);
+    }
+
+    #[tokio::test]
+    async fn test_get_healthy_providers() {
+        let hc = HealthChecker::new();
+        hc.register_provider(1).await;
+        hc.register_provider(2).await;
+        hc.register_provider(3).await;
+        hc.set_status(1, HealthStatus::Healthy).await;
+        hc.set_status(2, HealthStatus::Unhealthy).await;
+        hc.set_status(3, HealthStatus::Degraded).await;
+
+        let healthy = hc.get_healthy_providers().await;
+        assert!(healthy.contains(&1));
+        assert!(!healthy.contains(&2));
+        assert!(healthy.contains(&3)); // Degraded counts as healthy
+    }
+
+    #[tokio::test]
+    async fn test_avg_latency_tracking() {
+        let hc = HealthChecker::new();
+        hc.register_provider(1).await;
+
+        hc.record_success(1, 100).await;
+        let avg = hc.get_avg_latency(1).await.unwrap();
+        assert!(avg > 0.0);
+
+        hc.record_success(1, 200).await;
+        let avg2 = hc.get_avg_latency(1).await.unwrap();
+        // Should be a moving average, not simply 150
+        assert!(avg2 > avg);
+    }
+}
+

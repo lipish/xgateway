@@ -7,8 +7,6 @@
 //! - Failover management
 //! - Provider pool management
 
-#![allow(dead_code)]
-
 pub mod health;
 pub mod circuit_breaker;
 pub mod load_balancer;

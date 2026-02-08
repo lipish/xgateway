@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use serde::{Deserialize, Serialize};
+use rand::Rng;
 
 use super::health::HealthChecker;
 use super::metrics::ProviderMetrics;
@@ -209,7 +210,7 @@ impl LoadBalancer {
             return self.select_random(providers);
         }
 
-        let mut rng_value = rand_simple() % total_weight;
+        let mut rng_value = rand::thread_rng().gen_range(0..total_weight);
         for &id in providers {
             let weight = weights.get(&id).copied().unwrap_or(1);
             if rng_value < weight {
@@ -226,7 +227,7 @@ impl LoadBalancer {
         if providers.is_empty() {
             return None;
         }
-        let index = rand_simple() as usize % providers.len();
+        let index = rand::thread_rng().gen_range(0..providers.len());
         Some(providers[index])
     }
 
@@ -302,22 +303,154 @@ impl LoadBalancer {
     }
 }
 
-/// Simple random number generator (not cryptographically secure)
-fn rand_simple() -> u32 {
-    use std::time::SystemTime;
-    let duration = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap_or_default();
-    ((duration.as_nanos() % u32::MAX as u128) as u32)
-        .wrapping_mul(1103515245)
-        .wrapping_add(12345)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::time::Duration;
     use crate::pool::health::HealthStatus;
+
+    #[tokio::test]
+    async fn test_round_robin_cycles_through_providers() {
+        let health_checker = Arc::new(HealthChecker::new());
+        let metrics = Arc::new(ProviderMetrics::new());
+        let lb = LoadBalancer::new(health_checker.clone(), metrics.clone());
+
+        lb.set_strategy(LoadBalanceStrategy::RoundRobin).await;
+
+        for id in [1, 2, 3] {
+            health_checker.register_provider(id).await;
+            health_checker.set_status(id, HealthStatus::Healthy).await;
+        }
+
+        let providers = vec![1, 2, 3];
+        let mut selections = Vec::new();
+        for _ in 0..6 {
+            selections.push(lb.select_provider(&providers).await.unwrap());
+        }
+        // Round-robin should cycle: all providers should be selected at least once
+        assert!(selections.contains(&1));
+        assert!(selections.contains(&2));
+        assert!(selections.contains(&3));
+    }
+
+    #[tokio::test]
+    async fn test_random_selects_valid_provider() {
+        let health_checker = Arc::new(HealthChecker::new());
+        let metrics = Arc::new(ProviderMetrics::new());
+        let lb = LoadBalancer::new(health_checker.clone(), metrics.clone());
+
+        lb.set_strategy(LoadBalanceStrategy::Random).await;
+
+        for id in [10, 20, 30] {
+            health_checker.register_provider(id).await;
+            health_checker.set_status(id, HealthStatus::Healthy).await;
+        }
+
+        let providers = vec![10, 20, 30];
+        for _ in 0..20 {
+            let selected = lb.select_provider(&providers).await;
+            assert!(selected.is_some());
+            assert!(providers.contains(&selected.unwrap()));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_priority_selects_highest() {
+        let health_checker = Arc::new(HealthChecker::new());
+        let metrics = Arc::new(ProviderMetrics::new());
+        let lb = LoadBalancer::new(health_checker.clone(), metrics.clone());
+
+        lb.set_strategy(LoadBalanceStrategy::Priority).await;
+        lb.set_priority(1, 10).await;
+        lb.set_priority(2, 50).await;
+        lb.set_priority(3, 30).await;
+
+        for id in [1, 2, 3] {
+            health_checker.register_provider(id).await;
+            health_checker.set_status(id, HealthStatus::Healthy).await;
+        }
+
+        // Should always select provider 2 (highest priority=50)
+        for _ in 0..5 {
+            let selected = lb.select_provider(&[1, 2, 3]).await;
+            assert_eq!(selected, Some(2));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_least_connections_selects_idle() {
+        let health_checker = Arc::new(HealthChecker::new());
+        let metrics = Arc::new(ProviderMetrics::new());
+        let lb = LoadBalancer::new(health_checker.clone(), metrics.clone());
+
+        lb.set_strategy(LoadBalanceStrategy::LeastConnections).await;
+
+        for id in [1, 2] {
+            health_checker.register_provider(id).await;
+            health_checker.set_status(id, HealthStatus::Healthy).await;
+            metrics.register_provider(id).await;
+        }
+
+        // Simulate 3 active connections on provider 1
+        for _ in 0..3 {
+            metrics.record_request_start(1).await;
+        }
+        // Provider 2 has 0 connections
+        let selected = lb.select_provider(&[1, 2]).await;
+        assert_eq!(selected, Some(2));
+    }
+
+    #[tokio::test]
+    async fn test_latency_based_selects_fastest() {
+        let health_checker = Arc::new(HealthChecker::new());
+        let metrics = Arc::new(ProviderMetrics::new());
+        let lb = LoadBalancer::new(health_checker.clone(), metrics.clone());
+
+        lb.set_strategy(LoadBalanceStrategy::LatencyBased).await;
+
+        for id in [1, 2] {
+            health_checker.register_provider(id).await;
+            health_checker.set_status(id, HealthStatus::Healthy).await;
+        }
+
+        // Provider 1: high latency, Provider 2: low latency
+        health_checker.record_success(1, 500).await;
+        health_checker.record_success(2, 50).await;
+
+        let selected = lb.select_provider(&[1, 2]).await;
+        assert_eq!(selected, Some(2));
+    }
+
+    #[tokio::test]
+    async fn test_skips_unhealthy_providers() {
+        let health_checker = Arc::new(HealthChecker::new());
+        let metrics = Arc::new(ProviderMetrics::new());
+        let lb = LoadBalancer::new(health_checker.clone(), metrics.clone());
+
+        lb.set_strategy(LoadBalanceStrategy::RoundRobin).await;
+
+        for id in [1, 2, 3] {
+            health_checker.register_provider(id).await;
+        }
+        health_checker.set_status(1, HealthStatus::Unhealthy).await;
+        health_checker.set_status(2, HealthStatus::Healthy).await;
+        health_checker.set_status(3, HealthStatus::Healthy).await;
+
+        // Should never select provider 1
+        for _ in 0..10 {
+            let selected = lb.select_provider(&[1, 2, 3]).await.unwrap();
+            assert_ne!(selected, 1);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_empty_providers_returns_none() {
+        let health_checker = Arc::new(HealthChecker::new());
+        let metrics = Arc::new(ProviderMetrics::new());
+        let lb = LoadBalancer::new(health_checker, metrics);
+
+        assert_eq!(lb.select_provider(&[]).await, None);
+    }
 
     #[tokio::test]
     async fn test_lowest_price_selection() {

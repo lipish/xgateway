@@ -188,12 +188,14 @@ impl CircuitBreaker {
     }
 
     /// Force open the circuit
+    #[allow(dead_code)]
     pub async fn force_open(&self) {
         self.transition_to(CircuitState::Open).await;
         tracing::warn!("Circuit breaker force opened");
     }
 
     /// Force close the circuit
+    #[allow(dead_code)]
     pub async fn force_close(&self) {
         self.transition_to(CircuitState::Closed).await;
         tracing::info!("Circuit breaker force closed");
@@ -209,6 +211,7 @@ impl CircuitBreaker {
     }
 
     /// Get statistics
+    #[allow(dead_code)]
     pub fn stats(&self) -> CircuitBreakerStats {
         CircuitBreakerStats {
             total_requests: self.total_requests.load(Ordering::Relaxed),
@@ -219,6 +222,7 @@ impl CircuitBreaker {
     }
 
     /// Get configuration
+    #[allow(dead_code)]
     pub fn config(&self) -> &CircuitBreakerConfig {
         &self.config
     }
@@ -232,6 +236,7 @@ impl Default for CircuitBreaker {
 
 /// Statistics for circuit breaker
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct CircuitBreakerStats {
     pub total_requests: u64,
     pub total_failures: u64,
@@ -240,12 +245,163 @@ pub struct CircuitBreakerStats {
 }
 
 impl CircuitBreakerStats {
+    #[allow(dead_code)]
     pub fn failure_rate(&self) -> f64 {
         if self.total_requests == 0 {
             0.0
         } else {
             self.total_failures as f64 / self.total_requests as f64
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_initially_closed() {
+        let cb = CircuitBreaker::new();
+        assert_eq!(cb.state().await, CircuitState::Closed);
+        assert!(cb.is_allowed().await);
+    }
+
+    #[tokio::test]
+    async fn test_opens_after_threshold_failures() {
+        let config = CircuitBreakerConfig {
+            failure_threshold: 3,
+            recovery_timeout: Duration::from_secs(60),
+            success_threshold: 2,
+            failure_window: Duration::from_secs(60),
+        };
+        let cb = CircuitBreaker::with_config(config);
+
+        // Record failures up to threshold
+        cb.record_failure().await;
+        assert_eq!(cb.state().await, CircuitState::Closed);
+        cb.record_failure().await;
+        assert_eq!(cb.state().await, CircuitState::Closed);
+        cb.record_failure().await;
+        // After 3 failures, circuit should be open
+        assert_eq!(cb.state().await, CircuitState::Open);
+        assert!(!cb.is_allowed().await);
+    }
+
+    #[tokio::test]
+    async fn test_success_resets_failure_count() {
+        let config = CircuitBreakerConfig {
+            failure_threshold: 3,
+            recovery_timeout: Duration::from_secs(60),
+            success_threshold: 2,
+            failure_window: Duration::from_secs(60),
+        };
+        let cb = CircuitBreaker::with_config(config);
+
+        cb.record_failure().await;
+        cb.record_failure().await;
+        // A success should reset failure count
+        cb.record_success().await;
+        assert_eq!(cb.state().await, CircuitState::Closed);
+
+        // Need 3 more failures now to open
+        cb.record_failure().await;
+        cb.record_failure().await;
+        assert_eq!(cb.state().await, CircuitState::Closed);
+        cb.record_failure().await;
+        assert_eq!(cb.state().await, CircuitState::Open);
+    }
+
+    #[tokio::test]
+    async fn test_half_open_after_recovery_timeout() {
+        let config = CircuitBreakerConfig {
+            failure_threshold: 2,
+            recovery_timeout: Duration::from_millis(10),
+            success_threshold: 1,
+            failure_window: Duration::from_secs(60),
+        };
+        let cb = CircuitBreaker::with_config(config);
+
+        // Two rapid failures to open the circuit
+        cb.record_failure().await;
+        cb.record_failure().await;
+        assert_eq!(cb.state().await, CircuitState::Open);
+
+        // Wait for recovery timeout
+        tokio::time::sleep(Duration::from_millis(20)).await;
+
+        // After recovery timeout, is_allowed should transition to half-open
+        assert!(cb.is_allowed().await);
+        assert_eq!(cb.state().await, CircuitState::HalfOpen);
+    }
+
+    #[tokio::test]
+    async fn test_half_open_closes_on_success() {
+        let config = CircuitBreakerConfig {
+            failure_threshold: 2,
+            recovery_timeout: Duration::from_millis(10),
+            success_threshold: 2,
+            failure_window: Duration::from_secs(60),
+        };
+        let cb = CircuitBreaker::with_config(config);
+
+        // Open the circuit
+        cb.record_failure().await;
+        cb.record_failure().await;
+        assert_eq!(cb.state().await, CircuitState::Open);
+
+        // Wait for recovery
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        assert!(cb.is_allowed().await);
+        assert_eq!(cb.state().await, CircuitState::HalfOpen);
+
+        // Successes in half-open should close the circuit
+        cb.record_success().await;
+        assert_eq!(cb.state().await, CircuitState::HalfOpen);
+        cb.record_success().await;
+        assert_eq!(cb.state().await, CircuitState::Closed);
+    }
+
+    #[tokio::test]
+    async fn test_half_open_reopens_on_failure() {
+        let config = CircuitBreakerConfig {
+            failure_threshold: 2,
+            recovery_timeout: Duration::from_millis(10),
+            success_threshold: 2,
+            failure_window: Duration::from_secs(60),
+        };
+        let cb = CircuitBreaker::with_config(config);
+
+        // Open the circuit
+        cb.record_failure().await;
+        cb.record_failure().await;
+        assert_eq!(cb.state().await, CircuitState::Open);
+
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        assert!(cb.is_allowed().await);
+        assert_eq!(cb.state().await, CircuitState::HalfOpen);
+
+        // A single failure in half-open reopens the circuit
+        cb.record_failure().await;
+        assert_eq!(cb.state().await, CircuitState::Open);
+    }
+
+    #[tokio::test]
+    async fn test_reset() {
+        let config = CircuitBreakerConfig {
+            failure_threshold: 2,
+            recovery_timeout: Duration::from_secs(60),
+            success_threshold: 1,
+            failure_window: Duration::from_secs(60),
+        };
+        let cb = CircuitBreaker::with_config(config);
+
+        cb.record_failure().await;
+        cb.record_failure().await;
+        assert_eq!(cb.state().await, CircuitState::Open);
+
+        cb.reset().await;
+        assert_eq!(cb.state().await, CircuitState::Closed);
+        assert!(cb.is_allowed().await);
     }
 }
 

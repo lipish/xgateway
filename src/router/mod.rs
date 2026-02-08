@@ -16,6 +16,39 @@ use crate::service::Service as LlmService;
 use crate::settings::Settings;
 use tokio::sync::RwLock;
 
+/// Build the CORS layer based on environment configuration.
+///
+/// - If `XGATEWAY_CORS_ORIGIN` is set to a specific origin (e.g., `https://example.com`),
+///   only that origin is allowed.
+/// - If `XGATEWAY_CORS_ORIGIN` is set to `*` or unset, all origins are allowed (default).
+fn build_cors_layer() -> CorsLayer {
+    let cors = CorsLayer::new()
+        .allow_methods(Any)
+        .allow_headers(Any);
+
+    match std::env::var("XGATEWAY_CORS_ORIGIN") {
+        Ok(origin) if !origin.is_empty() && origin != "*" => {
+            match origin.parse::<axum::http::HeaderValue>() {
+                Ok(origin_value) => {
+                    tracing::info!("CORS: restricting allowed origin to {}", origin);
+                    cors.allow_origin(origin_value)
+                }
+                Err(_) => {
+                    tracing::warn!(
+                        "CORS: invalid XGATEWAY_CORS_ORIGIN value '{}', falling back to allow all origins",
+                        origin
+                    );
+                    cors.allow_origin(Any)
+                }
+            }
+        }
+        _ => {
+            tracing::debug!("CORS: allowing all origins (set XGATEWAY_CORS_ORIGIN to restrict)");
+            cors.allow_origin(Any)
+        }
+    }
+}
+
 pub fn build_multi_mode_app(
     db_pool: DatabasePool, 
     pool_manager: Arc<PoolManager>,
@@ -53,10 +86,5 @@ pub fn build_multi_mode_app(
         .merge(admin_routes)
         .merge(llm_proxy_routes)
         .fallback_service(serve_dir)
-        .layer(
-            CorsLayer::new()
-                .allow_origin(Any)
-                .allow_methods(Any)
-                .allow_headers(Any)
-        )
+        .layer(build_cors_layer())
 }

@@ -6,6 +6,9 @@
 //! - Load balancing
 //! - Failover with retry
 
+// This module provides a planned unified service API that is not yet fully integrated.
+#![allow(dead_code)]
+
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;

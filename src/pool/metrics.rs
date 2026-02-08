@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 
 /// Metrics for a single request
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct RequestMetrics {
     pub provider_id: i64,
     pub latency_ms: u64,
