@@ -1,0 +1,58 @@
+# XGateway 配置文件示例
+# 复制此文件为 config/xgateway.yaml 并根据需要修改
+
+version: "1.0"
+
+# 服务器配置
+server:
+  host: "0.0.0.0"
+  port: 3000
+  log_level: "info"
+  graceful_shutdown_timeout: "30s"
+
+# 数据库配置
+database:
+  # 使用环境变量 DATABASE_URL，或者直接写完整的连接字符串
+  url: "${DATABASE_URL}"
+  max_connections: 20
+  min_connections: 5
+  connect_timeout: "5s"
+  idle_timeout: "10m"
+
+# 安全配置
+security:
+  # XGateway 自身的认证 Key（可选）
+  auth_key: "${XGATEWAY_AUTH_KEY}"
+  # API Key 默认过期天数
+  api_key_expiry_days: 90
+  # IP 白名单（空列表表示不限制）
+  ip_whitelist: []
+  # 敏感数据加密密钥（可选）
+  secrets_encryption_key: "${SECRETS_ENCRYPTION_KEY}"
+
+# Metrics 和监控配置
+metrics:
+  enabled: true
+  prometheus:
+    enabled: true
+    endpoint: "/metrics"
+  tracing:
+    # 是否启用分布式追踪
+    enabled: "${XTRACE_ENABLED:false}"
+    # OTLP 端点（如 Jaeger、OpenTelemetry Collector）
+    otlp_endpoint: "${OTLP_ENDPOINT}"
+
+# 日志配置
+logging:
+  # 日志格式：json 或 text
+  format: "json"
+  level: "info"
+  file:
+    enabled: false
+    path: "/var/log/xgateway"
+    rotation: "daily"
+
+# 配置热加载配置
+config_watch:
+  enabled: true
+  interval: "5s"

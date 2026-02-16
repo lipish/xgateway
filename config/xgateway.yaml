@@ -1,0 +1,41 @@
+# XGateway 测试配置
+version: "1.0"
+
+server:
+  host: "127.0.0.1"
+  port: 3001
+  log_level: "debug"
+  graceful_shutdown_timeout: "30s"
+
+database:
+  url: "${DATABASE_URL}"
+  max_connections: 10
+  min_connections: 2
+  connect_timeout: "5s"
+  idle_timeout: "10m"
+
+security:
+  auth_key: "test-auth-key-123"
+  api_key_expiry_days: 30
+  ip_whitelist: []
+
+metrics:
+  enabled: true
+  prometheus:
+    enabled: true
+    endpoint: "/metrics"
+  tracing:
+    enabled: false
+    otlp_endpoint: null
+
+logging:
+  format: "json"
+  level: "debug"
+  file:
+    enabled: false
+    path: "/tmp/xgateway"
+    rotation: "daily"
+
+config_watch:
+  enabled: true
+  interval: "5s"

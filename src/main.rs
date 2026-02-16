@@ -12,6 +12,7 @@ mod adapter;
 mod endpoints;
 mod router;
 mod xtrace;
+mod config;
 
 use clap::Parser;
 use anyhow::Result;
@@ -23,6 +24,7 @@ use db::try_database;
 use pool::PoolManager;
 use router::build_multi_mode_app;
 use crate::xtrace::XTraceClient;
+use crate::config::{ConfigManager, ConfigLoader};
 use std::sync::Arc;
 
 #[tokio::main]
@@ -47,6 +49,11 @@ async fn main() -> Result<()> {
 
 async fn run_multi_mode(args: Args) -> Result<()> {
     info!("Multi-provider mode: Using database and web interface");
+
+    let config_manager = ConfigManager::load().await?;
+    let mut config = config_manager.get();
+    ConfigLoader::merge_cli_args(&mut config, &args);
+    info!("Configuration loaded successfully");
 
     let db_pool = match try_database().await {
         Ok(pool) => {
@@ -82,28 +89,24 @@ async fn run_multi_mode(args: Args) -> Result<()> {
     };
 
     let llm_service = Arc::new(tokio::sync::RwLock::new(crate::service::Service::new(&settings.llm_backend)?));
-    let config = Arc::new(tokio::sync::RwLock::new(settings));
+    let old_config = Arc::new(tokio::sync::RwLock::new(settings));
     let xtrace = XTraceClient::from_env();
     
     let app = build_multi_mode_app(
         db_pool.clone(), 
         Arc::clone(&pool_manager),
         llm_service,
-        config,
+        old_config,
         xtrace,
     );
 
-    let port = std::env::var("PORT")
-        .ok()
-        .and_then(|s| s.parse::<u16>().ok())
-        .or(args.port)
-        .unwrap_or(3000);
-    let bind_addr = format!("0.0.0.0:{}", port);
+    let port = config.server.port;
+    let bind_addr = format!("{}:{}", config.server.host, port);
 
-    info!("XGateway unified service starting on http://localhost:{}", port);
-    info!("LLM API Proxy: http://localhost:{}/v1/chat/completions", port);
-    info!("Admin API: http://localhost:{}/api/*", port);
-    info!("Health check: http://localhost:{}/health", port);
+    info!("XGateway unified service starting on http://{}", bind_addr);
+    info!("LLM API Proxy: http://{}/v1/chat/completions", bind_addr);
+    info!("Admin API: http://{}/api/*", bind_addr);
+    info!("Health check: http://{}/health", bind_addr);
 
     let listener = tokio::net::TcpListener::bind(&bind_addr).await?;
     info!("XGateway is ready to accept connections!");

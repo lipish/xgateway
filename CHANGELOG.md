@@ -5,6 +5,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-02-16
+
+### ✨ 新增功能
+
+#### 统一配置文件管理
+- **新增 YAML 配置文件支持** - 现在可以通过 `config/xgateway.yaml` 来管理所有配置
+  - 支持完整的配置项：Server、Database、Security、Metrics、Logging 等
+  - 提供示例配置文件 `config/xgateway.yaml.example`
+  - 向后兼容：没有配置文件时使用默认值
+
+#### 环境变量替换
+- **支持 `${VAR}` 和 `${VAR:default}` 语法** - 配置文件中可以使用环境变量
+  - 例如：`database.url: "${DATABASE_URL}"`
+  - 例如：`tracing.enabled: "${XTRACE_ENABLED:false}"`
+  - 本地开发无需设置环境变量，直接使用默认值
+
+#### CLI 参数优先级
+- **CLI 参数覆盖配置文件** - 保持原有的灵活性
+  - `--port`, `--host`, `--log-level`, `--auth-key` 等参数可以覆盖配置文件
+  - 优先级顺序：CLI > 环境变量 > 配置文件 > 默认值
+
+### 🏗️ 架构改进
+
+#### 新的 config 模块
+- **新增 `src/config/` 模块** - 完整的配置管理系统
+  - `src/config/models.rs` - 配置数据模型定义
+  - `src/config/loader.rs` - 配置加载器（YAML 解析、环境变量替换、CLI 合并）
+  - `src/config/manager.rs` - ConfigManager 基础实现
+  - 线程安全的配置管理（使用 `Arc<RwLock>`）
+
+### 📚 文档
+
+- 新增 `docs/CONFIG_MANAGEMENT_OPTIMIZATION.md` - 配置管理优化方案详细文档
+- 新增 `docs/OPTIMIZATION_SUGGESTIONS.md` - 项目优化建议汇总
+- 新增 `config/xgateway.yaml.example` - 完整的配置文件示例
+
+### 🧪 测试
+
+- 新增配置文件加载测试
+- 新增 CLI 参数覆盖测试
+- 新增环境变量替换测试
+- **全部 65 个测试通过** ✅
+
+---
+
+## [0.12.6] - 2026-02-02
+
+### 🎛️ Admin
+
+- 对话测试最大化窗口修正为全屏显示。
+- 对话历史加载优先填充空窗口。
+- 对话测试配置按钮跳转到模型实例页。
+
+## [0.12.5] - 2026-02-02
+
+### 🎛️ Admin
+
+- 对话页模型实例选择：空列表显示提示，修正默认选择逻辑。
+- 模型实例列表允许普通用户启用/禁用。
+
 ## [0.12.4] - 2026-02-02
 
 ### 🎛️ Admin
