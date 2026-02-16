@@ -14,6 +14,8 @@ import { DashboardStats } from "@/components/dashboard/dashboard-stats"
 import { AnalyticsChart } from "@/components/dashboard/analytics-chart"
 import { PerformancePanel } from "@/components/dashboard/performance-panel"
 import { RecentErrorsPanel } from "@/components/dashboard/recent-errors-panel"
+import { PageShell } from "@/components/layout/page-shell"
+import { PageContainer } from "@/components/layout/page-container"
 
 interface AnalyticsData {
   total_requests: number
@@ -49,13 +51,13 @@ export function AnalyticsPage() {
       setLoading(true)
       setError(null)
 
-       const [performanceResult, topModelsResult, errorsResult, byOrgResult, byServiceResult] = await Promise.all([
-         apiGet("/api/logs/performance"),
-         apiGet("/api/logs/top-models?limit=10&hours=24"),
-         apiGet("/api/logs?status=error&limit=10"),
-         apiGet("/api/logs/tokens/by-org?hours=24&top=20"),
-         apiGet("/api/logs/tokens/by-api-key?hours=24&top=20"),
-       ]) as [
+      const [performanceResult, topModelsResult, errorsResult, byOrgResult, byServiceResult] = await Promise.all([
+        apiGet("/api/logs/performance"),
+        apiGet("/api/logs/top-models?limit=10&hours=24"),
+        apiGet("/api/logs?status=error&limit=10"),
+        apiGet("/api/logs/tokens/by-org?hours=24&top=20"),
+        apiGet("/api/logs/tokens/by-api-key?hours=24&top=20"),
+      ]) as [
         { success: boolean; data?: { requests_today?: number; success_rate?: number; avg_response_time?: number; tokens_used?: number; failed_requests?: number }; message?: string },
         { success: boolean; data?: Array<{ model: string; requests: number; tokens: number }> },
         { success: boolean; data?: Array<{ created_at: string; provider_name: string; model: string; error_message?: string }> },
@@ -80,7 +82,7 @@ export function AnalyticsPage() {
       const tokenByOrg = byOrgResult?.success ? byOrgResult.data : []
       const tokenByApiKey = byServiceResult?.success ? byServiceResult.data : []
 
-       const analyticsData: AnalyticsData = {
+      const analyticsData: AnalyticsData = {
         total_requests: perfData.requests_today || 0,
         success_rate: perfData.success_rate || 0,
         avg_latency_ms: perfData.avg_response_time || 0,
@@ -91,13 +93,13 @@ export function AnalyticsPage() {
         recent_errors: (recentErrors || []).map((error) => {
           const message = error.error_message ?? ""
           return {
-          timestamp: error.created_at,
-          provider: error.provider_name,
-          model: error.model,
-          error_type: message.includes('timeout') ? 'Timeout' :
-            message.includes('rate') ? 'Rate Limit' : 'Error',
-          error_message: message
-        }
+            timestamp: error.created_at,
+            provider: error.provider_name,
+            model: error.model,
+            error_type: message.includes('timeout') ? 'Timeout' :
+              message.includes('rate') ? 'Rate Limit' : 'Error',
+            error_message: message
+          }
         }),
         token_by_org: (tokenByOrg || []).map((r) => ({
           org_id: r.org_id,
@@ -126,12 +128,12 @@ export function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
+      <PageShell className="overflow-y-auto">
         <PageHeader
           title={t('analytics.title')}
           subtitle={t('analytics.description')}
         />
-        <div className="flex-1 max-w-[1400px] mx-auto w-full">
+        <PageContainer>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="rounded-xl border bg-card p-4 h-32">
@@ -145,19 +147,19 @@ export function AnalyticsPage() {
             <div className="rounded-xl border bg-card h-96"></div>
             <div className="rounded-xl border bg-card h-96"></div>
           </div>
-        </div>
-      </div>
+        </PageContainer>
+      </PageShell>
     )
   }
 
   if (error) {
     return (
-      <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
+      <PageShell className="overflow-y-auto">
         <PageHeader
           title={t('analytics.title')}
           subtitle={t('analytics.description')}
         />
-        <div className="flex-1 max-w-[1400px] mx-auto w-full">
+        <PageContainer>
           <div className="rounded-xl border bg-destructive/5 p-8 text-center">
             <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-destructive mb-2">{t('common.error')}</h3>
@@ -169,26 +171,26 @@ export function AnalyticsPage() {
               {t('common.retry')}
             </button>
           </div>
-        </div>
-      </div>
+        </PageContainer>
+      </PageShell>
     )
   }
 
   if (!data) {
     return (
-      <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
+      <PageShell className="overflow-y-auto">
         <PageHeader
           title={t('analytics.title')}
           subtitle={t('analytics.description')}
         />
-        <div className="flex-1 max-w-[1400px] mx-auto w-full">
+        <PageContainer>
           <div className="rounded-xl border bg-muted/50 p-8 text-center">
             <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">{t('monitoring.noProviderData')}</h3>
             <p className="text-muted-foreground">Analytics data will appear here once requests are made</p>
           </div>
-        </div>
-      </div>
+        </PageContainer>
+      </PageShell>
     )
   }
 
@@ -221,12 +223,12 @@ export function AnalyticsPage() {
   ]
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
+    <PageShell className="overflow-y-auto">
       <PageHeader
         title={t('analytics.title')}
         subtitle={t('analytics.description')}
       />
-      <div className="flex-1 max-w-[1400px] mx-auto w-full">
+      <PageContainer>
         <div className="space-y-4">
           {/* Stats Cards */}
           <DashboardStats stats={stats} />
@@ -334,7 +336,7 @@ export function AnalyticsPage() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </PageContainer>
+    </PageShell>
   )
 }

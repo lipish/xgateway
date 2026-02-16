@@ -15,6 +15,8 @@ import { TwoPanelLayout } from "@/components/layout/two-panel-layout"
 import { DetailPanel } from "@/components/layout/detail-panel"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { MoreVertical, Pencil, Plus, Trash2 } from "lucide-react"
+import { PageShell } from "@/components/layout/page-shell"
+import { PageContainer } from "@/components/layout/page-container"
 
 type ApiResponse<T> = {
   success: boolean
@@ -197,7 +199,7 @@ export function ProjectsPage() {
   const filterOrgValue = filterOrgId ? String(filterOrgId) : ""
 
   return (
-    <div className="flex-1 min-h-0 h-full flex flex-col page-transition p-6 scrollbar-hide">
+    <PageShell>
       <PageHeader
         title={t("projects.title")}
         subtitle={t("projects.description")}
@@ -209,7 +211,7 @@ export function ProjectsPage() {
           }
       />
 
-      <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">
+      <PageContainer>
         <TwoPanelLayout
           left={
             <Card className="w-[520px] shrink-0 h-full flex flex-col">
@@ -426,7 +428,7 @@ export function ProjectsPage() {
           confirmText={t("common.delete")}
           onConfirm={handleDelete}
         />
-      </div>
-    </div>
+      </PageContainer>
+    </PageShell>
   )
 }

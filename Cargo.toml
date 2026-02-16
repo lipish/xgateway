@@ -48,6 +48,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 reqwest = { version = "0.11", features = ["json", "stream"] }
 base64 = "0.22"
 xtrace-client = "0.0.2"
+xtrace = { path = "../xtrace" }
 
 # Utilities
 clap = { version = "4.0", features = ["derive"] }

@@ -1,4 +1,6 @@
 import { PageHeader } from "@/components/layout/page-header"
+import { PageShell } from "@/components/layout/page-shell"
+import { PageContainer } from "@/components/layout/page-container"
 import { t } from "@/lib/i18n"
 
 const sections = [
@@ -10,16 +12,14 @@ const sections = [
   "faq",
 ] as const
 
-type SectionKey = (typeof sections)[number]
-
 export function HelpPage() {
   return (
-    <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
+    <PageShell className="overflow-y-auto">
       <PageHeader
         title={t("help.docsTitle")}
         subtitle={t("help.docsSubtitle")}
       />
-      <div className="flex-1 max-w-[1200px] mx-auto w-full">
+      <PageContainer className="max-w-[1200px]">
         <div className="grid gap-8 lg:grid-cols-[1fr_240px]">
           <div className="space-y-10">
             {sections.map((key) => (
@@ -30,6 +30,13 @@ export function HelpPage() {
                 </div>
                 <div className="rounded-xl border border-border/60 bg-muted/40 p-4 text-sm text-muted-foreground whitespace-pre-wrap">
                   {t(`help.docsSections.${key}.content`)}
+                  {key === "apiUsage" && (
+                    <div className="mt-3 text-sm text-primary">
+                      <a href="/api-keys" className="hover:underline">
+                        {t("help.docsSections.apiUsage.link")}
+                      </a>
+                    </div>
+                  )}
                 </div>
               </section>
             ))}
@@ -53,7 +60,7 @@ export function HelpPage() {
             </div>
           </aside>
         </div>
-      </div>
-    </div>
+      </PageContainer>
+    </PageShell>
   )
 }

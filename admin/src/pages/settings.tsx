@@ -10,6 +10,8 @@ import { apiGet, apiPost } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { Save, RotateCcw, RefreshCw, Loader2, Shield, Zap, Heart } from "lucide-react"
 import { PageHeader } from "@/components/layout/page-header"
+import { PageShell } from "@/components/layout/page-shell"
+import { PageContainer } from "@/components/layout/page-container"
 
 type ApiResponse<T> = {
   success: boolean
@@ -97,13 +99,13 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
+    <PageShell className="overflow-y-auto">
       <PageHeader
         title={t('settings.title')}
         subtitle={t('settings.description')}
       />
 
-      <div className="flex-1 space-y-6 max-w-[1200px] mx-auto w-full lg:px-4">
+      <PageContainer className="space-y-6 max-w-[1200px] lg:px-4">
         {loading ? (
           <div className="grid gap-6 md:grid-cols-2">
             {[1, 2, 3, 4].map(i => (
@@ -264,7 +266,7 @@ export function SettingsPage() {
             </div>
           </>
         )}
-      </div>
-    </div>
+      </PageContainer>
+    </PageShell>
   )
 }

@@ -3,7 +3,6 @@ import { Link, useLocation } from "react-router-dom"
 import {
     LayoutDashboard,
     Server,
-    Settings,
     Layers,
     BarChart3,
     Zap,

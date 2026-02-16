@@ -5,6 +5,8 @@ import { ConfirmAlertDialog } from "@/components/ui/confirm-alert-dialog"
 import { PageHeader } from "@/components/layout/page-header"
 import { TwoPanelLayout } from "@/components/layout/two-panel-layout"
 import { DetailPanel } from "@/components/layout/detail-panel"
+import { PageShell } from "@/components/layout/page-shell"
+import { PageContainer } from "@/components/layout/page-container"
 import { CreateUserDialog } from "@/components/users/CreateUserDialog"
 import { EditUserDialog } from "@/components/users/EditUserDialog"
 import { GrantInstanceDialog } from "@/components/users/GrantInstanceDialog"
@@ -276,7 +278,7 @@ export function UsersPage() {
         : users.filter((user) => user.org_id?.toString() === orgFilterId)
 
     return (
-        <div className="flex-1 min-h-0 h-full flex flex-col page-transition p-6 scrollbar-hide">
+        <PageShell>
             <PageHeader
                 title={t('users.title')}
                 subtitle={t('users.description')}
@@ -290,7 +292,7 @@ export function UsersPage() {
                 }
             />
 
-            <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">
+            <PageContainer>
                 <div className="flex items-center gap-3 mb-4">
                     <div className="text-sm font-medium text-muted-foreground">{t('users.orgLabel')}</div>
                     <Select
@@ -403,19 +405,19 @@ export function UsersPage() {
                     confirmClassName="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 />
 
-                <GrantInstanceDialog
-                    open={showGrantDialog}
-                    onOpenChange={setShowGrantDialog}
-                    username={selectedUser?.username}
-                    providers={providers}
+                    <GrantInstanceDialog
+                        open={showGrantDialog}
+                        onOpenChange={setShowGrantDialog}
+                        username={selectedUser?.username}
+                        providers={providers}
                     userInstances={userInstances}
                     error={error}
                     grantData={grantData}
                     onGrantDataChange={setGrantData}
-                    onGrant={handleGrantInstance}
-                    onRevoke={handleRevokeInstance}
-                />
-            </div>
-        </div>
+                        onGrant={handleGrantInstance}
+                        onRevoke={handleRevokeInstance}
+                    />
+            </PageContainer>
+        </PageShell>
     )
 }

@@ -23,6 +23,8 @@ import { ProviderDetail } from "@/components/instances/ProviderDetail";
 import { AddProviderDialog } from "@/components/instances/AddProviderDialog";
 import { EditProviderDialog } from "@/components/instances/EditProviderDialog";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageShell } from "@/components/layout/page-shell";
+import { PageContainer } from "@/components/layout/page-container";
 
 export function ProvidersPage() {
   const { user } = useAuth();
@@ -466,7 +468,7 @@ export function ProvidersPage() {
   );
 
   return (
-    <div className="flex-1 min-h-0 h-full flex flex-col page-transition p-6 scrollbar-hide">
+    <PageShell>
       <PageHeader
         title={t('models.title')}
         subtitle={t('models.description')}
@@ -477,64 +479,64 @@ export function ProvidersPage() {
           </Button>
         }
       />
-      <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">
+      <PageContainer>
         <div className="flex-1 min-h-0 flex flex-col h-full">
-        {loading && (
-          <Card className="flex-1 h-full flex flex-col">
-            <CardContent className="flex-1 flex items-center justify-center p-6">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </CardContent>
-          </Card>
-        )}
+          {loading && (
+            <Card className="flex-1 h-full flex flex-col">
+              <CardContent className="flex-1 flex items-center justify-center p-6">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </CardContent>
+            </Card>
+          )}
 
-        {error && (
-          <Card className="flex-1 h-full flex flex-col">
-            <CardContent className="flex-1 flex items-center justify-center p-6">
-              <div className="text-center text-destructive">{error}</div>
-            </CardContent>
-          </Card>
-        )}
+          {error && (
+            <Card className="flex-1 h-full flex flex-col">
+              <CardContent className="flex-1 flex items-center justify-center p-6">
+                <div className="text-center text-destructive">{error}</div>
+              </CardContent>
+            </Card>
+          )}
 
-        {!loading && !error && (
-          <>
-            {filteredProviders.length === 0 ? (
-              <Card className="flex-1 h-full flex flex-col">
-                <CardContent className="flex-1 flex items-center justify-center p-6">
-                  <div className="text-center text-muted-foreground">
-                    <p className="text-lg font-medium mb-2">{t('providers.noProviders')}</p>
-                    <p className="text-sm">{t('providers.addProviderTip')}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="flex gap-6 flex-1 min-h-0">
-                <ProviderList
-                  providers={filteredProviders}
-                  selectedProvider={selectedProvider}
-                  searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
-                  onSelectProvider={setSelectedProvider}
-                  onToggleProvider={setProviderEnabled}
-                  togglingProviderIds={togglingProviderIds}
-                  onEdit={openEditDialog}
-                  onDelete={deleteProvider}
-                  isAdmin={isAdmin}
-                />
+          {!loading && !error && (
+            <>
+              {filteredProviders.length === 0 ? (
+                <Card className="flex-1 h-full flex flex-col">
+                  <CardContent className="flex-1 flex items-center justify-center p-6">
+                    <div className="text-center text-muted-foreground">
+                      <p className="text-lg font-medium mb-2">{t('providers.noProviders')}</p>
+                      <p className="text-sm">{t('providers.addProviderTip')}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="flex gap-6 flex-1 min-h-0">
+                  <ProviderList
+                    providers={filteredProviders}
+                    selectedProvider={selectedProvider}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    onSelectProvider={setSelectedProvider}
+                    onToggleProvider={setProviderEnabled}
+                    togglingProviderIds={togglingProviderIds}
+                    onEdit={openEditDialog}
+                    onDelete={deleteProvider}
+                    isAdmin={isAdmin}
+                  />
 
-                <ProviderDetail
-                  provider={selectedProvider}
-                  providerTypeConfig={selectedProvider ? getProviderTypeConfig(selectedProvider.provider_type) : undefined}
-                  onTest={testProvider}
-                  onNavigateToChat={(id) => navigate(`/chat?provider=${id}`)}
-                  testingId={testingId}
-                  testResult={testResult}
-                />
-              </div>
-            )}
-          </>
-        )}
+                  <ProviderDetail
+                    provider={selectedProvider}
+                    providerTypeConfig={selectedProvider ? getProviderTypeConfig(selectedProvider.provider_type) : undefined}
+                    onTest={testProvider}
+                    onNavigateToChat={(id) => navigate(`/chat?provider=${id}`)}
+                    testingId={testingId}
+                    testResult={testResult}
+                  />
+                </div>
+              )}
+            </>
+          )}
         </div>
-      </div>
+      </PageContainer>
 
       <AddProviderDialog
         open={addDialogOpen}
@@ -599,6 +601,6 @@ export function ProvidersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

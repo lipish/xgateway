@@ -4,18 +4,19 @@ import { TwoPanelLayout } from "@/components/layout/two-panel-layout"
 import { DetailPanel } from "@/components/layout/detail-panel"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { t, useI18n } from "@/lib/i18n"
+import { t } from "@/lib/i18n"
 import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api"
-import { cn, formatDateTime } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { ApiKeyCreateDialog } from "@/components/services/ApiKeyCreateDialog"
 import { DeleteApiKeyConfirmDialog } from "@/components/services/DeleteApiKeyConfirmDialog"
 import { ServiceBindingsSection } from "@/components/services/ServiceBindingsSection"
 import { Select } from "@/components/ui/select"
 import { STRATEGY_OPTIONS, type ApiKey, type ApiResponse, type Provider } from "@/components/services/types"
 import { BadgeCheck, Copy, Eye, EyeOff, KeyRound, Power, RotateCcw, Trash2 } from "lucide-react"
+import { PageShell } from "@/components/layout/page-shell"
+import { PageContainer } from "@/components/layout/page-container"
 
 export function ServicesPage() {
-  const { language } = useI18n()
   const [providers, setProviders] = useState<Provider[]>([])
   const [projects, setProjects] = useState<{ id: number; name: string }[]>([])
   const [selectedApiKeyId, setSelectedApiKeyId] = useState<number | null>(null)
@@ -271,7 +272,7 @@ export function ServicesPage() {
       setRotatingKeyId(id)
       setRotateError(null)
       setRotatedApiKey(null)
-  const data = await apiPost<ApiResponse<{ full_key?: string }>>(`/api/api-keys/${id}/rotate`)
+      const data = await apiPost<ApiResponse<{ full_key?: string }>>(`/api/api-keys/${id}/rotate`)
       if (!data.success) {
         setRotateError(data.message || t('common.networkError'))
         return
@@ -403,7 +404,7 @@ export function ServicesPage() {
   }
 
   return (
-    <div className="flex-1 min-h-0 h-full flex flex-col page-transition p-6 scrollbar-hide">
+    <PageShell>
       <PageHeader
         title={t("services.title")}
         subtitle={t("services.description")}
@@ -415,7 +416,7 @@ export function ServicesPage() {
         }
       />
 
-      <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">
+      <PageContainer>
         <div className="flex-1 min-h-0 flex flex-col gap-4 h-full">
           <TwoPanelLayout
             left={
@@ -694,8 +695,14 @@ export function ServicesPage() {
                         </div>
                         <div className="rounded-xl bg-background/70 border border-border/60 px-3 py-2 text-xs font-mono text-muted-foreground whitespace-pre-wrap">
                           {selectedApiKey.protocol === "anthropic"
-                            ? `curl -X POST http://localhost:3000/v1/messages \\\n  -H "Authorization: Bearer {API_KEY}" \\\n  -H "Content-Type: application/json" \\\n  -d '{\"model\":\"claude-3-5-sonnet-20241022\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}'`
-                            : `curl -X POST http://localhost:3000/v1/chat/completions \\\n  -H "Authorization: Bearer {API_KEY}" \\\n  -H "Content-Type: application/json" \\\n  -d '{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}'`}
+                            ? `curl -X POST http://localhost:3000/v1/messages \\
+  -H "Authorization: Bearer {API_KEY}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"model":"claude-3-5-sonnet-20241022","messages":[{"role":"user","content":"Hello"}]}'`
+                            : `curl -X POST http://localhost:3000/v1/chat/completions \\
+  -H "Authorization: Bearer {API_KEY}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"model":"gpt-4","messages":[{"role":"user","content":"Hello"}]}'`}
                         </div>
                       </div>
 
@@ -742,7 +749,7 @@ export function ServicesPage() {
 
           <DeleteApiKeyConfirmDialog apiKeyId={apiKeyToDelete} onApiKeyIdChange={setApiKeyToDelete} onConfirm={handleDeleteApiKey} />
         </div>
-      </div>
-    </div>
+      </PageContainer>
+    </PageShell>
   )
 }

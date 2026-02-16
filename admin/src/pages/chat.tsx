@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { useAuth } from "@/lib/auth"
 import { PageHeader } from "@/components/layout/page-header"
+import { PageShell } from "@/components/layout/page-shell"
+import { PageContainer } from "@/components/layout/page-container"
 import {
   ChatPanelCard,
   ChatHistoryDropdown,
@@ -278,8 +280,8 @@ export function ChatPage() {
   const gridCols = panels.length === 1 ? 'grid-cols-1' : panels.length === 2 ? 'grid-cols-2' : panels.length === 3 ? 'grid-cols-3' : 'grid-cols-4'
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col page-transition overflow-hidden p-6">
-      <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0">
+    <PageShell className="overflow-hidden">
+      <PageContainer>
         <PageHeader
           title={t('chat.title')}
           subtitle={
@@ -335,7 +337,7 @@ export function ChatPage() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </PageContainer>
+    </PageShell>
   )
 }

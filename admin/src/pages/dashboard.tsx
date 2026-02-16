@@ -29,6 +29,8 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { apiGet, apiPut } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { PageShell } from "@/components/layout/page-shell"
+import { PageContainer } from "@/components/layout/page-container"
 
 interface ProviderStats {
   total: number
@@ -178,29 +180,29 @@ export function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
+      <PageShell className="overflow-y-auto">
         <PageHeader
           title={t('dashboard.title')}
           subtitle={t('dashboard.description')}
         />
-        <div className="flex-1 max-w-[1400px] mx-auto w-full">
+        <PageContainer>
           <div className="rounded-xl border bg-card h-80 animate-pulse"></div>
-        </div>
-      </div>
+        </PageContainer>
+      </PageShell>
     )
   }
 
   if (error) {
     return (
-      <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
+      <PageShell className="overflow-y-auto">
         <PageHeader
           title={t('dashboard.title')}
           subtitle={t('dashboard.description')}
         />
-        <div className="flex-1 max-w-[1400px] mx-auto w-full">
+        <PageContainer>
           <div className="rounded-xl border bg-destructive/5 p-6 text-center text-destructive">{error}</div>
-        </div>
-      </div>
+        </PageContainer>
+      </PageShell>
     )
   }
 
@@ -235,12 +237,12 @@ export function DashboardPage() {
   ]
 
    return (
-    <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
+    <PageShell className="overflow-y-auto">
       <PageHeader
         title={t('dashboard.title')}
         subtitle={t('dashboard.description')}
       />
-      <div className="flex-1 max-w-[1400px] mx-auto w-full">
+      <PageContainer>
         <div className="space-y-4">
           <DashboardStats stats={statsCards} />
 
@@ -334,7 +336,7 @@ export function DashboardPage() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </PageContainer>
+    </PageShell>
   )
 }

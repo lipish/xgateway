@@ -9,7 +9,7 @@ const ProvidersPage = React.lazy(() => import("@/pages/models").then((m) => ({ d
 const AnalyticsPage = React.lazy(() => import("@/pages/analytics").then((m) => ({ default: m.AnalyticsPage })))
 const LogsPage = React.lazy(() => import("@/pages/logs").then((m) => ({ default: m.LogsPage })))
 const SettingsPage = React.lazy(() => import("@/pages/settings").then((m) => ({ default: m.SettingsPage })))
-const ServicesPage = React.lazy(() => import("@/pages/services").then((m) => ({ default: m.ServicesPage })))
+const ServicesPage = React.lazy(() => import("@/pages/api-keys").then((m) => ({ default: m.ServicesPage })))
 const UsersPage = React.lazy(() => import("@/pages/users").then((m) => ({ default: m.UsersPage })))
 const HelpPage = React.lazy(() => import("@/pages/help").then((m) => ({ default: m.HelpPage })))
 const ChatPage = React.lazy(() => import("@/pages/chat").then((m) => ({ default: m.ChatPage })))

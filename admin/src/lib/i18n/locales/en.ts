@@ -576,37 +576,38 @@ export const en = {
         title: 'Overview',
         summary: 'XGateway is an API gateway for unified model access with protocol flexibility',
         content:
-          'Unify multi-provider access with OpenAI and Anthropic compatible protocols\nManage API keys with organization and project isolation\nBuilt-in load balancing, health checks, circuit breaker, and observability',
+          'Unify multi-provider access with OpenAI and Anthropic compatible protocols\nManage API keys with organization and project isolation\nBuilt-in load balancing, health checks, circuit breaker, and observability\nDesigned for shared model access with governance',
       },
       quickStart: {
         title: 'Quick Start',
         summary: 'The fastest path from setup to first call',
         content:
-          '1. Add a model instance with provider credentials and model\n2. Confirm load balancing and health check settings\n3. Create an API key and bind model instances\n4. Call the gateway using the OpenAI compatible endpoint',
+          '1. Add a model instance with provider credentials and model\n2. Confirm load balancing and health check settings\n3. Create an API key and bind model instances\n4. Choose a protocol and copy the usage example\n5. Call the gateway using OpenAI or Anthropic compatible endpoints',
       },
       coreConcepts: {
         title: 'Core Concepts',
         summary: 'Model instances, API keys, organizations, and projects',
         content:
-          'Model Instance: connection config for a provider and model\nAPI Key: access credential that binds instances and routing\nOrganization: isolation unit for members and resources\nProject: business or environment grouping for management',
+          'Model Instance: connection config for a provider and model, including routing and pricing\nAPI Key: access credential that binds instances and routing policy, supports protocol switching\nOrganization: isolation unit for members and resources for access control\nProject: business or environment grouping for reporting and audits',
       },
       configuration: {
         title: 'Configuration Guide',
         summary: 'Recommended settings and common options',
         content:
-          'Load balancing: choose priority, round-robin, least connections, and more\nCircuit breaker & health checks: set failure thresholds and recovery\nRate limiting: tune QPS and concurrency for stability',
+          'Load balancing: choose priority, round-robin, least connections, and more\nCircuit breaker & health checks: set failure thresholds and recovery for stability\nRate limiting: tune QPS and concurrency limits\nFallback chain: configure backup model instances\nAccess control: limit resources by organization and project',
       },
       apiUsage: {
         title: 'API Usage',
         summary: 'OpenAI and Anthropic compatible endpoints',
         content:
-          'OpenAI: /v1/chat/completions, /v1/models\nAnthropic: /v1/messages\nExample: curl -X POST http://localhost:3000/v1/chat/completions \\\n  -H \"Authorization: Bearer {API_KEY}\" \\\n  -H \"Content-Type: application/json\" \\\n  -d \"{\\\"model\\\":\\\"gpt-4\\\",\\\"messages\\\":[{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello\\\"}]}\"',
+          'OpenAI: /v1/chat/completions, /v1/models (list available models)\nAnthropic: /v1/messages\nAuth: header Authorization: Bearer {API_KEY}\nGateway base URL: deployment address (default port 3000)\nModel selection: set the bound model name in the model field\nExample: curl -X POST http://localhost:3000/v1/chat/completions \\\n  -H "Authorization: Bearer {API_KEY}" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"model":"gpt-4","messages":[{"role":"user","content":"Hello"}]}\'',
+        link: 'Go to API Keys to view and configure API usage',
       },
       faq: {
         title: 'FAQ',
         summary: 'Common errors and troubleshooting',
         content:
-          'forbidden_provider: user is not authorized for the model instance\nAPI key not found: key was deleted or does not exist\nInvalid protocol: protocol must be openai or anthropic',
+          'forbidden_provider: user is not authorized for the model instance\nAPI key not found: key was deleted or does not exist\nInvalid protocol: protocol must be openai or anthropic\nNo response: check model instance status and health checks\nRate limit hit: lower concurrency or adjust QPS limits',
       },
     },
   },

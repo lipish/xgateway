@@ -47,8 +47,64 @@ async fn main() -> Result<()> {
     run_multi_mode(args).await
 }
 
+fn start_xtrace() {
+    let database_url = match std::env::var("XTRACE_DATABASE_URL")
+        .or_else(|_| std::env::var("DATABASE_URL"))
+    {
+        Ok(url) => url,
+        Err(_) => {
+            warn!("DATABASE_URL not set, skipping xtrace startup");
+            return;
+        }
+    };
+
+    let api_bearer_token = std::env::var("XTRACE_API_BEARER_TOKEN")
+        .or_else(|_| std::env::var("API_BEARER_TOKEN"))
+        .unwrap_or_else(|_| "xtrace-token".to_string());
+
+    let bind_addr = std::env::var("XTRACE_BIND_ADDR")
+        .unwrap_or_else(|_| "127.0.0.1:8742".to_string());
+
+    let config = ::xtrace::ServerConfig {
+        database_url,
+        api_bearer_token: api_bearer_token.clone(),
+        bind_addr: bind_addr.clone(),
+        default_project_id: std::env::var("XTRACE_DEFAULT_PROJECT_ID")
+            .unwrap_or_else(|_| "default".to_string()),
+        langfuse_public_key: std::env::var("XTRACE_PUBLIC_KEY")
+            .ok()
+            .or_else(|| std::env::var("LANGFUSE_PUBLIC_KEY").ok()),
+        langfuse_secret_key: std::env::var("XTRACE_SECRET_KEY")
+            .ok()
+            .or_else(|| std::env::var("LANGFUSE_SECRET_KEY").ok()),
+        rate_limit_qps: std::env::var("XTRACE_RATE_LIMIT_QPS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(20),
+        rate_limit_burst: std::env::var("XTRACE_RATE_LIMIT_BURST")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(40),
+    };
+
+    info!("Starting xtrace service in-process on {}", bind_addr);
+
+    tokio::spawn(async move {
+        if let Err(e) = ::xtrace::run_server(config).await {
+            error!("xtrace service failed: {}", e);
+        }
+    });
+
+    std::env::set_var("XTRACE_ENABLED", "true");
+    std::env::set_var("XTRACE_BASE_URL", format!("http://{}", bind_addr));
+    std::env::set_var("XTRACE_API_BEARER_TOKEN", &api_bearer_token);
+    info!("xtrace service spawned successfully");
+}
+
 async fn run_multi_mode(args: Args) -> Result<()> {
     info!("Multi-provider mode: Using database and web interface");
+
+    start_xtrace();
 
     let config_manager = ConfigManager::load().await?;
     let mut config = config_manager.get();

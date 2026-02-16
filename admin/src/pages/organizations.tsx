@@ -17,6 +17,8 @@ import { TwoPanelLayout } from "@/components/layout/two-panel-layout"
 import { MoreVertical, Pencil, Plus, Trash2 } from "lucide-react"
 import { DetailPanel } from "@/components/layout/detail-panel"
 import { useAuth } from "@/lib/auth"
+import { PageShell } from "@/components/layout/page-shell"
+import { PageContainer } from "@/components/layout/page-container"
 
 type ApiResponse<T> = {
   success: boolean
@@ -253,7 +255,7 @@ export function OrganizationsPage() {
   }
 
   return (
-    <div className="flex-1 min-h-0 h-full flex flex-col page-transition p-6 scrollbar-hide">
+    <PageShell>
       <PageHeader
         title={t("organizations.title")}
         subtitle={t("organizations.description")}
@@ -267,7 +269,7 @@ export function OrganizationsPage() {
         }
       />
 
-      <div className="max-w-[1400px] mx-auto w-full flex flex-col flex-1 min-h-0 h-full">
+      <PageContainer>
         <TwoPanelLayout
           left={
             <Card className="w-[520px] shrink-0 h-full flex flex-col">
@@ -596,7 +598,7 @@ export function OrganizationsPage() {
           confirmText={t("common.delete")}
           onConfirm={handleRemoveOrgUser}
         />
-      </div>
-    </div>
+      </PageContainer>
+    </PageShell>
   )
 }

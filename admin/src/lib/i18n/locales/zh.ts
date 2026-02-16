@@ -576,37 +576,38 @@ export const zh = {
         title: '概览',
         summary: 'XGateway 是统一模型调用的 API 网关，支持多协议与权限隔离',
         content:
-          '适用于多模型服务商统一接入与路由管理\n提供统一 API Key 与组织/项目隔离\n内置负载均衡、健康检查、熔断与可观测能力',
+          '适用于多模型服务商统一接入与路由管理\n提供统一 API 密钥与组织/项目隔离\n内置负载均衡、健康检查、熔断与可观测能力\n适合多团队共享模型资源与统一治理',
       },
       quickStart: {
         title: '快速开始',
         summary: '从接入模型到调用网关的最短路径',
         content:
-          '1. 在模型实例中添加服务商配置（API Key 与模型）\n2. 在系统设置中确认负载均衡与健康检查参数\n3. 在 API 密钥中创建密钥并绑定模型实例\n4. 使用 OpenAI 兼容接口发起调用',
+          '1. 在模型实例中添加服务商配置（API 密钥与模型）\n2. 在系统设置中确认负载均衡与健康检查参数\n3. 在 API 密钥中创建密钥并绑定模型实例\n4. 选择协议并保存后复制调用示例\n5. 使用 OpenAI 兼容接口或 Anthropic 兼容接口发起调用',
       },
       coreConcepts: {
         title: '核心概念',
         summary: '理解模型实例、API 密钥、组织与项目',
         content:
-          '模型实例：连接具体服务商与模型的配置实体\nAPI 密钥：对外调用凭证，绑定模型实例与调度策略\n组织：成员与资源的隔离单元\n项目：业务/环境维度的资源分组与统计',
+          '模型实例：连接具体服务商与模型的配置实体，包含路由与价格等信息\nAPI 密钥：对外调用凭证，绑定模型实例与调度策略，支持多协议切换\n组织：成员与资源的隔离单元，用于权限与归属管理\n项目：业务/环境维度的资源分组，便于统计与审计',
       },
       configuration: {
         title: '配置指南',
         summary: '常见配置项与推荐做法',
         content:
-          '负载均衡：按业务选择优先级/轮询/最少连接等策略\n熔断与健康检查：设置失败阈值与恢复时间\n限流：结合 QPS 与并发上限控制流量',
+          '负载均衡：按业务选择优先级/轮询/最少连接等策略\n熔断与健康检查：设置失败阈值与恢复时间，保障稳定性\n限流：结合 QPS 与并发上限控制流量\n回退链路：配置降级模型实例作为兜底\n权限控制：按组织与项目限制资源范围',
       },
       apiUsage: {
         title: 'API 调用',
         summary: 'OpenAI 兼容与 Anthropic 兼容协议说明',
         content:
-          'OpenAI：/v1/chat/completions、/v1/models\nAnthropic：/v1/messages\n示例：curl -X POST http://localhost:3000/v1/chat/completions \\\n  -H \"Authorization: Bearer {API_KEY}\" \\\n  -H \"Content-Type: application/json\" \\\n  -d \"{\\\"model\\\":\\\"gpt-4\\\",\\\"messages\\\":[{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"Hello\\\"}]}\"',
+          'OpenAI：/v1/chat/completions、/v1/models（用于拉取可用模型列表）\nAnthropic：/v1/messages\n认证方式：请求头 Authorization: Bearer {API_KEY}\n网关地址：部署地址（默认端口 3000）\n模型选择：model 字段填写绑定的模型名称\n示例：curl -X POST http://localhost:3000/v1/chat/completions \\\n  -H "Authorization: Bearer {API_KEY}" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"model":"gpt-4","messages":[{"role":"user","content":"Hello"}]}\'',
+        link: '前往 API 密钥页面查看与配置调用方式',
       },
       faq: {
         title: '常见问题',
         summary: '常见错误与排查思路',
         content:
-          'forbidden_provider：当前用户未授权该模型实例\nAPI key not found：密钥不存在或已删除\nInvalid protocol：协议不合法，请使用 openai 或 anthropic',
+          'forbidden_provider：当前用户未授权该模型实例\nAPI key not found：密钥不存在或已删除\nInvalid protocol：协议不合法，请使用 openai 或 anthropic\n调用无响应：检查模型实例状态与健康检查\n限流触发：降低并发或调整 QPS 上限',
       },
     },
   },

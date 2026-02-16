@@ -10,6 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Search, Download, Clock, Server, Pause, Play } from "lucide-react"
+import { PageShell } from "@/components/layout/page-shell"
+import { PageContainer } from "@/components/layout/page-container"
 
 interface RequestLog {
   id: number
@@ -174,7 +176,7 @@ export function LogsPage() {
     }
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col page-transition overflow-y-auto p-6 scrollbar-hide">
+    <PageShell className="overflow-y-auto">
       <PageHeader
         title={t('logs.title')}
         subtitle={t('logs.description')}
@@ -200,7 +202,7 @@ export function LogsPage() {
           </Button>
         }
       />
-      <div className="flex-1 max-w-[1400px] mx-auto w-full overflow-hidden">
+      <PageContainer className="overflow-hidden">
         <div className="flex items-center gap-2 mb-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -393,7 +395,7 @@ export function LogsPage() {
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </PageContainer>
+    </PageShell>
   )
 }
