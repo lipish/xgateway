@@ -77,14 +77,6 @@ fn start_xtrace() {
         langfuse_secret_key: std::env::var("XTRACE_SECRET_KEY")
             .ok()
             .or_else(|| std::env::var("LANGFUSE_SECRET_KEY").ok()),
-        rate_limit_qps: std::env::var("XTRACE_RATE_LIMIT_QPS")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(20),
-        rate_limit_burst: std::env::var("XTRACE_RATE_LIMIT_BURST")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(40),
     };
 
     info!("Starting xtrace service in-process on {}", bind_addr);

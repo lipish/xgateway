@@ -2,6 +2,8 @@
 
 这个目录包含了测试 xgateway 与各种 LLM 提供商集成的脚本。
 
+**详细文档**：智谱 GLM-4 见 [README-GLM4.md](README-GLM4.md)，阿里云 Qwen3-Coder 见 [ZED-QWEN3-CODER-SETUP.md](ZED-QWEN3-CODER-SETUP.md)。
+
 ## 📁 脚本概览
 
 ### 🎯 主要脚本
@@ -12,20 +14,21 @@
 | `zed-glm4-quick.sh` | GLM-4.6 快速启动 | ⭐⭐⭐ |
 | `test-other-providers.sh` | 查看所有支持的提供商 | ⭐⭐ |
 
-### 🔧 专用脚本
-
-| 脚本名称 | 提供商 | 默认模型 |
-|---------|--------|----------|
-| `test-openai.sh` | OpenAI | gpt-4o |
-| `test-claude.sh` | Anthropic | claude-3-5-sonnet-20241022 |
-| `start-zed-glm4.sh` | 智谱 AI | glm-4.6 |
-
 ### 📊 测试脚本
 
 | 脚本名称 | 用途 |
 |---------|------|
 | `test-glm4-models.sh` | 测试所有 GLM-4 模型 |
 | `verify-glm46.sh` | 验证 GLM-4.6 支持 |
+
+### 其他
+
+| 脚本/目录 | 用途 |
+|----------|------|
+| `start-aider.sh` | Aider 启动 |
+| `start-openhands.sh` | OpenHands 启动 |
+| `start-codex.sh` | Codex CLI 启动 |
+| `archive/` | 调试用脚本归档 |
 
 ## 🚀 快速开始
 
@@ -48,16 +51,16 @@
 ./scripts/switch-provider.sh volcengine "your-key"
 ```
 
-### 2. 专用脚本
+### 2. 按提供商启动
 
 ```bash
-# OpenAI
-./scripts/test-openai.sh "sk-xxx" gpt-4o
+# OpenAI / Claude / 智谱 / 阿里云 等
+./scripts/switch-provider.sh openai "sk-xxx"
+./scripts/switch-provider.sh anthropic "sk-ant-xxx"
+./scripts/switch-provider.sh zhipu "your-key"
+./scripts/switch-provider.sh aliyun "your-key"
 
-# Claude
-./scripts/test-claude.sh "sk-ant-xxx" claude-3-5-sonnet-20241022
-
-# GLM-4.6 (推荐)
+# 智谱 GLM-4 快捷脚本
 ./scripts/zed-glm4-quick.sh "your-zhipu-key"
 ```
 

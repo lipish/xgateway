@@ -29,20 +29,7 @@
 
 ## 🚀 快速启动
 
-### 方法一：使用专用脚本（推荐）
-
-```bash
-# 启动 Qwen3-Coder-Plus 服务
-./scripts/zed-qwen3-coder.sh "your-aliyun-api-key"
-
-# 使用其他模型
-./scripts/zed-qwen3-coder.sh "your-api-key" qwen3-max
-
-# 自定义端口
-./scripts/zed-qwen3-coder.sh "your-api-key" qwen3-coder-plus 18000
-```
-
-### 方法二：使用通用切换脚本
+### 方法一：使用通用切换脚本（推荐）
 
 ```bash
 # 阿里云 Qwen3-Coder-Plus（默认）
@@ -50,6 +37,9 @@
 
 # 指定其他模型
 ./scripts/switch-provider.sh aliyun "your-api-key" qwen3-max
+
+# 自定义端口
+./scripts/switch-provider.sh aliyun "your-api-key" qwen3-coder-plus 18000
 ```
 
 ## ⚙️ Zed 配置步骤
@@ -57,7 +47,7 @@
 ### 1. 启动 xgateway 服务
 
 ```bash
-./scripts/zed-qwen3-coder.sh "your-aliyun-api-key"
+./scripts/switch-provider.sh aliyun "your-aliyun-api-key"
 ```
 
 看到以下输出表示启动成功：
@@ -142,7 +132,7 @@
    lsof -i :11434
    
    # 使用其他端口
-   ./scripts/zed-qwen3-coder.sh "your-api-key" qwen3-coder-plus 18000
+   ./scripts/switch-provider.sh aliyun "your-api-key" qwen3-coder-plus 18000
    ```
 
 2. **API 密钥错误**
@@ -158,7 +148,7 @@
 4. **模型响应慢**
    ```bash
    # 启用调试日志
-   RUST_LOG=debug ./scripts/zed-qwen3-coder.sh "your-api-key"
+   RUST_LOG=debug ./scripts/switch-provider.sh aliyun "your-api-key"
    ```
 
 ### 日志分析

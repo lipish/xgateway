@@ -66,7 +66,7 @@ if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
   exit 1
 fi
 
-XGATEWAY_BIN="./target/release/xgateway"
+XGATEWAY_BIN="${XGATEWAY_BIN:-./target/release/xgateway}"
 
 # 构建项目（如果需要）
 if [[ ! -x "$XGATEWAY_BIN" ]]; then

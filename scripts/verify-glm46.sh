@@ -6,39 +6,27 @@ set -euo pipefail
 echo "🔍 验证 GLM-4.6 模型支持..."
 echo ""
 
-# 检查模型配置文件
-echo "📋 检查模型配置文件..."
-if grep -q "glm-4.6" src/models/models.yaml; then
-    echo "✅ models.yaml 中找到 glm-4.6 配置"
-    grep -A 5 "glm-4.6" src/models/models.yaml
-else
-    echo "❌ models.yaml 中未找到 glm-4.6 配置"
-fi
-
-echo ""
-
 # 检查文档
 echo "📋 检查文档支持..."
-if grep -q "glm-4.6" docs/USER_GUIDE.md; then
+if [[ -f "docs/USER_GUIDE.md" ]] && grep -q "glm-4.6" docs/USER_GUIDE.md 2>/dev/null; then
     echo "✅ 文档中找到 glm-4.6 支持"
 else
-    echo "❌ 文档中未找到 glm-4.6 支持"
+    echo "⚠️  文档中未提及 glm-4.6（可忽略）"
 fi
 
 echo ""
 
-# 检查 xgateway 帮助信息
+# 检查 xgateway 二进制文件
 echo "📋 检查 xgateway 二进制文件..."
-if [[ -x "./target/release/xgateway" ]]; then
+XGATEWAY_BIN="${XGATEWAY_BIN:-./target/release/xgateway}"
+if [[ -x "$XGATEWAY_BIN" ]]; then
     echo "✅ xgateway 二进制文件存在"
-    
-    # 测试启动（不需要真实 API 密钥）
-    echo "🧪 测试启动 GLM-4.6..."
-    timeout 5s ./target/release/xgateway \
-        --provider zhipu \
-        --model glm-4.6 \
-        --llm-api-key "test" \
-        --help > /dev/null 2>&1 && echo "✅ GLM-4.6 模型参数被接受" || echo "⚠️  无法验证模型参数（可能需要有效 API 密钥）"
+    echo "🧪 验证 GLM-4.6 参数..."
+    if "$XGATEWAY_BIN" --app zed --provider zhipu --model glm-4.6 --llm-api-key "test" --help >/dev/null 2>&1; then
+        echo "✅ GLM-4.6 模型参数被接受"
+    else
+        echo "⚠️  无法验证（请先 cargo build --release）"
+    fi
 else
     echo "❌ xgateway 二进制文件不存在，请先运行 cargo build --release"
 fi

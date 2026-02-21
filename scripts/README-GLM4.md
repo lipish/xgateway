@@ -25,13 +25,13 @@
 #### 方式二：完整配置
 ```bash
 # 基本启动
-./scripts/start-zed-glm4.sh "your-zhipu-api-key"
+./scripts/zed-glm4-quick.sh "your-zhipu-api-key"
 
 # 启用调试日志
-RUST_LOG=debug ./scripts/start-zed-glm4.sh "your-zhipu-api-key"
+RUST_LOG=debug ./scripts/zed-glm4-quick.sh "your-zhipu-api-key"
 
 # 使用不同模型
-MODEL=glm-4.5-flash ./scripts/start-zed-glm4.sh "your-zhipu-api-key"
+./scripts/zed-glm4-quick.sh "your-zhipu-api-key" glm-4.5-flash
 ```
 
 ### 3. 测试模型可用性
