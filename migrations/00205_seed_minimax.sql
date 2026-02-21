@@ -15,6 +15,24 @@ VALUES (
     'https://api.minimax.io/v1',
     '[
         {
+            "id": "MiniMax-M2.5",
+            "name": "MiniMax M2.5",
+            "description": "Latest flagship, 200K context, advanced reasoning",
+            "supports_tools": true,
+            "context_length": 204800,
+            "input_price": 0.0,
+            "output_price": 0.0
+        },
+        {
+            "id": "MiniMax-M2.5-highspeed",
+            "name": "MiniMax M2.5 Highspeed",
+            "description": "Same as M2.5 with faster inference (~100 tps)",
+            "supports_tools": true,
+            "context_length": 204800,
+            "input_price": 0.0,
+            "output_price": 0.0
+        },
+        {
             "id": "MiniMax-M2.1",
             "name": "MiniMax M2.1",
             "description": "230B parameters, 10B activation, optimized for code generation and refactoring",

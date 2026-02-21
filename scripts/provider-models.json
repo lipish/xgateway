@@ -1,0 +1,893 @@
+{
+  "aliyun": {
+    "label": "Aliyun Bailian",
+    "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "models": [
+      {
+        "id": "qwen3-max",
+        "name": "Qwen3 Max",
+        "description": "Latest flagship, best for agentic coding and tool calling",
+        "supports_tools": true,
+        "context_length": 262144,
+        "input_price": 0.0025,
+        "output_price": 0.01
+      },
+      {
+        "id": "qwen3.5-plus",
+        "name": "Qwen3.5 Plus",
+        "description": "Balanced performance, speed and cost, text/image/video input",
+        "supports_tools": true,
+        "context_length": 1000000,
+        "input_price": 0.0008,
+        "output_price": 0.002
+      },
+      {
+        "id": "qwen-max",
+        "name": "Qwen Max",
+        "description": "Previous flagship for complex multi-step tasks",
+        "supports_tools": true,
+        "context_length": 262144,
+        "input_price": 0.0032,
+        "output_price": 0.0128
+      },
+      {
+        "id": "qwen-plus",
+        "name": "Qwen Plus",
+        "description": "Balanced performance, speed and cost, suitable for medium complexity tasks",
+        "supports_tools": true,
+        "context_length": 1000000,
+        "input_price": 0.0008,
+        "output_price": 0.002
+      },
+      {
+        "id": "qwen-flash",
+        "name": "Qwen Flash",
+        "description": "Suitable for simple tasks with fast speed and low cost",
+        "supports_tools": true,
+        "context_length": 1000000,
+        "input_price": 0.00015,
+        "output_price": 0.0015
+      },
+      {
+        "id": "qwen-coder-turbo",
+        "name": "Qwen Coder Turbo",
+        "description": "Excellent code model, proficient in tool calling and environment interaction",
+        "supports_tools": true,
+        "context_length": 1000000,
+        "input_price": 0.001,
+        "output_price": 0.004
+      },
+      {
+        "id": "qwen-vl-max",
+        "name": "Qwen VL Max",
+        "description": "Multimodal model with powerful vision understanding",
+        "supports_tools": true,
+        "context_length": 262144,
+        "input_price": 0.002,
+        "output_price": 0.02
+      },
+      {
+        "id": "qwen-audio-turbo",
+        "name": "Qwen Audio Turbo",
+        "description": "Audio understanding model",
+        "supports_tools": false,
+        "context_length": 131072,
+        "input_price": 0.0016,
+        "output_price": 0.01
+      },
+      {
+        "id": "qwen-long",
+        "name": "Qwen Long",
+        "description": "Long text processing model with longest context window",
+        "supports_tools": true,
+        "context_length": 10000000,
+        "input_price": 0.0005,
+        "output_price": 0.002
+      },
+      {
+        "id": "qwq-plus",
+        "name": "QwQ Plus",
+        "description": "Reasoning model with outstanding math and code capabilities",
+        "supports_tools": false,
+        "context_length": 131072,
+        "input_price": 0.0016,
+        "output_price": 0.004
+      }
+    ],
+    "docs_url": "https://help.aliyun.com/zh/dashscope/developer-reference/model-introduction"
+  },
+  "deepseek": {
+    "label": "DeepSeek",
+    "base_url": "https://api.deepseek.com/v1",
+    "models": [
+      {
+        "id": "deepseek-chat",
+        "name": "DeepSeek Chat",
+        "description": "General chat model with 128K context",
+        "supports_tools": true,
+        "context_length": 131072,
+        "input_price": 2.0,
+        "output_price": 8.0
+      },
+      {
+        "id": "deepseek-reasoner",
+        "name": "DeepSeek Reasoner",
+        "description": "Reasoning model with 128K context, max 64K output",
+        "supports_tools": false,
+        "context_length": 131072,
+        "input_price": 4.0,
+        "output_price": 16.0
+      }
+    ],
+    "docs_url": "https://api-docs.deepseek.com/zh-cn/information/model_list"
+  },
+  "longcat": {
+    "label": "LongCat",
+    "base_url": "https://api.longcat.chat/openai/v1",
+    "models": [
+      {
+        "id": "LongCat-Flash-Chat",
+        "name": "LongCat Flash Chat",
+        "description": "High-performance general chat model",
+        "supports_tools": true,
+        "context_length": 32768,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "LongCat-Flash-Thinking",
+        "name": "LongCat Flash Thinking",
+        "description": "Deep thinking model",
+        "supports_tools": true,
+        "context_length": 32768,
+        "input_price": 0.0,
+        "output_price": 0.0
+      }
+    ],
+    "docs_url": "https://longcat.chat/platform/docs/zh/"
+  },
+  "minimax": {
+    "label": "MiniMax",
+    "base_url": "https://api.minimax.io/v1",
+    "models": [
+      {
+        "id": "MiniMax-M2.5",
+        "name": "MiniMax M2.5",
+        "description": "Latest flagship, 200K context, advanced reasoning",
+        "supports_tools": true,
+        "context_length": 204800,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "MiniMax-M2.5-highspeed",
+        "name": "MiniMax M2.5 Highspeed",
+        "description": "Same as M2.5 with faster inference (~100 tps)",
+        "supports_tools": true,
+        "context_length": 204800,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "MiniMax-M2.1",
+        "name": "MiniMax M2.1",
+        "description": "230B parameters, 10B activation, optimized for code generation and refactoring",
+        "supports_tools": true,
+        "context_length": 200000,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "MiniMax-M2.1-lightning",
+        "name": "MiniMax M2.1 Lightning",
+        "description": "Same performance as M2.1 with faster inference speed",
+        "supports_tools": true,
+        "context_length": 200000,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "MiniMax-M2",
+        "name": "MiniMax M2",
+        "description": "200K context, 128K output, supports function calling and advanced reasoning",
+        "supports_tools": true,
+        "context_length": 200000,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "speech-2.6-hd",
+        "name": "Speech 2.6 HD",
+        "description": "Ultimate similarity, ultra-high quality voice generation, supports 40 languages",
+        "supports_tools": false,
+        "context_length": 4096,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "speech-2.6-turbo",
+        "name": "Speech 2.6 Turbo",
+        "description": "Best cost-performance, low latency voice generation, supports 40 languages",
+        "supports_tools": false,
+        "context_length": 4096,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "speech-02-hd",
+        "name": "Speech 02 HD",
+        "description": "Enhanced replication similarity, high quality voice generation, supports 24 languages",
+        "supports_tools": false,
+        "context_length": 4096,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "speech-02-turbo",
+        "name": "Speech 02 Turbo",
+        "description": "Excellent prosody and stability, low latency, supports 24 languages",
+        "supports_tools": false,
+        "context_length": 4096,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "MiniMax-Hailuo-2.3",
+        "name": "MiniMax Hailuo 2.3",
+        "description": "Text-to-video and image-to-video, 1080p/768p resolution, 6-10 seconds duration",
+        "supports_tools": false,
+        "context_length": 4096,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "MiniMax-Hailuo-2.3Fast",
+        "name": "MiniMax Hailuo 2.3 Fast",
+        "description": "Image-to-video with ultimate physics control, high cost-effectiveness",
+        "supports_tools": false,
+        "context_length": 4096,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "MiniMax-Hailuo-02",
+        "name": "MiniMax Hailuo 02",
+        "description": "Text-to-video and image-to-video with SOTA instruction following and ultimate physics control",
+        "supports_tools": false,
+        "context_length": 4096,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "Music-2.0",
+        "name": "Music 2.0",
+        "description": "Text-to-music with enhanced musicality, natural vocals and smooth melodies",
+        "supports_tools": false,
+        "context_length": 4096,
+        "input_price": 0.0,
+        "output_price": 0.0
+      }
+    ],
+    "docs_url": "https://platform.minimaxi.com/document/models"
+  },
+  "moonshot": {
+    "label": "Moonshot AI",
+    "base_url": "https://api.moonshot.cn/v1",
+    "models": [
+      {
+        "id": "kimi-k2.5",
+        "name": "Kimi K2.5",
+        "description": "Latest flagship, 256K context, 1T params MoE, Agent Swarm",
+        "supports_tools": true,
+        "context_length": 262144,
+        "input_price": 4.0,
+        "output_price": 21.0
+      },
+      {
+        "id": "kimi-k2-0905-preview",
+        "name": "Kimi K2 0905",
+        "description": "Latest K2 model with 256K context, strong Agentic Coding",
+        "supports_tools": true,
+        "context_length": 262144,
+        "input_price": 4.0,
+        "output_price": 16.0
+      },
+      {
+        "id": "kimi-k2-turbo-preview",
+        "name": "Kimi K2 Turbo",
+        "description": "High-speed K2 with 256K context, 60-100 tokens/s",
+        "supports_tools": true,
+        "context_length": 262144,
+        "input_price": 8.0,
+        "output_price": 58.0
+      },
+      {
+        "id": "kimi-k2-0711-preview",
+        "name": "Kimi K2 0711",
+        "description": "Earlier K2 version with 128K context",
+        "supports_tools": true,
+        "context_length": 131072,
+        "input_price": 4.0,
+        "output_price": 16.0
+      },
+      {
+        "id": "kimi-k2-thinking",
+        "name": "Kimi K2 Thinking",
+        "description": "Deep reasoning model with 256K context",
+        "supports_tools": true,
+        "context_length": 262144,
+        "input_price": 4.0,
+        "output_price": 16.0
+      },
+      {
+        "id": "kimi-k2-thinking-turbo",
+        "name": "Kimi K2 Thinking Turbo",
+        "description": "High-speed deep reasoning with 256K context",
+        "supports_tools": true,
+        "context_length": 262144,
+        "input_price": 8.0,
+        "output_price": 58.0
+      },
+      {
+        "id": "kimi-latest",
+        "name": "Kimi Latest",
+        "description": "Auto-select model based on context (8K/32K/128K), vision support",
+        "supports_tools": true,
+        "context_length": 131072,
+        "input_price": 2.0,
+        "output_price": 10.0
+      },
+      {
+        "id": "moonshot-v1-8k",
+        "name": "Moonshot V1 8K",
+        "description": "Classic v1 model with 8K context",
+        "supports_tools": true,
+        "context_length": 8192,
+        "input_price": 2.0,
+        "output_price": 10.0
+      },
+      {
+        "id": "moonshot-v1-32k",
+        "name": "Moonshot V1 32K",
+        "description": "Classic v1 model with 32K context",
+        "supports_tools": true,
+        "context_length": 32768,
+        "input_price": 5.0,
+        "output_price": 20.0
+      },
+      {
+        "id": "moonshot-v1-128k",
+        "name": "Moonshot V1 128K",
+        "description": "Classic v1 model with 128K context",
+        "supports_tools": true,
+        "context_length": 131072,
+        "input_price": 10.0,
+        "output_price": 30.0
+      }
+    ],
+    "docs_url": "https://platform.moonshot.cn/docs/guide/model-list"
+  },
+  "tencent": {
+    "label": "Tencent Hunyuan",
+    "base_url": "https://hunyuan.tencentcloudapi.com",
+    "models": [
+      {
+        "id": "hunyuan-2.0-thinking-20251109",
+        "name": "Tencent HY 2.0 Think",
+        "description": "Hunyuan 2.0 thinking model with enhanced complex instruction following, multi-turn and long-text understanding, code, agent, and reasoning capabilities",
+        "supports_tools": true,
+        "context_length": 131072,
+        "max_output": 65536,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "hunyuan-2.0-instruct-20251111",
+        "name": "Tencent HY 2.0 Instruct",
+        "description": "Hunyuan 2.0 instruction model with enhanced instruction following, multi-turn and long-text understanding, creative writing, knowledge accuracy, code and reasoning capabilities",
+        "supports_tools": true,
+        "context_length": 131072,
+        "max_output": 16384,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "hunyuan-t1-latest",
+        "name": "Hunyuan T1 Latest",
+        "description": "Industry's first large-scale Hybrid-Transformer-Mamba reasoning model with extended reasoning capability and ultra-fast decoding speed",
+        "supports_tools": true,
+        "context_length": 32768,
+        "max_output": 65536,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "hunyuan-a13b",
+        "name": "Hunyuan A13B",
+        "description": "Hunyuan MoE structure with 80B total parameters, 13B activation, supports fast/slow thinking mode switching",
+        "supports_tools": true,
+        "context_length": 229376,
+        "max_output": 32768,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "hunyuan-turbos-latest",
+        "name": "Hunyuan TurboS Latest",
+        "description": "Latest version of Hunyuan flagship model with stronger thinking capabilities and better experience",
+        "supports_tools": true,
+        "context_length": 32768,
+        "max_output": 16384,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "hunyuan-lite",
+        "name": "Hunyuan Lite",
+        "description": "Upgraded to MOE structure with 256K context window, leading many open-source models in multiple benchmarks",
+        "supports_tools": true,
+        "context_length": 256000,
+        "max_output": 6144,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "hunyuan-translation",
+        "name": "Hunyuan Translation",
+        "description": "Supports 33 language translations and 5 ethnic language translations, ranked 1st in 30 languages at WMT25",
+        "supports_tools": false,
+        "context_length": 4096,
+        "max_output": 4096,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "hunyuan-translation-lite",
+        "name": "Hunyuan Translation Lite",
+        "description": "Translation specialized model based on Hunyuan 2B-Dense, supports 16+ language translations",
+        "supports_tools": false,
+        "context_length": 4096,
+        "max_output": 4096,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "hunyuan-large-role-latest",
+        "name": "Hunyuan Large Role Latest",
+        "description": "Role-playing specialized model with significantly improved character consistency and dialogue depth",
+        "supports_tools": false,
+        "context_length": 28672,
+        "max_output": 4096,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "hunyuan-vision-1.5-instruct",
+        "name": "Tencent HY Vision 1.5 Instruct",
+        "description": "Image-to-text fast thinking model with significant improvements in image recognition, analysis and reasoning",
+        "supports_tools": true,
+        "context_length": 24576,
+        "max_output": 16384,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "hunyuan-t1-vision-20250916",
+        "name": "Hunyuan T1 Vision",
+        "description": "Vision deep thinking model with comprehensive improvements in general image-text Q&A, visual grounding, OCR, charts, problem solving, and image-based creation",
+        "supports_tools": true,
+        "context_length": 28672,
+        "max_output": 20480,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "hunyuan-large-vision",
+        "name": "Hunyuan Large Vision",
+        "description": "Vision-language model based on Hunyuan Large, supports arbitrary resolution multiple images + text input",
+        "supports_tools": true,
+        "context_length": 24576,
+        "max_output": 8192,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "hunyuan-turbos-vision-video",
+        "name": "Hunyuan TurboS Vision Video",
+        "description": "Video understanding model supporting video description, video Q&A and other basic video understanding capabilities",
+        "supports_tools": true,
+        "context_length": 24576,
+        "max_output": 8192,
+        "input_price": 0.0,
+        "output_price": 0.0
+      }
+    ],
+    "docs_url": "https://cloud.tencent.com/document/product/1729/104753"
+  },
+  "volcengine": {
+    "label": "Volcengine",
+    "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+    "models": [
+      {
+        "id": "doubao-seed-1-8-251215",
+        "name": "Doubao Seed 1.8",
+        "description": "Most powerful multimodal agent model with enhanced capabilities",
+        "supports_tools": true,
+        "context_length": 262144,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "doubao-seed-code-preview-251028",
+        "name": "Doubao Seed Code Preview",
+        "description": "Programming enhanced - deep thinking, text generation, multimodal understanding, tool calling",
+        "supports_tools": true,
+        "context_length": 262144,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "doubao-seed-1-6-lite-251015",
+        "name": "Doubao Seed 1.6 Lite",
+        "description": "Lightweight model with deep thinking, text generation, multimodal understanding, tool calling",
+        "supports_tools": true,
+        "context_length": 262144,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "doubao-seed-1-6-flash-250828",
+        "name": "Doubao Seed 1.6 Flash",
+        "description": "Fast model with deep thinking, text generation, vision grounding, multimodal understanding",
+        "supports_tools": true,
+        "context_length": 262144,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "doubao-seed-1-6-vision-250815",
+        "name": "Doubao Seed 1.6 Vision",
+        "description": "Vision model with deep thinking, multimodal understanding, GUI task processing",
+        "supports_tools": true,
+        "context_length": 262144,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "doubao-seed-translation-250915",
+        "name": "Doubao Seed Translation",
+        "description": "Translation enhanced model",
+        "supports_tools": false,
+        "context_length": 4096,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "deepseek-v3-2-251201",
+        "name": "DeepSeek V3.2",
+        "description": "Deep thinking, text generation, tool calling",
+        "supports_tools": true,
+        "context_length": 131072,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "deepseek-v3-1-terminus",
+        "name": "DeepSeek V3.1 Terminus",
+        "description": "Deep thinking, text generation, tool calling",
+        "supports_tools": true,
+        "context_length": 131072,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "kimi-k2-thinking-251104",
+        "name": "Kimi K2 Thinking",
+        "description": "Deep thinking, tool calling",
+        "supports_tools": true,
+        "context_length": 262144,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "doubao-seedance-1-5-pro-251215",
+        "name": "Doubao Seedance 1.5 Pro",
+        "description": "Powerful video generation model with high-precision audio-visual sync",
+        "supports_tools": false,
+        "context_length": 4096,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "doubao-seedream-4-5-251128",
+        "name": "Doubao Seedream 4.5",
+        "description": "Powerful image generation model with multi-image fusion and strong editing consistency",
+        "supports_tools": false,
+        "context_length": 4096,
+        "input_price": 0.0,
+        "output_price": 0.0
+      }
+    ],
+    "docs_url": "https://www.volcengine.com/docs/82379/1099475"
+  },
+  "zhipu": {
+    "label": "Zhipu AI",
+    "base_url": "https://open.bigmodel.cn/api/paas/v4",
+    "models": [
+      {
+        "id": "glm-5",
+        "name": "GLM-5",
+        "description": "Fifth gen flagship, 745B params, 200K context, SOTA reasoning",
+        "supports_tools": true,
+        "context_length": 200000,
+        "input_price": 0.6,
+        "output_price": 2.2
+      },
+      {
+        "id": "glm-4.7",
+        "name": "GLM-4.7",
+        "description": "Latest flagship model, released December 2025",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 0.6,
+        "output_price": 2.2
+      },
+      {
+        "id": "glm-4.6",
+        "name": "GLM-4.6",
+        "description": "Flagship model with 200K context, advanced coding ability",
+        "supports_tools": true,
+        "context_length": 200000,
+        "input_price": 0.6,
+        "output_price": 2.2
+      },
+      {
+        "id": "glm-4.6v",
+        "name": "GLM-4.6V",
+        "description": "Vision model with multimodal capabilities",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 0.3,
+        "output_price": 0.9
+      },
+      {
+        "id": "glm-4.6v-flashx",
+        "name": "GLM-4.6V-FlashX",
+        "description": "Ultra-fast vision model",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 0.04,
+        "output_price": 0.4
+      },
+      {
+        "id": "glm-4.5",
+        "name": "GLM-4.5",
+        "description": "Strong performance with powerful reasoning and code generation, 128K context",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 0.6,
+        "output_price": 2.2
+      },
+      {
+        "id": "glm-4.5v",
+        "name": "GLM-4.5V",
+        "description": "Vision model with 128K context",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 0.6,
+        "output_price": 1.8
+      },
+      {
+        "id": "glm-4.5-x",
+        "name": "GLM-4.5-X",
+        "description": "Ultra-fast version with 128K context",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 2.2,
+        "output_price": 8.9
+      },
+      {
+        "id": "glm-4.5-air",
+        "name": "GLM-4.5 Air",
+        "description": "Best performance at same parameter scale, 128K context",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 0.2,
+        "output_price": 1.1
+      },
+      {
+        "id": "glm-4.5-airx",
+        "name": "GLM-4.5 AirX",
+        "description": "Fast inference with cost-effective pricing",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 1.1,
+        "output_price": 4.5
+      },
+      {
+        "id": "glm-4-32b-0414-128k",
+        "name": "GLM-4-32B-0414-128K",
+        "description": "32B parameter model with 128K context",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 0.1,
+        "output_price": 0.1
+      },
+      {
+        "id": "glm-4.6v-flash",
+        "name": "GLM-4.6V-Flash",
+        "description": "Free vision model",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 0.0,
+        "output_price": 0.0
+      },
+      {
+        "id": "glm-4.5-flash",
+        "name": "GLM-4.5-Flash",
+        "description": "Free model with 128K context",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 0.0,
+        "output_price": 0.0
+      }
+    ],
+    "docs_url": "https://open.bigmodel.cn/dev/howuse/model"
+  },
+  "openai": {
+    "label": "OpenAI",
+    "base_url": "https://api.openai.com/v1",
+    "models": [
+      {
+        "id": "gpt-5.2",
+        "name": "GPT-5.2",
+        "description": "Best general-purpose, complex reasoning, tool calling, vision",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 2.5,
+        "output_price": 10.0
+      },
+      {
+        "id": "gpt-5.2-pro",
+        "name": "GPT-5.2 Pro",
+        "description": "Harder thinking for tough problems",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 5.0,
+        "output_price": 20.0
+      },
+      {
+        "id": "gpt-5.2-codex",
+        "name": "GPT-5.2 Codex",
+        "description": "Interactive coding products",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 2.5,
+        "output_price": 10.0
+      },
+      {
+        "id": "gpt-5-mini",
+        "name": "GPT-5 Mini",
+        "description": "Cost-optimized reasoning and chat",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 0.4,
+        "output_price": 1.6
+      },
+      {
+        "id": "gpt-5-nano",
+        "name": "GPT-5 Nano",
+        "description": "High-throughput, simple tasks",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 0.1,
+        "output_price": 0.4
+      },
+      {
+        "id": "gpt-4o",
+        "name": "GPT-4o",
+        "description": "Flagship multimodal model",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 2.5,
+        "output_price": 10.0
+      },
+      {
+        "id": "gpt-4o-mini",
+        "name": "GPT-4o Mini",
+        "description": "Fast and affordable",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 0.15,
+        "output_price": 0.6
+      },
+      {
+        "id": "gpt-4.1",
+        "name": "GPT-4.1",
+        "description": "Advanced reasoning",
+        "supports_tools": true,
+        "context_length": 128000,
+        "input_price": 2.5,
+        "output_price": 10.0
+      },
+      {
+        "id": "o1",
+        "name": "o1",
+        "description": "Advanced reasoning model",
+        "supports_tools": false,
+        "context_length": 200000,
+        "input_price": 15.0,
+        "output_price": 60.0
+      },
+      {
+        "id": "o1-mini",
+        "name": "o1 Mini",
+        "description": "Efficient reasoning",
+        "supports_tools": false,
+        "context_length": 128000,
+        "input_price": 3.0,
+        "output_price": 12.0
+      },
+      {
+        "id": "gpt-3.5-turbo",
+        "name": "GPT-3.5 Turbo",
+        "description": "Fast and economical",
+        "supports_tools": true,
+        "context_length": 16385,
+        "input_price": 0.5,
+        "output_price": 1.5
+      }
+    ]
+  },
+  "anthropic": {
+    "label": "Anthropic",
+    "base_url": "https://api.anthropic.com",
+    "models": [
+      {
+        "id": "claude-opus-4-6",
+        "name": "Claude Opus 4.6",
+        "description": "Most intelligent for agents and coding",
+        "supports_tools": true,
+        "context_length": 200000,
+        "input_price": 5.0,
+        "output_price": 25.0
+      },
+      {
+        "id": "claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "description": "Best balance of speed and intelligence",
+        "supports_tools": true,
+        "context_length": 200000,
+        "input_price": 3.0,
+        "output_price": 15.0
+      },
+      {
+        "id": "claude-haiku-4-5-20251001",
+        "name": "Claude Haiku 4.5",
+        "description": "Fastest with near-frontier intelligence",
+        "supports_tools": true,
+        "context_length": 200000,
+        "input_price": 1.0,
+        "output_price": 5.0
+      },
+      {
+        "id": "claude-sonnet-4-5-20250929",
+        "name": "Claude Sonnet 4.5",
+        "description": "Strong performance, 200K context",
+        "supports_tools": true,
+        "context_length": 200000,
+        "input_price": 3.0,
+        "output_price": 15.0
+      },
+      {
+        "id": "claude-opus-4-5-20251101",
+        "name": "Claude Opus 4.5",
+        "description": "Latest Opus generation",
+        "supports_tools": true,
+        "context_length": 200000,
+        "input_price": 5.0,
+        "output_price": 25.0
+      }
+    ]
+  }
+}

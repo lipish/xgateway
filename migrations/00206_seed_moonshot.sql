@@ -15,6 +15,15 @@ VALUES (
     'https://api.moonshot.cn/v1',
     '[
         {
+            "id": "kimi-k2.5",
+            "name": "Kimi K2.5",
+            "description": "Latest flagship, 256K context, 1T params MoE, Agent Swarm",
+            "supports_tools": true,
+            "context_length": 262144,
+            "input_price": 4.0,
+            "output_price": 21.0
+        },
+        {
             "id": "kimi-k2-0905-preview",
             "name": "Kimi K2 0905",
             "description": "Latest K2 model with 256K context, strong Agentic Coding",

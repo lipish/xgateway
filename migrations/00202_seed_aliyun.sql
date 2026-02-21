@@ -15,9 +15,27 @@ VALUES (
     'https://dashscope.aliyuncs.com/compatible-mode/v1',
     '[
         {
+            "id": "qwen3-max",
+            "name": "Qwen3 Max",
+            "description": "Latest flagship, best for agentic coding and tool calling",
+            "supports_tools": true,
+            "context_length": 262144,
+            "input_price": 0.0025,
+            "output_price": 0.01
+        },
+        {
+            "id": "qwen3.5-plus",
+            "name": "Qwen3.5 Plus",
+            "description": "Balanced performance, speed and cost, text/image/video input",
+            "supports_tools": true,
+            "context_length": 1000000,
+            "input_price": 0.0008,
+            "output_price": 0.002
+        },
+        {
             "id": "qwen-max",
             "name": "Qwen Max",
-            "description": "Suitable for complex, multi-step tasks with strongest capabilities",
+            "description": "Previous flagship for complex multi-step tasks",
             "supports_tools": true,
             "context_length": 262144,
             "input_price": 0.0032,

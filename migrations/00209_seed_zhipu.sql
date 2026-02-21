@@ -15,6 +15,15 @@ VALUES (
     'https://open.bigmodel.cn/api/paas/v4',
     '[
         {
+            "id": "glm-5",
+            "name": "GLM-5",
+            "description": "Fifth gen flagship, 745B params, 200K context, SOTA reasoning",
+            "supports_tools": true,
+            "context_length": 200000,
+            "input_price": 0.6,
+            "output_price": 2.2
+        },
+        {
             "id": "glm-4.7",
             "name": "GLM-4.7",
             "description": "Latest flagship model, released December 2025",

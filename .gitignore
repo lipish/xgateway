@@ -31,6 +31,9 @@ python/.pytest_cache/
 python/.mypy_cache/
 python/.venv/
 
+# Python venv (scripts/fetch-models.py etc.)
+.venv/
+
 # IDE and editor files
 /.claude
 /.augment

@@ -21,10 +21,18 @@
 | `test-glm4-models.sh` | 测试所有 GLM-4 模型 |
 | `verify-glm46.sh` | 验证 GLM-4.6 支持 |
 
+### 模型列表
+
+| 脚本 | 用途 |
+|------|------|
+| `build-provider-models.py` | 从 migrations 提取 + 静态数据，生成 provider-models.json |
+| `fetch-models.py` | 读取 provider-models.json，输出 JSON/SQL（无需 API Key） |
+
+用法：`python scripts/build-provider-models.py` 更新模型数据；`python scripts/fetch-models.py [openai zhipu ...]` 输出。支持 `--print`、`--json`、`--sql` 参数。
+
 ### 其他
 
 | 脚本/目录 | 用途 |
-|----------|------|
 | `start-aider.sh` | Aider 启动 |
 | `start-openhands.sh` | OpenHands 启动 |
 | `start-codex.sh` | Codex CLI 启动 |
