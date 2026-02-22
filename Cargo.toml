@@ -1,8 +1,8 @@
 [package]
 name = "xgateway"
-version = "0.13.0"
+version = "0.13.1"
 edition = "2021"
-authors = ["XGateway Contributors"]
+authors = ["lipicoder@qq.com"]
 description = "A universal LLM proxy supporting 10 providers (OpenAI, Anthropic, Zhipu, Aliyun, Volcengine, Tencent, Longcat, Moonshot, Minimax, Ollama) with dynamic model discovery API, hot-reload configuration, and optional API key startup"
 license = "MIT"
 repository = "https://github.com/lipish/xgateway"
@@ -27,6 +27,7 @@ tower-http = { version = "0.5", features = ["cors", "trace", "fs"] }
 
 # LLM connector
 llm-connector = { version = "0.5.13", features = ["streaming", "tencent"] }
+llm_providers = "0.2.2"
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -48,7 +49,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 reqwest = { version = "0.11", features = ["json", "stream"] }
 base64 = "0.22"
 xtrace-client = "0.0.2"
-xtrace = { path = "../xtrace" }
+xtrace = "0.0.14"
 
 # Utilities
 clap = { version = "4.0", features = ["derive"] }

@@ -92,14 +92,20 @@ The backend serves the frontend static files directly, so you only need to start
 # Build the frontend (first time or after frontend changes)
 cd admin && npm install && npx vite build && cd ..
 
-# Local demo (PostgreSQL)
-export DATABASE_URL="postgresql://xinference@localhost:5432/xgateway"
+# First-time clean setup (PostgreSQL)
+createdb xgateway_new
+createdb xtrace_new
 
-# Start the unified service (default port 3000)
-cargo run
+# Runtime environment
+export DATABASE_URL="postgresql://xinference@localhost:5432/xgateway_new"
+export XTRACE_DATABASE_URL="postgresql://xinference@localhost:5432/xtrace_new"
+export XTRACE_BIND_ADDR="127.0.0.1:18745"
+
+# Start the unified service
+cargo run --bin xgateway -- --host 127.0.0.1 --port 3105
 ```
 
-The admin panel will be available at `http://localhost:3000/`
+The admin panel will be available at `http://localhost:3105/`
 
 This approach provides:
 - **Single port**: Both API and frontend on the same port
@@ -112,7 +118,10 @@ For frontend development with hot-reload:
 
 ```bash
 # Terminal 1: Start the backend service
-cargo run
+export DATABASE_URL="postgresql://xinference@localhost:5432/xgateway_new"
+export XTRACE_DATABASE_URL="postgresql://xinference@localhost:5432/xtrace_new"
+export XTRACE_BIND_ADDR="127.0.0.1:18745"
+cargo run --bin xgateway -- --host 127.0.0.1 --port 3105
 
 # Terminal 2: Start the frontend dev server
 cd admin
@@ -169,10 +178,10 @@ export XTRACE_TRACE_NAME="xgateway.chat"
 
 ```bash
 # Test health endpoint
-curl http://localhost:8090/health
+curl http://localhost:3105/health
 
 # Test OpenAI API
-curl -X POST http://localhost:8090/v1/chat/completions \
+curl -X POST http://localhost:3105/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your-token" \
   -d '{"model": "glm-4.6", "messages": [{"role": "user", "content": "Hello!"}]}'

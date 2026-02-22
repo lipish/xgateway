@@ -48,12 +48,10 @@ async fn main() -> Result<()> {
 }
 
 fn start_xtrace() {
-    let database_url = match std::env::var("XTRACE_DATABASE_URL")
-        .or_else(|_| std::env::var("DATABASE_URL"))
-    {
+    let database_url = match std::env::var("XTRACE_DATABASE_URL") {
         Ok(url) => url,
         Err(_) => {
-            warn!("DATABASE_URL not set, skipping xtrace startup");
+            warn!("XTRACE_DATABASE_URL not set, skipping xtrace startup (use separate database for xtrace)");
             return;
         }
     };

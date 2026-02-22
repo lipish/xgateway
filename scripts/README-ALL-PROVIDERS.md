@@ -25,10 +25,12 @@
 
 | 脚本 | 用途 |
 |------|------|
-| `build-provider-models.py` | 从 migrations 提取 + 静态数据，生成 provider-models.json |
-| `fetch-models.py` | 读取 provider-models.json，输出 JSON/SQL（无需 API Key） |
+| `cargo run --bin provider_models -- fetch ...` | Rust 主入口，输出 JSON/SQL |
+| `cargo run --bin provider_models -- snapshot ...` | 导出 provider-models.json 快照 |
 
-用法：`python scripts/build-provider-models.py` 更新模型数据；`python scripts/fetch-models.py [openai zhipu ...]` 输出。支持 `--print`、`--json`、`--sql` 参数。
+用法：`cargo run --bin provider_models -- fetch [openai zhipu ...]`。支持 `--print`、`--json`、`--sql` 参数。
+
+数据库结构由 `migrations/001_bootstrap.sql` 统一初始化。
 
 ### 其他
 

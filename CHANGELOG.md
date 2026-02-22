@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.1] - 2026-02-22
+
+### ⚙️ 迁移与数据库
+
+- 迁移目录简化为 bootstrap 入口：新增 `migrations/001_bootstrap.sql`，历史迁移归档到 `migrations/archive/`。
+- 清理临时变体迁移链路：移除 `021_add_global_provider_variants.sql` 及对应校验工具。
+- 修复 bootstrap 在 `sqlx` 下执行兼容性问题（移除 pg_dump 元命令与异常 search_path 影响）。
+
+### 🧭 运行与可观测性
+
+- 内置 xtrace 启动逻辑调整为仅使用 `XTRACE_DATABASE_URL`（不再回退 `DATABASE_URL`），明确与 xgateway 主库分离。
+- 默认联调流程统一为“xgateway/xtrace 双库分离 + 自定义端口”模式。
+
+### 🧰 工具链与脚本
+
+- 引入 `llm_providers` 作为 provider/model 数据来源。
+- 新增 Rust 二进制 `src/bin/provider_models.rs`，替代旧 Python 模型脚本流程。
+- 移除旧脚本：`scripts/build-provider-models.py`、`scripts/fetch-models.py`。
+
+### 🌐 Admin 与文档
+
+- 修正 Admin dev 代理默认后端端口（`admin/vite.config.ts`）。
+- 更新启动与部署文档，统一双库分离与新端口示例：`README.md`、`docs/USER_GUIDE.md`、`docs/xgateway.md`、`config/xgateway.yaml.example`。
+
 ## [0.13.0] - 2026-02-16
 
 ### ✨ 新增功能

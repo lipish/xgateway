@@ -6,23 +6,31 @@
 
 ### 1.1 前置条件
 
-需要一个可用的 PostgreSQL，并设置 `DATABASE_URL`。
+需要一个可用的 PostgreSQL，并为 xgateway/xtrace 准备两个独立数据库。
 
 ### 1.2 启动服务
 
 在项目根目录启动：
 
 ```bash
-export DATABASE_URL="postgres://..."
-export PORT=3000
-cargo run --release
+# 首次初始化（示例库名）
+createdb xgateway_new
+createdb xtrace_new
+
+# 运行环境
+export DATABASE_URL="postgresql://xinference@localhost:5432/xgateway_new"
+export XTRACE_DATABASE_URL="postgresql://xinference@localhost:5432/xtrace_new"
+export XTRACE_BIND_ADDR="127.0.0.1:18745"
+
+# 启动（示例端口 3105）
+cargo run --bin xgateway -- --host 127.0.0.1 --port 3105
 ```
 
 启动后常用入口：
 
-- 数据面（OpenAI 兼容）：`http://localhost:3000/v1/chat/completions`
-- 管理面（Admin API）：`http://localhost:3000/api/*`
-- 健康检查：`http://localhost:3000/health`
+- 数据面（OpenAI 兼容）：`http://localhost:3105/v1/chat/completions`
+- 管理面（Admin API）：`http://localhost:3105/api/*`
+- 健康检查：`http://localhost:3105/health`
 
 ### 1.3 通过管理后台完成“可调用”配置
 
@@ -85,7 +93,7 @@ curl -N http://localhost:3000/v1/chat/completions \
 
 本项目的运行时配置主要来自：
 
-- 环境变量：例如 `DATABASE_URL`、`PORT`、`XGATEWAY_LOG_LEVEL`
+- 环境变量：例如 `DATABASE_URL`、`XTRACE_DATABASE_URL`、`PORT`、`XGATEWAY_LOG_LEVEL`
 - 管理后台（数据库持久化）：Provider、Service、API Key、授权关系、服务限流与调度策略
 
 如果需要将请求全量上报到 XTrace（包含 input/output），可配置如下环境变量：

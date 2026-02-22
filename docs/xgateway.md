@@ -131,7 +131,7 @@ sequenceDiagram
 当前实现要求请求体里提供 `service_id`。
 
 ```bash
-curl -sS http://localhost:3000/v1/chat/completions \
+curl -sS http://localhost:3105/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <YOUR_API_KEY>" \
   -d ' {
@@ -147,7 +147,7 @@ curl -sS http://localhost:3000/v1/chat/completions \
 流式返回：
 
 ```bash
-curl -N http://localhost:3000/v1/chat/completions \
+curl -N http://localhost:3105/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <YOUR_API_KEY>" \
   -d ' {
@@ -225,6 +225,28 @@ let provider_id = pool_manager
 ## 11. 交付与部署形态（口径）
 
 XGateway 以服务形式运行，对外提供 HTTP 接口并依赖数据库（PostgreSQL）存储配置、授权与日志。运行后会同时提供：业务侧 OpenAI 兼容入口、管理面 API 以及 Admin Web UI。
+
+推荐采用“xgateway/xtrace 双库分离”的部署方式（示例端口 3105）：
+
+```bash
+# 首次初始化
+createdb xgateway_new
+createdb xtrace_new
+
+# 运行环境
+export DATABASE_URL="postgresql://xinference@localhost:5432/xgateway_new"
+export XTRACE_DATABASE_URL="postgresql://xinference@localhost:5432/xtrace_new"
+export XTRACE_BIND_ADDR="127.0.0.1:18745"
+
+# 启动服务
+cargo run --bin xgateway -- --host 127.0.0.1 --port 3105
+```
+
+启动后入口示例：
+
+- OpenAI 兼容：`http://localhost:3105/v1/chat/completions`
+- 管理 API：`http://localhost:3105/api/*`
+- 健康检查：`http://localhost:3105/health`
 
 ## 12. FAQ（对外沟通建议）
 
