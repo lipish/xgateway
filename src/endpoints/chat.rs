@@ -407,13 +407,18 @@ pub async fn handle_chat_completions(
         .await
         {
             RequestResult::Success(response) => return response,
-            RequestResult::Failure { error, .. } => {
+            RequestResult::Failure {
+                error,
+                status_code,
+                error_type,
+                ..
+            } => {
                 last_error = Some((
-                    StatusCode::BAD_GATEWAY,
+                    status_code,
                     serde_json::json!({
                         "error": {
                             "message": error,
-                            "type": "provider_error",
+                            "type": error_type,
                             "provider": provider.name
                         }
                     }),

@@ -2,6 +2,7 @@ use std::sync::Arc;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use futures::StreamExt;
+use llm_connector::LlmConnectorError;
 use llm_connector::types::{ChatRequest, Message, Role};
 use crate::db::{self, DatabasePool, NewRequestLog};
 use crate::pool::PoolManager;
@@ -9,6 +10,114 @@ use super::driver::{build_driver_config, DriverType};
 use super::stream::{extract_response_content, extract_tokens_used};
 use super::types::RequestResult;
 use crate::xtrace::{self, XTraceRequestContext};
+
+fn map_llm_error(e: &LlmConnectorError) -> (StatusCode, &'static str) {
+    match e {
+        LlmConnectorError::AuthenticationError(_) => (StatusCode::UNAUTHORIZED, "auth_error"),
+        LlmConnectorError::PermissionError(_) => (StatusCode::FORBIDDEN, "permission_denied"),
+        LlmConnectorError::RateLimitError(_) => {
+            (StatusCode::TOO_MANY_REQUESTS, "rate_limit_exceeded")
+        }
+        LlmConnectorError::InvalidRequest(_)
+        | LlmConnectorError::UnsupportedModel(_)
+        | LlmConnectorError::ParseError(_)
+        | LlmConnectorError::JsonError(_)
+        | LlmConnectorError::ContextLengthExceeded(_) => {
+            (StatusCode::BAD_REQUEST, "invalid_request")
+        }
+        LlmConnectorError::NotFoundError(_) => (StatusCode::NOT_FOUND, "not_found"),
+        LlmConnectorError::StreamingNotSupported(_) | LlmConnectorError::UnsupportedOperation(_) => {
+            (StatusCode::NOT_IMPLEMENTED, "not_supported")
+        }
+        LlmConnectorError::TimeoutError(_) => (StatusCode::REQUEST_TIMEOUT, "timeout"),
+        LlmConnectorError::MaxRetriesExceeded(_) => {
+            (StatusCode::SERVICE_UNAVAILABLE, "max_retries_exceeded")
+        }
+        LlmConnectorError::ConfigError(_) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, "provider_config_error")
+        }
+        LlmConnectorError::NetworkError(_)
+        | LlmConnectorError::ConnectionError(_)
+        | LlmConnectorError::ProviderError(_)
+        | LlmConnectorError::ServerError(_)
+        | LlmConnectorError::ApiError(_)
+        | LlmConnectorError::StreamingError(_) => (StatusCode::BAD_GATEWAY, "upstream_error"),
+        _ => (StatusCode::BAD_GATEWAY, "upstream_error"),
+    }
+}
+
+fn extract_usage_tokens(usage: &serde_json::Value) -> i64 {
+    usage
+        .get("total_tokens")
+        .and_then(|v| v.as_i64())
+        .or_else(|| {
+            let prompt = usage
+                .get("prompt_tokens")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0);
+            let completion = usage
+                .get("completion_tokens")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0);
+            let sum = prompt + completion;
+            if sum > 0 {
+                Some(sum)
+            } else {
+                None
+            }
+        })
+        .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{extract_usage_tokens, map_llm_error};
+    use axum::http::StatusCode;
+    use llm_connector::LlmConnectorError;
+
+    #[test]
+    fn test_map_llm_error_auth_and_rate_limit() {
+        let (status, error_type) = map_llm_error(&LlmConnectorError::AuthenticationError("bad key".to_string()));
+        assert_eq!(status, StatusCode::UNAUTHORIZED);
+        assert_eq!(error_type, "auth_error");
+
+        let (status, error_type) = map_llm_error(&LlmConnectorError::RateLimitError("quota".to_string()));
+        assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
+        assert_eq!(error_type, "rate_limit_exceeded");
+    }
+
+    #[test]
+    fn test_map_llm_error_upstream() {
+        let (status, error_type) = map_llm_error(&LlmConnectorError::ProviderError("upstream failed".to_string()));
+        assert_eq!(status, StatusCode::BAD_GATEWAY);
+        assert_eq!(error_type, "upstream_error");
+    }
+
+    #[test]
+    fn test_extract_usage_tokens_prefers_total() {
+        let usage = serde_json::json!({
+            "prompt_tokens": 11,
+            "completion_tokens": 22,
+            "total_tokens": 40
+        });
+        assert_eq!(extract_usage_tokens(&usage), 40);
+    }
+
+    #[test]
+    fn test_extract_usage_tokens_fallback_sum() {
+        let usage = serde_json::json!({
+            "prompt_tokens": 11,
+            "completion_tokens": 22
+        });
+        assert_eq!(extract_usage_tokens(&usage), 33);
+    }
+
+    #[test]
+    fn test_extract_usage_tokens_empty() {
+        let usage = serde_json::json!({});
+        assert_eq!(extract_usage_tokens(&usage), 0);
+    }
+}
 
 fn parse_messages(req_body: &serde_json::Value) -> Vec<Message> {
     req_body.get("messages")
@@ -74,20 +183,26 @@ pub async fn send_to_provider(
         Err(e) => {
             let latency_ms = start_time.elapsed().as_millis() as i64;
             pool_manager.record_failure(provider.id, Some(&e.to_string())).await;
+            let (status_code, error_type) = e
+                .downcast_ref::<LlmConnectorError>()
+                .map(map_llm_error)
+                .unwrap_or((StatusCode::INTERNAL_SERVER_ERROR, "client_init_failed"));
             return RequestResult::Failure {
                 error: format!("Failed to create client: {}", e),
                 latency_ms,
+                status_code,
+                error_type,
             };
         }
     };
 
     let messages = parse_messages(req_body);
-    let chat_request = ChatRequest {
+    let chat_request = driver_config.apply_request_overrides(ChatRequest {
         model: model.to_string(),
         messages,
         stream: Some(is_stream),
         ..Default::default()
-    };
+    });
 
     if is_stream {
         handle_stream_request(
@@ -209,10 +324,14 @@ async fn handle_stream_request(
                 let response_content = content_clone.lock().ok().and_then(|c| {
                     if c.is_empty() { None } else { Some(c.clone()) }
                 });
+                let usage_value = usage_snapshot.lock().ok().and_then(|u| u.clone());
+                let tokens_used = usage_value
+                    .as_ref()
+                    .map(extract_usage_tokens)
+                    .unwrap_or(0);
 
                 if let Some(ctx) = xtrace_ctx_clone {
                     let output = response_content.clone().map(serde_json::Value::String);
-                    let usage_value = usage_snapshot.lock().ok().and_then(|u| u.clone());
                     let usage_tokens = usage_value.as_ref().and_then(|u| xtrace::usage_from_value(u));
                     let completion_start = first_token_at.lock().ok().and_then(|t| *t);
                     ctx.client.report_generation(
@@ -237,7 +356,7 @@ async fn handle_stream_request(
                     model: model_str,
                     status,
                     latency_ms,
-                    tokens_used: 0,
+                    tokens_used,
                     error_message,
                     request_type: "chat".to_string(),
                     request_content,
@@ -263,6 +382,7 @@ async fn handle_stream_request(
         Err(e) => {
             let latency_ms = start_time.elapsed().as_millis() as i64;
             pool_manager.record_failure(provider.id, Some(&e.to_string())).await;
+            let (status_code, error_type) = map_llm_error(&e);
             if let Some(ctx) = xtrace_ctx {
                 ctx.client.report_generation(
                     &ctx,
@@ -279,6 +399,8 @@ async fn handle_stream_request(
             RequestResult::Failure {
                 error: format!("Stream error: {}", e),
                 latency_ms,
+                status_code,
+                error_type,
             }
         }
     }
@@ -346,6 +468,7 @@ async fn handle_non_stream_request(
         Err(e) => {
             let latency_ms = start_time.elapsed().as_millis() as i64;
             pool_manager.record_failure(provider.id, Some(&e.to_string())).await;
+            let (status_code, error_type) = map_llm_error(&e);
             if let Some(ctx) = xtrace_ctx {
                 ctx.client.report_generation(
                     &ctx,
@@ -382,6 +505,8 @@ async fn handle_non_stream_request(
             RequestResult::Failure {
                 error: format!("API error: {}", e),
                 latency_ms,
+                status_code,
+                error_type,
             }
         }
     }

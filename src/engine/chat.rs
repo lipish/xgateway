@@ -1,6 +1,6 @@
 use super::Client;
 use super::types::{Response, Usage};
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use llm_connector::types::ChatRequest;
 
 impl Client {
@@ -20,8 +20,11 @@ impl Client {
             ..Default::default()
         };
 
-        let response = self.llm_client.chat(&request).await
-            .map_err(|e| anyhow!("LLM connector error: {}", e))?;
+        let response = self
+            .llm_client
+            .chat(&request)
+            .await
+            .map_err(anyhow::Error::new)?;
 
         // Extract content and usage information
         let (prompt_tokens, completion_tokens, total_tokens) = response.get_usage_safe();

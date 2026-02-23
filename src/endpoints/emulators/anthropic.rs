@@ -16,6 +16,7 @@ use crate::engine::Model;
 use crate::service::Service as LlmService;
 use llm_connector::types::{ImageSource, Message as LlmMessage, MessageBlock, Role as LlmRole};
 use axum::http::header::AUTHORIZATION;
+use super::errors::{json_error_response, status_from_anyhow};
 
 /// Anthropic Messages API Request
 #[derive(Debug, Deserialize, Serialize)]
@@ -147,7 +148,7 @@ pub async fn messages(
     State(state): State<ProxyState>,
     headers: axum::http::HeaderMap,
     Json(mut request): Json<AnthropicMessagesRequest>,
-) -> Result<Response, StatusCode> {
+) -> Response {
     let start_time = Instant::now();
     let start_timestamp = Utc::now();
     let request_payload = serde_json::to_value(&request).ok();
@@ -182,12 +183,20 @@ pub async fn messages(
             Ok(Some(info)) => {
                 if info.protocol != "anthropic" {
                     report(StatusCode::FORBIDDEN, None, Some("invalid_protocol".to_string()), request.stream);
-                    return Err(StatusCode::FORBIDDEN);
+                    return json_error_response(
+                        StatusCode::FORBIDDEN,
+                        "API key protocol does not allow this endpoint",
+                        Some("invalid_protocol"),
+                    );
                 }
             }
             _ => {
                 report(StatusCode::UNAUTHORIZED, None, Some("invalid_api_key".to_string()), request.stream);
-                return Err(StatusCode::UNAUTHORIZED);
+                return json_error_response(
+                    StatusCode::UNAUTHORIZED,
+                    "Invalid API key",
+                    Some("invalid_api_key"),
+                );
             }
         }
     }
@@ -254,12 +263,13 @@ pub async fn messages(
                 response.headers_mut().insert("anthropic-version", "2023-06-01".parse().unwrap());
                 response.headers_mut().insert("request-id", uuid::Uuid::new_v4().to_string().parse().unwrap());
                 report(StatusCode::OK, None, None, true);
-                Ok(response)
+                response
             }
             Err(e) => {
                 error!("Streaming error: {}", e);
-                report(StatusCode::INTERNAL_SERVER_ERROR, None, Some("streaming_failed".to_string()), true);
-                Err(StatusCode::INTERNAL_SERVER_ERROR)
+                let status = status_from_anyhow(&e);
+                report(status, None, Some("streaming_failed".to_string()), true);
+                json_error_response(status, "Streaming request failed", Some("streaming_failed"))
             }
         }
     } else {
@@ -300,12 +310,13 @@ pub async fn messages(
                 response.headers_mut().insert("anthropic-version", "2023-06-01".parse().unwrap());
                 response.headers_mut().insert("request-id", uuid::Uuid::new_v4().to_string().parse().unwrap());
                 report(StatusCode::OK, response_payload, None, false);
-                Ok(response)
+                response
             }
             Err(e) => {
                 error!("Chat error: {}", e);
-                report(StatusCode::INTERNAL_SERVER_ERROR, None, Some("chat_failed".to_string()), false);
-                Err(StatusCode::INTERNAL_SERVER_ERROR)
+                let status = status_from_anyhow(&e);
+                report(status, None, Some("chat_failed".to_string()), false);
+                json_error_response(status, "Chat request failed", Some("chat_failed"))
             }
         }
     }
@@ -442,7 +453,7 @@ fn convert_to_anthropic_stream(
 #[allow(dead_code)]
 pub async fn models(
     State(state): State<ProxyState>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> Response {
     let start_time = Instant::now();
     let start_timestamp = Utc::now();
     let report = |status: StatusCode,
@@ -495,11 +506,16 @@ pub async fn models(
                 "provider": current_provider,
             });
             report(StatusCode::OK, Some(response.clone()), None);
-            Ok(Json(response))
+            Json(response).into_response()
         }
-        Err(_) => {
+        Err(e) => {
+            error!("Anthropic models request failed: {:?}", e);
             report(StatusCode::INTERNAL_SERVER_ERROR, None, Some("model_list_failed".to_string()));
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
+            json_error_response(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to list models",
+                Some("model_list_failed"),
+            )
         }
     }
 }
@@ -556,4 +572,29 @@ pub async fn count_tokens(
         "input_tokens": estimated_tokens
     })), None);
     Ok(response)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_json_error_response_has_type_and_code() {
+        let response = json_error_response(
+            StatusCode::BAD_GATEWAY,
+            "upstream failed",
+            None,
+        );
+
+        let status = response.status();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("read response body");
+        let payload: serde_json::Value = serde_json::from_slice(&body).expect("parse json");
+
+        assert_eq!(status, StatusCode::BAD_GATEWAY);
+        assert_eq!(payload["error"]["type"], "upstream_error");
+        assert_eq!(payload["error"]["code"], "upstream_error");
+        assert_eq!(payload["error"]["message"], "upstream failed");
+    }
 }

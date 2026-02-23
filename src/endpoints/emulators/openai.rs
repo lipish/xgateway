@@ -18,6 +18,7 @@ use crate::endpoints::ProxyState;
 use crate::engine::Model;
 use crate::service::Service as LlmService;
 use super::convert;
+use super::errors::{json_error_response, status_from_anyhow};
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
@@ -49,7 +50,7 @@ pub async fn chat(
     headers: HeaderMap,
     State(state): State<ProxyState>,
     Json(request): Json<OpenAIChatRequest>,
-) -> Result<Response, StatusCode> {
+) -> Response {
     let xtrace = state.xtrace.clone();
     let start_time = Instant::now();
     let start_timestamp = Utc::now();
@@ -83,7 +84,7 @@ pub async fn chat(
     // API Key 校验
     if let Err(err) = enforce_api_key(&headers, &state).await {
         report(err, None, Some("unauthorized".to_string()), false);
-        return Err(err);
+        return json_error_response(err, "OpenAI API key authentication failed", Some("unauthorized"));
     }
 
     info!("📝 Received request - model: {}, stream: {:?}, messages count: {}",
@@ -100,12 +101,20 @@ pub async fn chat(
             Ok(false) => {
                 error!("Model validation failed: model '{}' not found", request.model);
                 report(StatusCode::BAD_REQUEST, None, Some("model_not_found".to_string()), false);
-                return Err(StatusCode::BAD_REQUEST);
+                return json_error_response(
+                    StatusCode::BAD_REQUEST,
+                    format!("Model '{}' not found", request.model),
+                    Some("model_not_found"),
+                );
             }
             Err(e) => {
                 error!("Model validation error: {:?}", e);
                 report(StatusCode::INTERNAL_SERVER_ERROR, None, Some("model_validation_failed".to_string()), false);
-                return Err(StatusCode::INTERNAL_SERVER_ERROR);
+                return json_error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Model validation failed",
+                    Some("model_validation_failed"),
+                );
             }
             Ok(true) => {
                 info!("Model '{}' validated successfully", request.model);
@@ -129,21 +138,21 @@ pub async fn chat(
                 }
             }
 
-            // 使用流式模式（llm-connector 0.5.6 已修复代理超时问题）
+            // 使用流式模式（llm-connector 0.7.0 统一流式能力）
             let use_streaming = request.stream.unwrap_or(false);
             if use_streaming {
                 info!("🌊 Using streaming mode");
                 if let Some(ref tools_ref) = tools {
-                    info!("Streaming with {} tools (llm-connector 0.5.4+ fix applied)", tools_ref.len());
+                    info!("Streaming with {} tools (llm-connector 0.7.0)", tools_ref.len());
                 }
                 match handle_streaming_request(headers, state, model, messages, tools).await {
                     Ok(resp) => {
                         report(StatusCode::OK, None, None, true);
-                        Ok(resp)
+                        resp
                     }
                     Err(err) => {
                         report(err, None, Some("streaming_failed".to_string()), true);
-                        Err(err)
+                        json_error_response(err, "Streaming request failed", Some("streaming_failed"))
                     }
                 }
             } else {
@@ -151,11 +160,11 @@ pub async fn chat(
                 match handle_non_streaming_request(state, model, messages, tools).await {
                     Ok(resp) => {
                         report(StatusCode::OK, None, None, false);
-                        Ok(resp)
+                        resp
                     }
                     Err(err) => {
                         report(err, None, Some("chat_failed".to_string()), false);
-                        Err(err)
+                        json_error_response(err, "Chat request failed", Some("chat_failed"))
                     }
                 }
             }
@@ -163,7 +172,11 @@ pub async fn chat(
         Err(e) => {
             error!("Failed to convert OpenAI messages: {:?}", e);
             report(StatusCode::BAD_REQUEST, None, Some("invalid_messages".to_string()), false);
-            Err(StatusCode::BAD_REQUEST)
+            json_error_response(
+                StatusCode::BAD_REQUEST,
+                "Invalid messages payload",
+                Some("invalid_messages"),
+            )
         }
     }
 }
@@ -247,8 +260,8 @@ async fn handle_streaming_request(
             Ok(response)
         }
         Err(e) => {
-            warn!("OpenAI streaming failed, falling back to non-streaming: {:?}", e);
-            handle_non_streaming_request(state, model, messages, tools).await
+            warn!("OpenAI streaming failed, returning streaming error without non-stream fallback: {:?}", e);
+            Err(status_from_anyhow(&e))
         }
     }
 }
@@ -271,7 +284,7 @@ async fn handle_non_streaming_request(
         }
         Err(e) => {
             error!("OpenAI chat request failed: {:?}", e);
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
+            Err(status_from_anyhow(&e))
         }
     }
 }
@@ -282,7 +295,7 @@ pub async fn models(
     headers: HeaderMap,
     State(state): State<ProxyState>,
     Query(_params): Query<OpenAIModelsParams>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> Response {
     let xtrace = state.xtrace.clone();
     let start_time = Instant::now();
     let start_timestamp = Utc::now();
@@ -305,7 +318,7 @@ pub async fn models(
     };
     if let Err(err) = enforce_api_key(&headers, &state).await {
         report(err, None, Some("unauthorized".to_string()));
-        return Err(err);
+        return json_error_response(err, "OpenAI API key authentication failed", Some("unauthorized"));
     }
 
     let llm_service: tokio::sync::RwLockReadGuard<'_, LlmService> = state.llm_service.read().await;
@@ -342,11 +355,16 @@ pub async fn models(
                 "provider": current_provider,
             });
             report(StatusCode::OK, Some(response.clone()), None);
-            Ok(Json(response))
+            Json(response).into_response()
         }
-        Err(_) => {
+        Err(e) => {
+            error!("OpenAI models request failed: {:?}", e);
             report(StatusCode::INTERNAL_SERVER_ERROR, None, Some("model_list_failed".to_string()));
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
+            json_error_response(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to list models",
+                Some("model_list_failed"),
+            )
         }
     }
 }
@@ -402,4 +420,29 @@ fn detect_openai_client(headers: &HeaderMap, _config: &crate::settings::Settings
         }
     }
     ClientTuner::OpenAI
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_json_error_response_has_type_and_code() {
+        let response = json_error_response(
+            StatusCode::TOO_MANY_REQUESTS,
+            "rate limited",
+            Some("rate_limit_exceeded"),
+        );
+
+        let status = response.status();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("read response body");
+        let payload: serde_json::Value = serde_json::from_slice(&body).expect("parse json");
+
+        assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
+        assert_eq!(payload["error"]["type"], "rate_limit_exceeded");
+        assert_eq!(payload["error"]["code"], "rate_limit_exceeded");
+        assert_eq!(payload["error"]["message"], "rate limited");
+    }
 }

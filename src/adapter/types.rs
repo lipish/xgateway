@@ -1,4 +1,5 @@
 use serde::{Serialize, Deserialize};
+use axum::http::StatusCode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -22,5 +23,10 @@ pub enum AuthStrategy {
 
 pub enum RequestResult {
     Success(axum::response::Response),
-    Failure { error: String, #[allow(dead_code)] latency_ms: i64 },
+    Failure {
+        error: String,
+        #[allow(dead_code)] latency_ms: i64,
+        status_code: StatusCode,
+        error_type: &'static str,
+    },
 }

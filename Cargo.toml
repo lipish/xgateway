@@ -1,6 +1,6 @@
 [package]
 name = "xgateway"
-version = "0.13.4"
+version = "0.13.5"
 edition = "2021"
 authors = ["lipicoder@qq.com"]
 description = "A universal LLM proxy supporting 10 providers (OpenAI, Anthropic, Zhipu, Aliyun, Volcengine, Tencent, Longcat, Moonshot, Minimax, Ollama) with dynamic model discovery API, hot-reload configuration, and optional API key startup"
@@ -26,7 +26,7 @@ tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "trace", "fs"] }
 
 # LLM connector
-llm-connector = { version = "0.5.13", features = ["streaming", "tencent"] }
+llm-connector = { version = "0.7.0", features = ["streaming", "tencent"] }
 llm_providers = "0.2.2"
 
 # Serialization

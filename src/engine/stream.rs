@@ -1,5 +1,5 @@
 use super::Client;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use llm_connector::{
     types::{ChatRequest, Usage as ConnectorUsage},
     StreamFormat,
@@ -148,8 +148,11 @@ impl Client {
         }
 
         // Use real streaming API
-        let mut stream = self.llm_client.chat_stream(&request).await
-            .map_err(|e| anyhow!("LLM connector streaming error: {}", e))?;
+        let mut stream = self
+            .llm_client
+            .chat_stream(&request)
+            .await
+            .map_err(anyhow::Error::new)?;
 
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
         let model_name = model.to_string();
@@ -413,8 +416,11 @@ impl Client {
         tracing::info!("Requesting streaming from LLM connector...");
 
         // Use real streaming API
-        let mut stream = self.llm_client.chat_stream(&request).await
-            .map_err(|e| anyhow!("LLM connector streaming error: {}", e))?;
+        let mut stream = self
+            .llm_client
+            .chat_stream(&request)
+            .await
+            .map_err(anyhow::Error::new)?;
 
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
         let model_name = model.to_string();

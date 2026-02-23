@@ -126,12 +126,17 @@ pub async fn handle_admin_chat_completions(
     )
     .await {
         RequestResult::Success(response) => response,
-        RequestResult::Failure { error, .. } => (
-            StatusCode::BAD_GATEWAY,
+        RequestResult::Failure {
+            error,
+            status_code,
+            error_type,
+            ..
+        } => (
+            status_code,
             Json(serde_json::json!({
                 "error": {
                     "message": error,
-                    "type": "upstream_error"
+                    "type": error_type
                 }
             })),
         )

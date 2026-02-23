@@ -5,12 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.5] - 2026-02-23
+
+### ⚡ Gateway Runtime
+
+- 在 provider 适配层引入 `LlmClient` 模板缓存，避免每请求重复构建客户端，提升连接复用效率。
+- 请求侧全面接入 `llm-connector` v0.7.0 的 per-request overrides（`with_api_key` / `with_base_url`），强化多租户无状态转发能力。
+
+### 🌊 Streaming & Observability
+
+- 流式请求链路补齐 usage 统计落库，`request_logs.tokens_used` 不再固定为 0。
+- OpenAI emulator 流式失败时不再回退为非流式响应，避免退化为“伪流式”。
+
+### 🧭 Error Semantics
+
+- 统一适配层错误映射：将 `LlmConnectorError` 语义化映射为 HTTP 状态（如 401/403/429/400/502）。
+- OpenAI / Anthropic emulator 的 `chat`、`messages`、`models` 端点统一返回结构化错误体：`error.message` + `error.type` + `error.code`。
+- 新增共享错误工具模块 `src/endpoints/emulators/errors.rs`，收敛状态映射与错误响应构造，减少重复实现。
+
+### 🧪 Tests
+
+- 新增/增强与错误语义、usage 统计相关的单元测试。
+- 在 `tests/README.md` 增补“真实 API key E2E”执行模板，供后续联调回归使用。
+
 ## [0.13.4] - 2026-02-23
 
 ### 🧹 Clean Up
 
 - 清理并复核仓库文档入口，确认无 `unigateway` 残留引用。
 - 为后续独立项目拆分保持主仓库发布面稳定。
+
+### 🧰 Dependencies
+
+- 升级 `llm-connector` 至 0.7.0，借助 per-request overrides、统一的流式 `Stream<Item = Result<Chunk>>` 以及标准化错误/token 统计，让网关专注流量调度而不再手写各家协议。
 
 ## [0.13.3] - 2026-02-23
 
