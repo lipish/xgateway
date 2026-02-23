@@ -45,5 +45,4 @@ jobs:
             printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > "${DEPLOY_ENV_FILE_PATH}"
             cd /home/ubuntu/xgateway
             git reset --hard HEAD
-            git clean -fd
             bash -lc 'cd /home/ubuntu/xgateway && bash scripts/deploy/deploy.sh'
