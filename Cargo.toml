@@ -1,6 +1,6 @@
 [package]
 name = "xgateway"
-version = "0.13.3"
+version = "0.13.4"
 edition = "2021"
 authors = ["lipicoder@qq.com"]
 description = "A universal LLM proxy supporting 10 providers (OpenAI, Anthropic, Zhipu, Aliyun, Volcengine, Tencent, Longcat, Moonshot, Minimax, Ollama) with dynamic model discovery API, hot-reload configuration, and optional API key startup"

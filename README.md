@@ -7,7 +7,7 @@
 
 🚀 **LLM gateway with unified API, service routing, and admin control plane**
 
-XGateway (XGateway) provides a unified OpenAI-compatible API, service-based routing, and an admin UI for managing providers, services, API keys, and observability.
+XGateway provides a unified OpenAI-compatible API, service-based routing, and an admin UI for managing providers, services, API keys, and observability.
 
 ## ✨ Key Features
 
