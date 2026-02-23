@@ -5,13 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.13.2] - 2026-02-23
+## [0.13.3] - 2026-02-23
 
 ### 🚀 CI / Deploy
 
-- 修复远端部署在工作区存在残留改动时的失败问题。
-- 在 `deploy` workflow 中增加部署前仓库清理（`git reset --hard` + `git clean -fd`）。
-- 增强部署脚本 checkout 容错（强制 checkout），避免 `Cargo.lock` 等本地改动导致中断。
+- 修复由于服务器上某些不受控文件权限导致的 `git clean` 失败问题。
+- 进一步优化 CI 流程，通过 `git reset --hard` 代替危险的 `git clean` 操作。
+
+## [0.13.2] - 2026-02-23
 
 ## [0.13.1] - 2026-02-22
 
