@@ -118,12 +118,13 @@ deploy_from_repo() {
   export GIT_TERMINAL_PROMPT=0
   cd "${repo_root}"
   git fetch origin --prune
+  git reset --hard HEAD
 
   if [ -n "${GIT_SHA}" ]; then
-    git checkout --detach "${GIT_SHA}"
+    git checkout --detach -f "${GIT_SHA}"
     git reset --hard "${GIT_SHA}"
   else
-    git checkout "${DEPLOY_BRANCH}"
+    git checkout -f "${DEPLOY_BRANCH}"
     git reset --hard "origin/${DEPLOY_BRANCH}"
     GIT_SHA="$(git rev-parse HEAD)"
   fi
