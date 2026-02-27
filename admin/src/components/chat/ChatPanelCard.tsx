@@ -60,7 +60,7 @@ export const ChatPanelCard = forwardRef<HTMLDivElement, ChatPanelCardProps>(
                   options={providers.map(p => ({ value: p.id.toString(), label: `${p.name} ` }))}
                   placeholder={t('chat.selectProviderPlaceholder')}
                   emptyText={t("providers.empty")}
-                  className="w-auto min-w-[200px]"
+                  className="w-auto min-w-[80px]"
                   triggerClassName="h-8 rounded-full bg-card border-0 hover:bg-muted/30 font-medium text-xs px-3 gap-1.5"
                 />
               </div>

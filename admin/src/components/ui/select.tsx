@@ -56,11 +56,11 @@ const Select = ({
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          "flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "flex h-10 items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           triggerClassName
         )}
       >
-        <div className="flex items-center gap-1 flex-1 min-w-0">
+        <div className="flex items-center gap-1 min-w-0">
           {icon}
           <span className={cn("whitespace-nowrap truncate", selectedOption ? "" : "text-muted-foreground")}>
             {selectedOption?.label || placeholder}
@@ -71,7 +71,7 @@ const Select = ({
       {open && (
         <div
           className={cn(
-            "absolute z-[60] w-full rounded-md border bg-popover shadow-md",
+            "absolute z-[60] min-w-[200px] rounded-md border bg-popover shadow-md",
             menuSide === "top" ? "bottom-full mb-2" : "mt-1"
           )}
         >
