@@ -310,6 +310,11 @@ pub async fn handle_chat_completions(
         }
     }
 
+    // Filter candidates if a specific provider was requested
+    if let Some(provider_id) = requested_provider_id {
+        candidate_provider_ids.retain(|&id| id == provider_id);
+    }
+
     let candidate_set: std::collections::HashSet<i64> = candidate_provider_ids.iter().copied().collect();
     providers.retain(|p| candidate_set.contains(&p.id));
     candidate_provider_ids.retain(|id| candidate_set.contains(id));
