@@ -60,9 +60,9 @@ export function ApiKeyDetail({
       .map((provider) => {
         try {
           const config = JSON.parse(provider.config || "{}")
-          return config.model || provider.endpoint || provider.name
+          return config.model || provider.name || provider.endpoint
         } catch {
-          return provider.endpoint || provider.name
+          return provider.name || provider.endpoint
         }
       })
       .filter((value) => value && String(value).trim().length > 0)

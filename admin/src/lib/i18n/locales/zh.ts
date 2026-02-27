@@ -128,7 +128,7 @@ export const zh = {
     qpsConcurrencyHelp: 'QPS 表示每秒请求上限，并发表示同时处理中请求上限',
     bindings: '绑定的模型实例',
     bindingsPlaceholder: '选择绑定的模型实例',
-    supportedModels: '可用模型',
+    supportedModels: '可用模型实例',
     supportedModelsEmpty: '当前 API 密钥未绑定模型',
     supportedModelsHint: '来源于绑定模型实例的配置',
     protocolTitle: '协议',
