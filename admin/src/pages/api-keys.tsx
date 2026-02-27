@@ -3,18 +3,15 @@ import { PageHeader } from "@/components/layout/page-header"
 import { TwoPanelLayout } from "@/components/layout/two-panel-layout"
 import { DetailPanel } from "@/components/layout/detail-panel"
 import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { t } from "@/lib/i18n"
 import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api"
-import { cn } from "@/lib/utils"
 import { ApiKeyCreateDialog } from "@/components/services/ApiKeyCreateDialog"
 import { DeleteApiKeyConfirmDialog } from "@/components/services/DeleteApiKeyConfirmDialog"
-import { ServiceBindingsSection } from "@/components/services/ServiceBindingsSection"
-import { Select } from "@/components/ui/select"
-import { STRATEGY_OPTIONS, type ApiKey, type ApiResponse, type Provider } from "@/components/services/types"
-import { BadgeCheck, Copy, Eye, EyeOff, KeyRound, Power, RotateCcw, Trash2 } from "lucide-react"
+import { type ApiKey, type ApiResponse, type Provider } from "@/components/services/types"
 import { PageShell } from "@/components/layout/page-shell"
 import { PageContainer } from "@/components/layout/page-container"
+import { ApiKeyList } from "@/components/api-keys/ApiKeyList"
+import { ApiKeyDetail } from "@/components/api-keys/ApiKeyDetail"
 
 export function ServicesPage() {
   const [providers, setProviders] = useState<Provider[]>([])
@@ -40,8 +37,6 @@ export function ServicesPage() {
   const [rotateError, setRotateError] = useState<string | null>(null)
   const [apiKeyToDelete, setApiKeyToDelete] = useState<number | null>(null)
   const [apiKeyStatusUpdatingId, setApiKeyStatusUpdatingId] = useState<number | null>(null)
-  const [copiedApiKeyId, setCopiedApiKeyId] = useState<number | null>(null)
-  const [showKeyId, setShowKeyId] = useState<number | null>(null)
 
   const [error, setError] = useState<string | null>(null)
   const [apiKeyCreateForm, setApiKeyCreateForm] = useState({
@@ -59,51 +54,6 @@ export function ServicesPage() {
     () => apiKeys.find((key) => key.id === selectedApiKeyId) || null,
     [apiKeys, selectedApiKeyId]
   )
-
-  const boundProviderIdSet = useMemo(() => {
-    const ids = (selectedApiKey?.provider_ids || []).filter((value): value is number => typeof value === "number")
-    return new Set(ids)
-  }, [selectedApiKey])
-
-
-  const selectedApiKeyModels = useMemo(() => {
-    if (!selectedApiKey) return []
-    const ids = (selectedApiKey.provider_ids || []).filter((value): value is number => typeof value === "number")
-    return providers
-      .filter((provider) => ids.includes(provider.id))
-      .map((provider) => {
-        try {
-          const config = JSON.parse(provider.config || "{}")
-          return config.model || provider.endpoint || provider.name
-        } catch {
-          return provider.endpoint || provider.name
-        }
-      })
-      .filter((value) => value && String(value).trim().length > 0)
-  }, [providers, selectedApiKey])
-
-  const selectedProtocolLabel = useMemo(() => {
-    if (!selectedApiKey) return null
-    return selectedApiKey.protocol === "anthropic" ? t("services.protocolAnthropic") : t("services.protocolOpenAI")
-  }, [selectedApiKey])
-
-  const selectedStrategyLabel = useMemo(() => {
-    if (!selectedApiKey) return null
-    const option = STRATEGY_OPTIONS.find((strategy) => strategy.value === selectedApiKey.strategy)
-    return option ? t(option.labelKey) : selectedApiKey.strategy
-  }, [selectedApiKey])
-
-  const selectedStrategyDescription = useMemo(() => {
-    if (!selectedApiKey) return null
-    const option = STRATEGY_OPTIONS.find((strategy) => strategy.value === selectedApiKey.strategy)
-    return option ? t(option.descriptionKey) : null
-  }, [selectedApiKey])
-
-  const maskKey = (key?: string | null) => {
-    if (!key) return "-"
-    if (key.length <= 8) return key
-    return `${key.slice(0, 4)}**********${key.slice(-4)}`
-  }
 
   const fetchProviders = useCallback(async () => {
     try {
@@ -420,304 +370,44 @@ export function ServicesPage() {
         <div className="flex-1 min-h-0 flex flex-col gap-4 h-full">
           <TwoPanelLayout
             left={
-              <div className={cn("w-full md:w-[280px] lg:w-[320px] shrink-0", apiKeys.length === 0 && "min-w-0")}>
-                <div className="rounded-2xl bg-white p-4 h-full border border-border">
-                  <div className="flex items-center gap-2 text-sm font-semibold mb-3">
-                    <KeyRound className="h-4 w-4 text-muted-foreground" />
-                    {t("services.listTitle")}
-                  </div>
-                  {loading || apiKeyLoading ? (
-                    <div className="flex flex-col gap-4">
-                      {[1, 2, 3].map((i) => (
-                        <div key={i} className="h-10 w-full bg-muted animate-pulse rounded" />
-                      ))}
-                    </div>
-                  ) : apiKeys.length === 0 ? (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center text-muted-foreground">
-                        <p className="text-lg font-medium mb-2">{t("services.empty")}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {apiKeys.map((key) => (
-                        <button
-                          key={key.id}
-                          type="button"
-                          onClick={() => setSelectedApiKeyId(key.id)}
-                          className={cn(
-                            "w-full text-left rounded-2xl border border-transparent px-3 py-3 transition-colors",
-                            selectedApiKeyId === key.id
-                              ? "bg-violet-50"
-                              : "hover:bg-muted/40"
-                          )}
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="text-sm font-medium truncate">{key.name}</div>
-                            <div
-                              className={cn(
-                                "text-xs font-medium px-2 py-0.5 rounded-full",
-                                key.status === "active" ? "bg-green-50 text-green-700" : "bg-muted text-muted-foreground"
-                              )}
-                            >
-                              {key.status === "active" ? t("services.enabled") : t("services.disabled")}
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <ApiKeyList
+                apiKeys={apiKeys}
+                loading={loading || apiKeyLoading}
+                selectedId={selectedApiKeyId}
+                onSelect={setSelectedApiKeyId}
+              />
             }
             right={
               apiKeys.length === 0 ? null : (
                 <DetailPanel>
-                  {!selectedApiKey ? (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                      <span>{t("services.select")}</span>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="rounded-2xl bg-muted/70 border border-border/60 p-5 space-y-3">
-                          <div className="text-sm font-semibold">{t("services.strategy")}</div>
-                          <div>
-                            <Select
-                              value={selectedApiKey.strategy || "Priority"}
-                              onChange={(value) => handleInlineUpdate({ strategy: value })}
-                              options={STRATEGY_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
-                              triggerClassName={cn("h-10 px-4", inlineSaving ? "opacity-60 pointer-events-none" : undefined)}
-                            />
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {selectedStrategyDescription
-                              || selectedStrategyLabel
-                              || t("services.strategyDescriptions.priority")}
-                          </div>
-                        </div>
-                        <div className="rounded-2xl bg-muted/70 border border-border/60 p-5 space-y-3">
-                          <div className="text-sm font-semibold">{t("services.supportedModels")}</div>
-                          {selectedApiKeyModels.length > 0 ? (
-                            <div className="space-y-2 text-sm text-muted-foreground">
-                              <div className="flex flex-wrap gap-2">
-                                {selectedApiKeyModels.map((model) => (
-                                  <span key={model} className="rounded-full bg-violet-100 px-3 py-1 text-xs text-violet-700">
-                                    {model}
-                                  </span>
-                                ))}
-                              </div>
-                              <div className="text-xs">{t("services.supportedModelsHint")}</div>
-                            </div>
-                          ) : (
-                            <div className="text-sm text-muted-foreground">{t("services.supportedModelsEmpty")}</div>
-                          )}
-                        </div>
-                      </div>
-                        <div className="rounded-2xl bg-muted/70 border border-border/60 p-5 space-y-4">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="text-sm font-semibold">{t("apiKeys.keyContent")}</div>
-                            <TooltipProvider>
-                              <div className="flex items-center gap-2">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    onClick={() => selectedApiKey && toggleApiKeyStatus(selectedApiKey.id)}
-                                    disabled={apiKeyStatusUpdatingId === selectedApiKey.id}
-                                    aria-label={selectedApiKey.status === "active" ? t("apiKeys.disable") : t("apiKeys.enable")}
-                                  >
-                                    <Power className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  {selectedApiKey.status === "active" ? t("apiKeys.disable") : t("apiKeys.enable")}
-                                </TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    onClick={() => selectedApiKey && rotateApiKey(selectedApiKey.id)}
-                                    disabled={rotatingKeyId === selectedApiKey.id}
-                                    aria-label={t("apiKeys.resetKey")}
-                                  >
-                                    <RotateCcw className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>{t("apiKeys.resetKey")}</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    onClick={() => selectedApiKey && setApiKeyToDelete(selectedApiKey.id)}
-                                    aria-label={t("common.delete")}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>{t("common.delete")}</TooltipContent>
-                              </Tooltip>
-                            </div>
-                          </TooltipProvider>
-                        </div>
-                          <div className="grid gap-4 md:grid-cols-2 items-center">
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-1.5 flex-1">
-                                <div className="flex-1 rounded-xl bg-muted/20 px-0 py-2 text-sm font-mono text-left">
-                                  {showKeyId === selectedApiKey.id ? selectedApiKey.key_hash : maskKey(selectedApiKey.key_hash)}
-                                </div>
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className="h-7 w-7 p-0"
-                                        onClick={() =>
-                                          setShowKeyId((current) => (current === selectedApiKey.id ? null : selectedApiKey.id))
-                                        }
-                                        aria-label={t("apiKeys.copy")}
-                                      >
-                                        {showKeyId === selectedApiKey.id ? (
-                                          <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                        ) : (
-                                          <Eye className="h-4 w-4 text-muted-foreground" />
-                                        )}
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      {showKeyId === selectedApiKey.id ? t("apiKeys.hideKey") : t("apiKeys.showKey")}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className="h-7 w-7 p-0"
-                                        onClick={async () => {
-                                          if (!selectedApiKey.key_hash) return
-                                          try {
-                                            await navigator.clipboard.writeText(selectedApiKey.key_hash)
-                                            setCopiedApiKeyId(selectedApiKey.id)
-                                            window.setTimeout(() => setCopiedApiKeyId(null), 1500)
-                                          } catch {
-                                            setCopiedApiKeyId(null)
-                                          }
-                                        }}
-                                        aria-label={t("apiKeys.copy")}
-                                      >
-                                        {copiedApiKeyId === selectedApiKey.id ? (
-                                          <BadgeCheck className="h-4 w-4 text-muted-foreground" />
-                                        ) : (
-                                          <Copy className="h-4 w-4 text-muted-foreground" />
-                                        )}
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      {copiedApiKeyId === selectedApiKey.id ? t("apiKeys.copiedToClipboard") : t("apiKeys.copy")}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-end gap-3">
-                              <div className="w-60">
-                                <Select
-                                  value={selectedApiKey.protocol || "openai"}
-                                  onChange={(value) => handleInlineUpdate({ protocol: value })}
-                                  options={[
-                                    { value: "openai", label: t("services.protocolOpenAI") },
-                                    { value: "anthropic", label: t("services.protocolAnthropic") },
-                                  ]}
-                                  triggerClassName={cn("h-10 px-4", inlineSaving ? "opacity-60 pointer-events-none" : undefined)}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-xs text-muted-foreground text-right">{t("services.protocolHint")}</div>
-                        {apiKeyError && (
-                          <p className="text-sm text-destructive font-medium">
-                            {t("apiKeys.error")}: {apiKeyError}
-                          </p>
-                        )}
-                        {rotateError && (
-                          <p className="text-sm text-destructive font-medium">
-                            {t("apiKeys.rotateError")}: {rotateError}
-                          </p>
-                        )}
-                        {rotatedApiKey && (
-                          <div className="rounded-xl bg-muted/30 p-3">
-                            <div className="text-xs text-muted-foreground">{t("apiKeys.key")}</div>
-                            <div className="mt-2 text-sm font-mono break-all leading-5">{maskKey(rotatedApiKey)}</div>
-                          </div>
-                        )}
-                      </div>
-                      <div className="rounded-2xl bg-muted/70 border border-border/60 p-5">
-                        <ServiceBindingsSection
-                          fallbackChain={selectedApiKey.fallback_chain ?? null}
-                          providers={providers}
-                          boundProviderIdSet={boundProviderIdSet}
-                          bindingBusyId={bindingBusyId}
-                          fallbackBusy={fallbackBusy}
-                          onUpdateFallbackChain={updateFallbackChain}
-                          onToggleBinding={setBinding}
-                          error={error}
-                        />
-                      </div>
-                      <div className="rounded-2xl bg-muted/70 border border-border/60 p-5 space-y-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="text-sm font-semibold">{t("services.usageTitle")}</div>
-                          <a href="/help" className="text-xs text-primary hover:underline">
-                            {t("services.usageGuideLink")}
-                          </a>
-                        </div>
-                        <div className="space-y-2 text-xs text-muted-foreground">
-                          <div>{t("services.usageAuth")}</div>
-                          <div>{t("services.usageBaseUrl")}</div>
-                          <div>
-                            {selectedApiKey.protocol === "anthropic"
-                              ? t("services.protocolEndpointsAnthropic")
-                              : t("services.protocolEndpointsOpenAI")}
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
-                              {selectedProtocolLabel || t("services.protocolOpenAI")}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="rounded-xl bg-background/70 border border-border/60 px-3 py-2 text-xs font-mono text-muted-foreground whitespace-pre-wrap">
-                          {selectedApiKey.protocol === "anthropic"
-                            ? `curl -X POST http://localhost:3000/v1/messages \\
-  -H "Authorization: Bearer {API_KEY}" \\
-  -H "Content-Type: application/json" \\
-  -d '{"model":"claude-3-5-sonnet-20241022","messages":[{"role":"user","content":"Hello"}]}'`
-                            : `curl -X POST http://localhost:3000/v1/chat/completions \\
-  -H "Authorization: Bearer {API_KEY}" \\
-  -H "Content-Type: application/json" \\
-  -d '{"model":"gpt-4","messages":[{"role":"user","content":"Hello"}]}'`}
-                        </div>
-                      </div>
-
-                    </div>
-                  )}
+                  <ApiKeyDetail
+                    apiKey={selectedApiKey}
+                    providers={providers}
+                    onUpdate={handleInlineUpdate}
+                    onToggleStatus={toggleApiKeyStatus}
+                    onRotate={rotateApiKey}
+                    onDelete={setApiKeyToDelete}
+                    onUpdateFallbackChain={updateFallbackChain}
+                    onToggleBinding={setBinding}
+                    statusUpdatingId={apiKeyStatusUpdatingId}
+                    rotatingId={rotatingKeyId}
+                    bindingBusyId={bindingBusyId}
+                    fallbackBusy={fallbackBusy}
+                    inlineSaving={inlineSaving}
+                    rotatedApiKey={rotatedApiKey}
+                    rotateError={rotateError}
+                    error={apiKeyError || error}
+                  />
                 </DetailPanel>
               )
             }
           />
 
-              <ApiKeyCreateDialog
-                open={showCreateApiKeyDialog}
-                onOpenChange={(open) => {
-                  setShowCreateApiKeyDialog(open)
-                  if (!open) {
+          <ApiKeyCreateDialog
+            open={showCreateApiKeyDialog}
+            onOpenChange={(open) => {
+              setShowCreateApiKeyDialog(open)
+              if (!open) {
                 setApiKeyCreateForm({
                   name: "",
                   project_id: projects[0]?.id?.toString() || "",
@@ -731,21 +421,21 @@ export function ServicesPage() {
                 setApiKeyCreateError(null)
                 setCreatedApiKey(null)
               }
-              }}
-              form={apiKeyCreateForm}
-              onFormChange={setApiKeyCreateForm}
-              projectOptions={projects.map((project) => ({
-                value: project.id.toString(),
-                label: project.id === 1 && project.name === "default" ? t("projects.defaultName") : project.name,
-              }))}
-              providers={providers}
-              bindingBusyId={bindingBusyId}
-              fallbackBusy={fallbackBusy}
-              onSave={handleCreateApiKey}
-              saving={apiKeySaving}
-              error={apiKeyCreateError}
-              createdApiKey={createdApiKey}
-            />
+            }}
+            form={apiKeyCreateForm}
+            onFormChange={setApiKeyCreateForm}
+            projectOptions={projects.map((project) => ({
+              value: project.id.toString(),
+              label: project.id === 1 && project.name === "default" ? t("projects.defaultName") : project.name,
+            }))}
+            providers={providers}
+            bindingBusyId={bindingBusyId}
+            fallbackBusy={fallbackBusy}
+            onSave={handleCreateApiKey}
+            saving={apiKeySaving}
+            error={apiKeyCreateError}
+            createdApiKey={createdApiKey}
+          />
 
           <DeleteApiKeyConfirmDialog apiKeyId={apiKeyToDelete} onApiKeyIdChange={setApiKeyToDelete} onConfirm={handleDeleteApiKey} />
         </div>
