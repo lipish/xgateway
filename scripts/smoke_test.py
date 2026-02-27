@@ -73,27 +73,27 @@ def main():
     token = login_res["data"]["token"]
     print("   Success.")
 
-    # 2. Get API Key
-    print("2. Fetching API Key...")
-    keys_res = get("/api/api-keys", token)
-    api_key = None
-    if keys_res and keys_res.get("success"):
-        for k in keys_res["data"]:
-            if k["status"] == "active":
-                api_key = k["key_hash"] # In this system, key_hash might be the full key for display? 
-                # Wait, usually key_hash is hidden. But let's check if we can get the full key.
-                # Actually, for tests, we might need to Create a new one to be sure we have the plain text key, 
-                # OR assume the system returns the full key in the list (unlikely for security).
-                # Let's look at init_test_data.py output or create a new one.
-                pass
+    # 2. Get Enabled Providers (Moved up to bind them to key)
+    print("2. Fetching Enabled Providers...")
+    providers_res = get("/api/instances", token)
+    if not providers_res or not providers_res.get("success"):
+        print("   Failed to list providers.")
+        sys.exit(1)
     
-    # Create a temporary test key to be sure
+    providers = [p for p in providers_res["data"] if p["enabled"]]
+    print(f"   Found {len(providers)} enabled providers.")
+    provider_ids = [p["id"] for p in providers]
+
+    # 3. Create Test API Key
+    print("3. Creating Test API Key...")
     create_key_res = post("/api/api-keys", {
         "name": f"smoke-test-{int(time.time())}",
         "type": "sk-",
-        "scope": "user" # User scope to access all providers
+        "scope": "instance", # Bind to specific instances for better visibility
+        "provider_ids": provider_ids
     }, token)
     
+    api_key = None
     if create_key_res and create_key_res.get("success"):
         data = create_key_res["data"]
         # Try different fields for the key
@@ -111,16 +111,6 @@ def main():
     else:
         print(f"   Failed to create test key: {create_key_res}")
         sys.exit(1)
-
-    # 3. Get Enabled Providers
-    print("3. Fetching Enabled Providers...")
-    providers_res = get("/api/instances", token)
-    if not providers_res or not providers_res.get("success"):
-        print("   Failed to list providers.")
-        sys.exit(1)
-    
-    providers = [p for p in providers_res["data"] if p["enabled"]]
-    print(f"   Found {len(providers)} enabled providers.")
 
     # 4. Test Each Provider
     print("4. Testing Providers...")
