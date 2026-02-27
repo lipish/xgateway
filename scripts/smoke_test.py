@@ -126,6 +126,10 @@ def main():
     print("4. Testing Providers...")
     results = []
     for p in providers:
+        if "ollama" in p['name'].lower():
+            print(f"\n--- Skipping {p['name']} (as requested, no local instance) ---")
+            continue
+            
         print(f"\n--- Testing {p['name']} (ID: {p['id']}, Type: {p['provider_type']}) ---")
         
         # Parse config to get default model if needed, or use a generic one
