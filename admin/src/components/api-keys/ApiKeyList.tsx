@@ -40,10 +40,10 @@ export function ApiKeyList({ apiKeys, loading, selectedId, onSelect }: ApiKeyLis
                   type="button"
                   onClick={() => onSelect(key.id)}
                   className={cn(
-                    "w-full text-left rounded-2xl border border-transparent px-3 py-3 transition-colors",
+                    "w-full text-left rounded-2xl border px-3 py-3 transition-all",
                     selectedId === key.id
-                      ? "bg-violet-50"
-                      : "hover:bg-muted/40"
+                      ? "bg-violet-50 border-violet-200 shadow-sm"
+                      : "border-transparent hover:bg-muted/40"
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
