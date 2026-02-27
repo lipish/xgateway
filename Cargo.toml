@@ -26,8 +26,8 @@ tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "trace", "fs"] }
 
 # LLM connector
-llm-connector = { version = "0.7.0", features = ["streaming", "tencent"] }
-llm_providers = "0.2.2"
+llm-connector = { version = "0.8.1", features = ["streaming", "tencent"] }
+llm_providers = "0.5.0"
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -48,7 +48,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # HTTP client (already included in llm-connector but explicit for clarity)
 reqwest = { version = "0.11", features = ["json", "stream"] }
 base64 = "0.22"
-xtrace-client = "0.0.2"
+xtrace-client = "0.0.13"
 xtrace = "0.0.14"
 
 # Utilities

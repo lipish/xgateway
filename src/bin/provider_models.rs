@@ -60,12 +60,19 @@ fn build_providers() -> BTreeMap<String, OutputProvider> {
             .map(|model| serde_json::to_value(model).expect("serialize model"))
             .collect();
 
+        // Find the "main" endpoint: try to match provider_id, otherwise take the first available
+        let endpoint = provider
+            .endpoints
+            .get(provider_id)
+            .or_else(|| provider.endpoints.values().next())
+            .expect("Provider must have at least one endpoint");
+
         output.insert(
-            provider_id.clone(),
+            provider_id.to_string(),
             OutputProvider {
-                label: provider.label.clone(),
-                base_url: provider.base_url.clone(),
-                docs_url: provider.docs_url.clone(),
+                label: provider.label.to_string(),
+                base_url: endpoint.base_url.to_string(),
+                docs_url: endpoint.docs_url.map(|s| s.to_string()),
                 models,
             },
         );

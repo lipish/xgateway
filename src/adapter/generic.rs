@@ -161,9 +161,14 @@ pub async fn send_to_provider(
     });
     
     let api_key = config.get("api_key").and_then(|v| v.as_str());
-    let base_url = config.get("base_url").and_then(|v| v.as_str());
-    let model = provider.endpoint.as_deref()
-        .or_else(|| config.get("model").and_then(|v| v.as_str()))
+    let base_url = provider.endpoint.as_deref()
+        .or_else(|| config.get("base_url").and_then(|v| v.as_str()));
+    
+    let request_model = req_body.get("model").and_then(|v| v.as_str());
+    let config_model = config.get("model").and_then(|v| v.as_str());
+    
+    let model = request_model
+        .or(config_model)
         .unwrap_or("");
 
     pool_manager.record_request_start(provider.id).await;

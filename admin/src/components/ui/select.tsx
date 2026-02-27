@@ -66,7 +66,7 @@ const Select = ({
             {selectedOption?.label || placeholder}
           </span>
         </div>
-        <ChevronDown className={cn("ml-auto h-3.5 w-3.5 opacity-50 transition-transform shrink-0", open && "rotate-180")} />
+        <ChevronDown className={cn("ml-1 h-3.5 w-3.5 opacity-50 transition-transform shrink-0", open && "rotate-180")} />
       </button>
       {open && (
         <div

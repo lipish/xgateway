@@ -297,15 +297,10 @@ impl PoolManager {
                         || err_str.contains("(1008)")
                         || err_str.contains("1008");
 
-                    let status = self.pool.health_checker().get_status(provider.id).await;
-                    let should_disable_by_threshold = status == HealthStatus::Unhealthy;
-
-                    if should_disable_immediately || should_disable_by_threshold {
-                        let reason = if should_disable_immediately {
-                            "insufficient_balance_1008"
-                        } else {
-                            "health_check_unhealthy_threshold"
-                        };
+                    // Only disable if explicitly insufficient balance. 
+                    // Do NOT auto-disable for network errors or health check timeouts.
+                    if should_disable_immediately {
+                        let reason = "insufficient_balance_1008";
 
                         if let Err(e) = self.db_pool.set_provider_enabled(provider.id, false).await {
                             tracing::error!(
