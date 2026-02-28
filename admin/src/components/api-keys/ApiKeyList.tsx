@@ -50,12 +50,10 @@ export function ApiKeyList({ apiKeys, loading, selectedId, onSelect }: ApiKeyLis
                     <div className="text-sm font-medium truncate">{key.name}</div>
                     <div
                       className={cn(
-                        "text-xs font-medium px-2 py-0.5 rounded-full shrink-0",
-                        key.status === "active" ? "bg-green-50 text-green-700" : "bg-muted text-muted-foreground"
+                        "w-2 h-2 rounded-full shrink-0",
+                        key.status === "active" ? "bg-green-500" : "bg-zinc-300"
                       )}
-                    >
-                      {key.status === "active" ? t("services.enabled") : t("services.disabled")}
-                    </div>
+                    />
                   </div>
                 </button>
               ))}
