@@ -21,45 +21,62 @@ pub enum LlmBackendSettings {
     OpenAI {
         api_key: String,
         base_url: Option<String>,
+        region: Option<String>,
         model: String,
     },
     Anthropic {
         api_key: String,
+        region: Option<String>,
         model: String,
     },
     Ollama {
         base_url: Option<String>,
+        region: Option<String>,
         model: String,
     },
     Zhipu {
         api_key: String,
         base_url: Option<String>,
+        region: Option<String>,
         model: String,
     },
     Aliyun {
         api_key: String,
+        region: Option<String>,
         model: String,
     },
     Volcengine {
         api_key: String,
+        region: Option<String>,
         model: String,
     },
     Tencent {
         api_key: String,
         model: String,
+        region: Option<String>,
         secret_id: Option<String>,
         secret_key: Option<String>,
     },
     Longcat {
         api_key: String,
+        region: Option<String>,
         model: String,
     },
     Moonshot {
         api_key: String,
+        region: Option<String>,
         model: String,
     },
     Minimax {
         api_key: String,
+        base_url: Option<String>,
+        region: Option<String>,
+        model: String,
+    },
+    DeepSeek {
+        api_key: String,
+        base_url: Option<String>,
+        region: Option<String>,
         model: String,
     },
 }
@@ -79,6 +96,25 @@ impl LlmBackendSettings {
             LlmBackendSettings::Longcat { model, .. } => model.clone(),
             LlmBackendSettings::Moonshot { model, .. } => model.clone(),
             LlmBackendSettings::Minimax { model, .. } => model.clone(),
+            LlmBackendSettings::DeepSeek { model, .. } => model.clone(),
+        }
+    }
+
+    /// Get the currently configured region name
+    #[allow(dead_code)]
+    pub fn get_region(&self) -> Option<String> {
+        match self {
+            LlmBackendSettings::OpenAI { region, .. } => region.clone(),
+            LlmBackendSettings::Anthropic { region, .. } => region.clone(),
+            LlmBackendSettings::Ollama { region, .. } => region.clone(),
+            LlmBackendSettings::Zhipu { region, .. } => region.clone(),
+            LlmBackendSettings::Aliyun { region, .. } => region.clone(),
+            LlmBackendSettings::Volcengine { region, .. } => region.clone(),
+            LlmBackendSettings::Tencent { region, .. } => region.clone(),
+            LlmBackendSettings::Longcat { region, .. } => region.clone(),
+            LlmBackendSettings::Moonshot { region, .. } => region.clone(),
+            LlmBackendSettings::Minimax { region, .. } => region.clone(),
+            LlmBackendSettings::DeepSeek { region, .. } => region.clone(),
         }
     }
 }
@@ -145,6 +181,7 @@ impl Default for Settings {
             },
             llm_backend: LlmBackendSettings::Ollama {
                 base_url: Some("http://localhost:11434".to_string()),
+                region: None,
                 model: "llama2".to_string(),
             },
             apis: ApiSettings {

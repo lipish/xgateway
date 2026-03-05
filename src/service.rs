@@ -33,6 +33,7 @@ impl Service {
             LlmBackendSettings::Longcat { model, .. } => model.clone(),
             LlmBackendSettings::Moonshot { model, .. } => model.clone(),
             LlmBackendSettings::Minimax { model, .. } => model.clone(),
+            LlmBackendSettings::DeepSeek { model, .. } => model.clone(),
         };
 
         Ok(Self { client, model })

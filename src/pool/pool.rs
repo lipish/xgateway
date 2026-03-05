@@ -22,6 +22,7 @@ pub struct ProviderInstanceConfig {
     pub provider_type: String,
     pub api_key: Option<String>,
     pub base_url: Option<String>,
+    pub region: Option<String>,
     pub model: String,
     pub priority: i32,
     pub weight: u32,

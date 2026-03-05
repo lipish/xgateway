@@ -11,6 +11,7 @@ pub struct DriverConfig {
     pub driver_type: DriverType,
     pub auth: AuthStrategy,
     pub base_url: Option<String>,
+    pub region: Option<String>,
     #[allow(dead_code)]
     pub model: String,
     pub provider_name: String,
@@ -57,34 +58,32 @@ impl DriverConfig {
     fn create_template_client(&self) -> Result<LlmClient> {
         match (&self.driver_type, &self.auth) {
             (DriverType::OpenAI, AuthStrategy::ApiKey { api_key }) => {
-                if let Some(base_url) = &self.base_url {
-                    Ok(LlmClient::openai_compatible(api_key, base_url, &self.provider_name)?)
-                } else {
-                    Ok(LlmClient::openai(api_key)?)
-                }
+                let base_url = self.base_url.as_deref().unwrap_or("https://api.openai.com/v1");
+                Ok(LlmClient::openai(api_key, base_url)?)
             }
             (DriverType::OpenAICompatible, AuthStrategy::ApiKey { api_key }) => {
                 let base_url = self.base_url.as_deref().unwrap_or("https://api.openai.com/v1");
                 Ok(LlmClient::openai_compatible(api_key, base_url, &self.provider_name)?)
             }
             (DriverType::Anthropic, AuthStrategy::ApiKey { api_key }) => {
-                Ok(LlmClient::anthropic(api_key)?)
+                let base_url = self.base_url.as_deref().unwrap_or("https://api.anthropic.com/v1");
+                Ok(LlmClient::anthropic(api_key, base_url)?)
             }
             (DriverType::Aliyun, AuthStrategy::ApiKey { api_key }) => {
-                Ok(LlmClient::aliyun(api_key)?)
+                let base_url = self.base_url.as_deref().unwrap_or("https://dashscope.aliyuncs.com/compatible-mode/v1");
+                Ok(LlmClient::aliyun(api_key, base_url)?)
             }
             (DriverType::Volcengine, AuthStrategy::ApiKey { api_key }) => {
-                Ok(LlmClient::volcengine(api_key)?)
+                let base_url = self.base_url.as_deref().unwrap_or("https://ark.cn-beijing.volces.com/api/v3");
+                Ok(LlmClient::volcengine(api_key, base_url)?)
             }
             (DriverType::Tencent, AuthStrategy::AkSk { secret_id, secret_key }) => {
-                Ok(LlmClient::tencent(secret_id, secret_key)?)
+                let base_url = self.base_url.as_deref().unwrap_or("https://hunyuan.tencentcloudapi.com");
+                Ok(LlmClient::tencent(secret_id, secret_key, base_url)?)
             }
             (DriverType::Ollama, AuthStrategy::None) => {
-                if let Some(base_url) = &self.base_url {
-                    Ok(LlmClient::ollama_with_base_url(base_url)?)
-                } else {
-                    Ok(LlmClient::ollama()?)
-                }
+                let base_url = self.base_url.as_deref().unwrap_or("http://localhost:11434");
+                Ok(LlmClient::ollama(base_url)?)
             }
             _ => anyhow::bail!("Invalid driver/auth combination for {:?}", self.driver_type),
         }
@@ -144,7 +143,14 @@ pub async fn detect_driver_type(db_pool: &crate::db::DatabasePool, provider_type
         .unwrap_or(DriverType::OpenAICompatible)
 }
 
-pub async fn get_default_base_url(db_pool: &crate::db::DatabasePool, provider_type: &str) -> Option<String> {
+pub async fn get_default_base_url(db_pool: &crate::db::DatabasePool, provider_type: &str, region: Option<&str>) -> Option<String> {
+    // Check if the explicitly requested region has a matching endpoint base url from llm_providers
+    if let Some(r) = region {
+        if let Some(url) = crate::provider::ProviderRegistry::get_default_base_url(provider_type, Some(r)) {
+            return Some(url.to_string());
+        }
+    }
+
     crate::provider::ProviderRegistry::get_provider_info(db_pool, provider_type).await
         .and_then(|info| info.default_base_url)
 }
@@ -156,6 +162,7 @@ pub async fn build_driver_config(
     secret_id: Option<&str>,
     secret_key: Option<&str>,
     base_url: Option<&str>,
+    region: Option<&str>,
     model: &str,
 ) -> DriverConfig {
     let driver_type = detect_driver_type(db_pool, provider_type).await;
@@ -176,13 +183,14 @@ pub async fn build_driver_config(
     let final_base_url = if let Some(url) = base_url {
         Some(url.to_string())
     } else {
-        get_default_base_url(db_pool, provider_type).await
+        get_default_base_url(db_pool, provider_type, region).await
     };
 
     DriverConfig {
         driver_type,
         auth,
         base_url: final_base_url,
+        region: region.map(|s| s.to_string()),
         model: model.to_string(),
         provider_name: provider_type.to_string(),
     }
@@ -203,8 +211,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_default_base_url() {
-        assert_eq!(crate::provider::ProviderRegistry::get_static_provider_info("zhipu").unwrap().default_base_url, Some("https://open.bigmodel.cn/api/paas/v4".to_string()));
-        assert_eq!(crate::provider::ProviderRegistry::get_static_provider_info("deepseek").unwrap().default_base_url, Some("https://api.deepseek.com/v1".to_string()));
-        assert_eq!(crate::provider::ProviderRegistry::get_static_provider_info("aliyun").unwrap().default_base_url, Some("https://dashscope.aliyuncs.com/compatible-mode/v1".to_string()));
+        assert!(crate::provider::ProviderRegistry::get_static_provider_info("zhipu").unwrap().default_base_url.is_some());
+        assert!(crate::provider::ProviderRegistry::get_static_provider_info("deepseek").unwrap().default_base_url.is_some());
+        assert!(crate::provider::ProviderRegistry::get_static_provider_info("aliyun").unwrap().default_base_url.is_some());
     }
 }

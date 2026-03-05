@@ -22,6 +22,7 @@ impl AiderApp {
                 // Provider API key is supplied via CLI (--api-key) and applied later by loader
                 api_key: String::new(),
                 base_url: None,
+                region: None,
                 model: "glm-4.6".to_string(),
             },
             apis: ApiSettings {

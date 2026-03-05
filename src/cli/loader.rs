@@ -215,6 +215,7 @@ impl ConfigLoader {
                     "longcat" => "LongCat-Flash-Chat".to_string(),
                     "moonshot" => "kimi-k2-turbo-preview".to_string(),
                     "minimax" => "MiniMax-M2".to_string(),
+                    "deepseek" => "deepseek-chat".to_string(),
                     "ollama" => "llama2".to_string(),
                     _ => return Err(anyhow::anyhow!("Unknown provider: {}", provider_name)),
                 }
@@ -234,46 +235,63 @@ impl ConfigLoader {
                 "openai" => LlmBackendSettings::OpenAI {
                     api_key: api_key_value,
                     base_url: None,
+                    region: None,
                     model: model_name,
                 },
                 "anthropic" => LlmBackendSettings::Anthropic {
                     api_key: api_key_value,
+                    region: None,
                     model: model_name,
                 },
                 "zhipu" => LlmBackendSettings::Zhipu {
                     api_key: api_key_value,
-                    base_url: Some("https://open.bigmodel.cn/api/paas/v4".to_string()),
+                    base_url: std::env::var("ZHIPU_BASE_URL").ok(),
+                    region: None,
                     model: model_name,
                 },
                 "aliyun" => LlmBackendSettings::Aliyun {
                     api_key: api_key_value,
+                    region: None,
                     model: model_name,
                 },
                 "volcengine" => LlmBackendSettings::Volcengine {
                     api_key: api_key_value,
+                    region: None,
                     model: model_name,
                 },
                 "tencent" => LlmBackendSettings::Tencent {
                     api_key: api_key_value,
                     model: model_name,
+                    region: None,
                     secret_id: None,
                     secret_key: None,
                 },
                 "longcat" => LlmBackendSettings::Longcat {
                     api_key: api_key_value,
+                    region: None,
                     model: model_name,
                 },
                 "moonshot" => LlmBackendSettings::Moonshot {
                     api_key: api_key_value,
+                    region: None,
                     model: model_name,
                 },
                 "minimax" => LlmBackendSettings::Minimax {
                     api_key: api_key_value,
+                    base_url: None,
+                    region: None,
+                    model: model_name,
+                },
+                "deepseek" => LlmBackendSettings::DeepSeek {
+                    api_key: api_key_value,
+                    base_url: None,
+                    region: None,
                     model: model_name,
                 },
                 "ollama" => LlmBackendSettings::Ollama {
                     base_url: std::env::var("OLLAMA_BASE_URL").ok()
                         .or(Some("http://localhost:11434".to_string())),
+                    region: None,
                     model: model_name,
                 },
                 _ => return Err(anyhow::anyhow!("Unknown provider: {}", provider_name)),
@@ -291,6 +309,7 @@ impl ConfigLoader {
                 LlmBackendSettings::Longcat { model, .. } => *model = model_name.to_string(),
                 LlmBackendSettings::Moonshot { model, .. } => *model = model_name.to_string(),
                 LlmBackendSettings::Minimax { model, .. } => *model = model_name.to_string(),
+                LlmBackendSettings::DeepSeek { model, .. } => *model = model_name.to_string(),
                 LlmBackendSettings::Ollama { model, .. } => *model = model_name.to_string(),
             }
         }

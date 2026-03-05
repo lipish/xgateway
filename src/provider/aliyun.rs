@@ -12,7 +12,8 @@ impl Provider for AliyunProvider {
     }
     
     fn create_client(config: &ProviderConfig) -> Result<LlmClient> {
-        Ok(LlmClient::aliyun(&config.api_key)?)
+        let base_url = config.base_url.as_deref().unwrap_or_else(|| super::ProviderRegistry::get_default_base_url("aliyun", config.region.as_deref()).unwrap_or("https://dashscope.aliyuncs.com/compatible-mode/v1"));
+        Ok(LlmClient::aliyun(&config.api_key, base_url)?)
     }
     
     fn env_var_name() -> &'static str {

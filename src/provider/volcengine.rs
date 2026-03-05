@@ -12,7 +12,8 @@ impl Provider for VolcengineProvider {
     }
     
     fn create_client(config: &ProviderConfig) -> Result<LlmClient> {
-        Ok(LlmClient::volcengine(&config.api_key)?)
+        let base_url = config.base_url.as_deref().unwrap_or_else(|| super::ProviderRegistry::get_default_base_url("volcengine", config.region.as_deref()).unwrap_or("https://ark.cn-beijing.volces.com/api/v3"));
+        Ok(LlmClient::volcengine(&config.api_key, base_url)?)
     }
     
     fn env_var_name() -> &'static str {

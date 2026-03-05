@@ -20,6 +20,7 @@ pub struct ProviderConfig {
     pub api_key: String,
     pub model: String,
     pub base_url: Option<String>,
+    pub region: Option<String>,
     pub secret_id: Option<String>,
     pub secret_key: Option<String>,
 }
@@ -28,73 +29,91 @@ impl ProviderConfig {
     #[allow(dead_code)]
     pub fn from_backend_settings(backend: &LlmBackendSettings) -> Self {
         match backend {
-            LlmBackendSettings::OpenAI { api_key, base_url, model } => Self {
+            LlmBackendSettings::OpenAI { api_key, base_url, region, model } => Self {
                 api_key: api_key.clone(),
                 model: model.clone(),
                 base_url: base_url.clone(),
+                region: region.clone(),
                 secret_id: None,
                 secret_key: None,
             },
-            LlmBackendSettings::Anthropic { api_key, model } => Self {
+            LlmBackendSettings::Anthropic { api_key, region, model } => Self {
                 api_key: api_key.clone(),
                 model: model.clone(),
                 base_url: None,
+                region: region.clone(),
                 secret_id: None,
                 secret_key: None,
             },
-            LlmBackendSettings::Zhipu { api_key, base_url, model } => Self {
+            LlmBackendSettings::Zhipu { api_key, base_url, region, model } => Self {
                 api_key: api_key.clone(),
                 model: model.clone(),
                 base_url: base_url.clone(),
+                region: region.clone(),
                 secret_id: None,
                 secret_key: None,
             },
-            LlmBackendSettings::Ollama { base_url, model } => Self {
+            LlmBackendSettings::Ollama { base_url, region, model } => Self {
                 api_key: String::new(),
                 model: model.clone(),
                 base_url: base_url.clone(),
+                region: region.clone(),
                 secret_id: None,
                 secret_key: None,
             },
-            LlmBackendSettings::Aliyun { api_key, model } => Self {
+            LlmBackendSettings::Aliyun { api_key, region, model } => Self {
                 api_key: api_key.clone(),
                 model: model.clone(),
                 base_url: None,
+                region: region.clone(),
                 secret_id: None,
                 secret_key: None,
             },
-            LlmBackendSettings::Volcengine { api_key, model } => Self {
+            LlmBackendSettings::Volcengine { api_key, region, model } => Self {
                 api_key: api_key.clone(),
                 model: model.clone(),
                 base_url: None,
+                region: region.clone(),
                 secret_id: None,
                 secret_key: None,
             },
-            LlmBackendSettings::Tencent { api_key, model, secret_id, secret_key } => Self {
+            LlmBackendSettings::Tencent { api_key, model, region, secret_id, secret_key } => Self {
                 api_key: api_key.clone(),
                 model: model.clone(),
                 base_url: None,
+                region: region.clone(),
                 secret_id: secret_id.clone(),
                 secret_key: secret_key.clone(),
             },
-            LlmBackendSettings::Longcat { api_key, model } => Self {
+            LlmBackendSettings::Longcat { api_key, region, model } => Self {
                 api_key: api_key.clone(),
                 model: model.clone(),
                 base_url: None,
+                region: region.clone(),
                 secret_id: None,
                 secret_key: None,
             },
-            LlmBackendSettings::Moonshot { api_key, model } => Self {
+            LlmBackendSettings::Moonshot { api_key, region, model } => Self {
                 api_key: api_key.clone(),
                 model: model.clone(),
                 base_url: None,
+                region: region.clone(),
                 secret_id: None,
                 secret_key: None,
             },
-            LlmBackendSettings::Minimax { api_key, model } => Self {
+            LlmBackendSettings::Minimax { api_key, base_url, region, model } => Self {
                 api_key: api_key.clone(),
                 model: model.clone(),
-                base_url: None,
+                base_url: base_url.clone(),
+                region: region.clone(),
+                secret_id: None,
+                secret_key: None,
+            },
+            LlmBackendSettings::DeepSeek { api_key, base_url, region, model } => Self {
+                api_key: api_key.clone(),
+                model: model.clone(),
+                base_url: base_url.clone(),
+                region: region.clone(),
                 secret_id: None,
                 secret_key: None,
             },
@@ -147,6 +166,30 @@ pub trait Provider: Send + Sync {
 pub struct ProviderRegistry;
 
 impl ProviderRegistry {
+    /// Helper to fetch the default base URL from the llm_providers crate
+    pub fn get_default_base_url(name: &str, region: Option<&str>) -> Option<&'static str> {
+        if let Some(p) = llm_providers::get_providers_data().get(name) {
+            // Priority 1: explicitly requested region
+            if let Some(desired_region) = region {
+                let candidate = p.endpoints.values().find(|ep| ep.region == desired_region);
+                if let Some(ep) = candidate {
+                    return Some(ep.base_url);
+                }
+            }
+
+            // Priority 2: fallback default behaviors
+            let ep_key = if p.endpoints.contains_key("global") {
+                "global"
+            } else if p.endpoints.contains_key("cn") {
+                "cn"
+            } else {
+                p.endpoints.keys().next()?
+            };
+            return p.endpoints.get(ep_key).map(|ep| ep.base_url);
+        }
+        None
+    }
+
     /// Get static provider information by name (builtin providers)
     pub fn get_static_provider_info(name: &str) -> Option<ProviderInfo> {
         match name {
@@ -158,7 +201,7 @@ impl ProviderRegistry {
                 driver: DriverType::OpenAI,
                 requires_api_key: true,
                 requires_base_url: false,
-                default_base_url: None,
+                default_base_url: Self::get_default_base_url("openai", None).map(|s| s.to_string()),
                 docs_url: "https://platform.openai.com/docs/models".to_string(),
             }),
             "anthropic" => Some(ProviderInfo {
@@ -169,7 +212,7 @@ impl ProviderRegistry {
                 driver: DriverType::Anthropic,
                 requires_api_key: true,
                 requires_base_url: false,
-                default_base_url: None,
+                default_base_url: Self::get_default_base_url("anthropic", None).map(|s| s.to_string()),
                 docs_url: "https://docs.anthropic.com/en/docs/about-claude/models".to_string(),
             }),
             "zhipu" => Some(ProviderInfo {
@@ -180,7 +223,7 @@ impl ProviderRegistry {
                 driver: DriverType::OpenAICompatible,
                 requires_api_key: true,
                 requires_base_url: true,
-                default_base_url: Some("https://open.bigmodel.cn/api/paas/v4".to_string()),
+                default_base_url: Self::get_default_base_url("zhipu", None).map(|s| s.to_string()).or_else(|| Some("https://open.bigmodel.cn/api/paas/v4".to_string())),
                 docs_url: "https://open.bigmodel.cn/dev/howuse/model".to_string(),
             }),
             "ollama" => Some(ProviderInfo {
@@ -202,7 +245,7 @@ impl ProviderRegistry {
                 driver: DriverType::Aliyun,
                 requires_api_key: true,
                 requires_base_url: false,
-                default_base_url: Some("https://dashscope.aliyuncs.com/compatible-mode/v1".to_string()),
+                default_base_url: Self::get_default_base_url("aliyun", None).map(|s| s.to_string()).or_else(|| Some("https://dashscope.aliyuncs.com/compatible-mode/v1".to_string())),
                 docs_url: "https://help.aliyun.com/zh/dashscope/developer-reference/model-introduction".to_string(),
             }),
             "volcengine" => Some(ProviderInfo {
@@ -213,7 +256,7 @@ impl ProviderRegistry {
                 driver: DriverType::Volcengine,
                 requires_api_key: true,
                 requires_base_url: false,
-                default_base_url: Some("https://ark.cn-beijing.volces.com/api/v3".to_string()),
+                default_base_url: Self::get_default_base_url("volcengine", None).map(|s| s.to_string()).or_else(|| Some("https://ark.cn-beijing.volces.com/api/v3".to_string())),
                 docs_url: "https://www.volcengine.com/docs/82379/1099475".to_string(),
             }),
             "tencent" => Some(ProviderInfo {
@@ -224,7 +267,7 @@ impl ProviderRegistry {
                 driver: DriverType::Tencent,
                 requires_api_key: true,
                 requires_base_url: false,
-                default_base_url: None,
+                default_base_url: Self::get_default_base_url("tencent", None).map(|s| s.to_string()),
                 docs_url: "https://cloud.tencent.com/document/product/1729/104753".to_string(),
             }),
             "longcat" => Some(ProviderInfo {
@@ -235,7 +278,7 @@ impl ProviderRegistry {
                 driver: DriverType::OpenAICompatible,
                 requires_api_key: true,
                 requires_base_url: false,
-                default_base_url: Some("https://api.longcat.chat/v1".to_string()),
+                default_base_url: Self::get_default_base_url("longcat", None).map(|s| s.to_string()).or_else(|| Some("https://api.longcat.chat/v1".to_string())),
                 docs_url: "https://api.longcat.chat/docs".to_string(),
             }),
             "moonshot" => Some(ProviderInfo {
@@ -246,7 +289,7 @@ impl ProviderRegistry {
                 driver: DriverType::OpenAICompatible,
                 requires_api_key: true,
                 requires_base_url: false,
-                default_base_url: Some("https://api.moonshot.cn/v1".to_string()),
+                default_base_url: Self::get_default_base_url("moonshot", None).map(|s| s.to_string()).or_else(|| Some("https://api.moonshot.cn/v1".to_string())),
                 docs_url: "https://platform.moonshot.cn/docs/guide/model-list".to_string(),
             }),
             "minimax" => Some(ProviderInfo {
@@ -257,7 +300,7 @@ impl ProviderRegistry {
                 driver: DriverType::OpenAICompatible,
                 requires_api_key: true,
                 requires_base_url: false,
-                default_base_url: Some("https://api.minimax.io/v1".to_string()),
+                default_base_url: Self::get_default_base_url("minimax", None).map(|s| s.to_string()).or_else(|| Some("https://api.minimax.io/v1".to_string())),
                 docs_url: "https://platform.minimaxi.com/document/models".to_string(),
             }),
             "deepseek" => Some(ProviderInfo {
@@ -268,7 +311,7 @@ impl ProviderRegistry {
                 driver: DriverType::OpenAICompatible,
                 requires_api_key: true,
                 requires_base_url: false,
-                default_base_url: Some("https://api.deepseek.com/v1".to_string()),
+                default_base_url: Self::get_default_base_url("deepseek", None).map(|s| s.to_string()).or_else(|| Some("https://api.deepseek.com/v1".to_string())),
                 docs_url: "https://api-docs.deepseek.com/zh-cn/information/model_list".to_string(),
             }),
             _ => None,

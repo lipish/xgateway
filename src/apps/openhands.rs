@@ -1,3 +1,4 @@
+use std::env;
 use crate::settings::{
     Settings, ServerSettings, LlmBackendSettings, ApiSettings,
     OpenAiApiSettings, OllamaApiSettings, AnthropicApiSettings,
@@ -19,10 +20,11 @@ impl OpenHandsApp {
                 log_level: "info".to_string(),
             },
             llm_backend: LlmBackendSettings::OpenAI {
-                // Provider API key is supplied via CLI (--api-key) and applied later by loader
-                api_key: String::new(),
+                // Provider API key is supplied via CLI (--api-key)
+                api_key: env::var("OPENAI_API_KEY").unwrap_or_default(),
                 base_url: None,
-                model: "glm-4.6".to_string(),
+                region: None,
+                model: "gpt-4-turbo".to_string(),
             },
             apis: ApiSettings {
                 openai: Some(OpenAiApiSettings {

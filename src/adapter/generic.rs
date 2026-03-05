@@ -159,14 +159,15 @@ pub async fn send_to_provider(
         );
         serde_json::Value::default()
     });
-    
+
     let api_key = config.get("api_key").and_then(|v| v.as_str());
     let base_url = provider.endpoint.as_deref()
         .or_else(|| config.get("base_url").and_then(|v| v.as_str()));
-    
+    let region = config.get("region").and_then(|v| v.as_str());
+
     let request_model = req_body.get("model").and_then(|v| v.as_str());
     let config_model = config.get("model").and_then(|v| v.as_str());
-    
+
     let model = request_model
         .or(config_model)
         .unwrap_or("");
@@ -180,8 +181,21 @@ pub async fn send_to_provider(
         provider.secret_id.as_deref(),
         provider.secret_key.as_deref(),
         base_url,
+        region,
         model,
     ).await;
+
+    tracing::info!(
+        target: "xgateway::upstream",
+        provider_id = provider.id,
+        provider_name = %provider.name,
+        provider_type = %provider.provider_type,
+        req_model = %model,
+        region = ?region,
+        configured_base_url = ?base_url,
+        resolved_base_url = ?driver_config.base_url,
+        "Prepared upstream request"
+    );
 
     let client = match driver_config.create_client() {
         Ok(c) => c,
@@ -208,6 +222,17 @@ pub async fn send_to_provider(
         stream: Some(is_stream),
         ..Default::default()
     });
+
+    if let Ok(payload) = serde_json::to_string(&chat_request) {
+        tracing::info!(
+            target: "xgateway::upstream",
+            provider_id = provider.id,
+            provider_name = %provider.name,
+            provider_type = %provider.provider_type,
+            payload = %payload,
+            "Outbound chat payload"
+        );
+    }
 
     if is_stream {
         handle_stream_request(
@@ -388,6 +413,17 @@ async fn handle_stream_request(
             let latency_ms = start_time.elapsed().as_millis() as i64;
             pool_manager.record_failure(provider.id, Some(&e.to_string())).await;
             let (status_code, error_type) = map_llm_error(&e);
+            tracing::error!(
+                target: "xgateway::upstream",
+                provider_id = provider.id,
+                provider_name = %provider.name,
+                provider_type = %provider.provider_type,
+                model = %chat_request.model,
+                status_code = %status_code,
+                error_type = %error_type,
+                error = %e,
+                "Upstream stream request failed"
+            );
             if let Some(ctx) = xtrace_ctx {
                 ctx.client.report_generation(
                     &ctx,
@@ -474,6 +510,17 @@ async fn handle_non_stream_request(
             let latency_ms = start_time.elapsed().as_millis() as i64;
             pool_manager.record_failure(provider.id, Some(&e.to_string())).await;
             let (status_code, error_type) = map_llm_error(&e);
+            tracing::error!(
+                target: "xgateway::upstream",
+                provider_id = provider.id,
+                provider_name = %provider.name,
+                provider_type = %provider.provider_type,
+                model = %model,
+                status_code = %status_code,
+                error_type = %error_type,
+                error = %e,
+                "Upstream non-stream request failed"
+            );
             if let Some(ctx) = xtrace_ctx {
                 ctx.client.report_generation(
                     &ctx,

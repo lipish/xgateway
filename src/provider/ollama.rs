@@ -11,9 +11,9 @@ impl Provider for OllamaProvider {
         "ollama"
     }
     
-    fn create_client(_config: &ProviderConfig) -> Result<LlmClient> {
-        // Ollama doesn't use API key
-        Ok(LlmClient::ollama()?)
+    fn create_client(config: &ProviderConfig) -> Result<LlmClient> {
+        let base_url = config.base_url.as_deref().unwrap_or_else(|| super::ProviderRegistry::get_default_base_url("ollama", config.region.as_deref()).unwrap_or("http://localhost:11434"));
+        Ok(LlmClient::ollama(base_url)?)
     }
     
     fn env_var_name() -> &'static str {

@@ -58,6 +58,7 @@ async fn chat_impl(
         let config = state.config.read().await;
         match &config.llm_backend {
             settings::LlmBackendSettings::Minimax { api_key, .. } => (true, Some(api_key.clone())),
+            settings::LlmBackendSettings::DeepSeek { api_key, .. } => (true, Some(api_key.clone())),
             _ => (false, None),
         }
     };
@@ -198,6 +199,7 @@ pub async fn models(
                 settings::LlmBackendSettings::Longcat { .. } => "longcat",
                 settings::LlmBackendSettings::Moonshot { .. } => "moonshot",
                 settings::LlmBackendSettings::Minimax { .. } => "minimax",
+                settings::LlmBackendSettings::DeepSeek { .. } => "deepseek",
             };
 
             let response = json!({
@@ -289,6 +291,7 @@ pub fn build_ollama_routes(state: ProxyState, ollama_config: &settings::OllamaAp
                         settings::LlmBackendSettings::Longcat { .. } => "longcat",
                         settings::LlmBackendSettings::Moonshot { .. } => "moonshot",
                         settings::LlmBackendSettings::Minimax { .. } => "minimax",
+                        settings::LlmBackendSettings::DeepSeek { .. } => "deepseek",
                     }.to_string()
                 };
 
@@ -356,6 +359,7 @@ pub fn build_ollama_routes(state: ProxyState, ollama_config: &settings::OllamaAp
                 let config = s.config.read().await;
                 let (is_minimax, minimax_api_key) = match &config.llm_backend {
                     settings::LlmBackendSettings::Minimax { api_key, .. } => (true, Some(api_key.clone())),
+                    settings::LlmBackendSettings::DeepSeek { api_key, .. } => (true, Some(api_key.clone())),
                     _ => (false, None),
                 };
                 drop(config);

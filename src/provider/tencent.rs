@@ -16,7 +16,8 @@ impl Provider for TencentProvider {
             .ok_or_else(|| anyhow::anyhow!("Tencent provider requires secret_id"))?;
         let secret_key = config.secret_key.as_ref()
             .ok_or_else(|| anyhow::anyhow!("Tencent provider requires secret_key"))?;
-        Ok(LlmClient::tencent(secret_id, secret_key)?)
+        let base_url = config.base_url.as_deref().unwrap_or_else(|| super::ProviderRegistry::get_default_base_url("tencent", config.region.as_deref()).unwrap_or("https://hunyuan.tencentcloudapi.com"));
+        Ok(LlmClient::tencent(secret_id, secret_key, base_url)?)
     }
     
     fn env_var_name() -> &'static str {

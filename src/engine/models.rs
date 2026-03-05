@@ -18,6 +18,7 @@ impl Client {
             LlmBackendSettings::Longcat { .. } => "longcat",
             LlmBackendSettings::Moonshot { .. } => "moonshot",
             LlmBackendSettings::Minimax { .. } => "minimax",
+            LlmBackendSettings::DeepSeek { .. } => "deepseek",
         };
 
         // Special handling for Ollama - get actual installed models
@@ -52,6 +53,7 @@ impl Client {
             LlmBackendSettings::Longcat { model, .. } => model.clone(),
             LlmBackendSettings::Moonshot { model, .. } => model.clone(),
             LlmBackendSettings::Minimax { model, .. } => model.clone(),
+            LlmBackendSettings::DeepSeek { model, .. } => model.clone(),
         };
 
         Ok(vec![Model { id: fallback_model }])

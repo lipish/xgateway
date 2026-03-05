@@ -13,7 +13,7 @@ impl Provider for LongcatProvider {
     
     fn create_client(config: &ProviderConfig) -> Result<LlmClient> {
         let base_url = config.base_url.as_deref()
-            .unwrap_or("https://api.longcat.chat/openai");
+            .unwrap_or_else(|| super::ProviderRegistry::get_default_base_url("longcat", config.region.as_deref()).unwrap_or("https://api.longcat.chat/v1"));
         Ok(LlmClient::openai_compatible(&config.api_key, base_url, Self::name())?)
     }
     

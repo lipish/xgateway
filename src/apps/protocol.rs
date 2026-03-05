@@ -54,6 +54,7 @@ pub fn generate_protocol_config(protocols: &[String], cli_api_key: Option<&str>)
             // Provider API key is supplied later via --api-key or config APIs
             api_key: String::new(),
             base_url: Some("https://open.bigmodel.cn/api/paas/v4".to_string()),
+            region: None,
             model: "glm-4-flash".to_string(),
         },
         apis: ApiSettings {

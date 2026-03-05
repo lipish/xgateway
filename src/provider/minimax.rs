@@ -15,7 +15,7 @@ impl Provider for MinimaxProvider {
         // Minimax uses OpenAI compatible API
         // China: api.minimaxi.com, International: api.minimax.io
         let base_url = config.base_url.as_deref()
-            .unwrap_or("https://api.minimaxi.com/v1");
+            .unwrap_or_else(|| super::ProviderRegistry::get_default_base_url("minimax", config.region.as_deref()).unwrap_or("https://api.minimax.io/v1"));
         Ok(LlmClient::openai_compatible(&config.api_key, base_url, Self::name())?)
     }
     

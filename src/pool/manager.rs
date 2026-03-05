@@ -18,6 +18,7 @@ use super::load_balancer::LoadBalanceStrategy;
 use super::metrics::ProviderMetricsSummary;
 use super::rate_limiter::{RateLimiter, RateLimitConfig, RateLimitResult};
 use crate::db::{DatabasePool, Provider, ApiKey};
+use crate::provider::ProviderRegistry;
 
 /// Global provider pool manager
 pub struct PoolManager {
@@ -82,8 +83,8 @@ impl PoolManager {
             });
 
         // Use endpoint if provided (for Volcengine ep-*), otherwise fall back to model from config
-        let model = if let Some(endpoint) = &provider.endpoint {
-            endpoint.clone()
+        let model = if provider.provider_type == "volcengine" {
+            provider.endpoint.clone().unwrap_or_else(|| config.get("model").and_then(|v| v.as_str()).unwrap_or("default").to_string())
         } else {
             config.get("model").and_then(|v| v.as_str()).unwrap_or("default").to_string()
         };
@@ -92,6 +93,7 @@ impl PoolManager {
             provider_type: provider.provider_type.clone(),
             api_key: config.get("api_key").and_then(|v| v.as_str()).map(String::from),
             base_url: config.get("base_url").and_then(|v| v.as_str()).map(String::from),
+            region: config.get("region").and_then(|v| v.as_str()).map(String::from),
             model,
             priority: provider.priority,
             weight: 1,
@@ -351,10 +353,29 @@ impl PoolManager {
     async fn check_provider_health(&self, provider: &Provider) -> Result<u64> {
         let config: serde_json::Value = serde_json::from_str(&provider.config)?;
         let api_key = config.get("api_key").and_then(|v| v.as_str()).unwrap_or("");
-        let base_url = config.get("base_url").and_then(|v| v.as_str()).unwrap_or("");
+        let region = config.get("region").and_then(|v| v.as_str());
+        
+        let base_url = config.get("base_url")
+            .and_then(|v| v.as_str())
+            .map(String::from)
+            .unwrap_or_else(|| {
+                ProviderRegistry::get_default_base_url(&provider.provider_type, region)
+                    .unwrap_or_else(|| match provider.provider_type.as_str() {
+                        "openai" => "https://api.openai.com/v1",
+                        "anthropic" => "https://api.anthropic.com/v1",
+                        "zhipu" => "https://open.bigmodel.cn/api/paas/v4",
+                        "aliyun" => "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                        "volcengine" => "https://ark.cn-beijing.volces.com/api/v3",
+                        "tencent" => "https://hunyuan.tencentcloudapi.com",
+                        "moonshot" => "https://api.moonshot.cn/v1",
+                        "minimax" => "https://api.minimax.io/v1",
+                        "deepseek" => "https://api.deepseek.com/v1",
+                        _ => "",
+                    }).to_string()
+            });
 
         if base_url.is_empty() {
-            return Err(anyhow::anyhow!("No base_url configured"));
+            return Err(anyhow::anyhow!("No base_url configured and no default available for type '{}'", provider.provider_type));
         }
 
         // Some providers (like MiniMax) don't support /models endpoint

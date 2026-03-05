@@ -12,7 +12,8 @@ impl Provider for ZhipuProvider {
     }
     
     fn create_client(config: &ProviderConfig) -> Result<LlmClient> {
-        Ok(LlmClient::zhipu_openai_compatible(&config.api_key)?)
+        let base_url = config.base_url.as_deref().unwrap_or_else(|| super::ProviderRegistry::get_default_base_url("zhipu", config.region.as_deref()).unwrap_or("https://open.bigmodel.cn/api/paas/v4"));
+        Ok(LlmClient::zhipu_openai_compatible(&config.api_key, base_url)?)
     }
     
     fn env_var_name() -> &'static str {

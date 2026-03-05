@@ -22,6 +22,7 @@ impl CodexApp {
                 // Provider API key is supplied via CLI (--api-key) and applied later by loader
                 api_key: String::new(),
                 base_url: Some("https://open.bigmodel.cn/api/paas/v4".to_string()),
+                region: None,
                 model: "glm-4-flash".to_string(),
             },
             apis: ApiSettings {

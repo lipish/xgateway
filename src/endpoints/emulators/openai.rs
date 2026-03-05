@@ -347,6 +347,7 @@ pub async fn models(
                 crate::settings::LlmBackendSettings::Longcat { .. } => "longcat",
                 crate::settings::LlmBackendSettings::Moonshot { .. } => "moonshot",
                 crate::settings::LlmBackendSettings::Minimax { .. } => "minimax",
+                crate::settings::LlmBackendSettings::DeepSeek { .. } => "deepseek",
             };
 
             let response = json!({

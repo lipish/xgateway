@@ -25,6 +25,9 @@ use crate::service::Service;
 pub struct ExecutionResult<T> {
     pub result: T,
     pub provider_id: i64,
+    pub base_url: Option<String>,
+    pub region: Option<String>,
+    pub model: String,
     pub latency: Duration,
     pub retries: u32,
     pub failover_used: bool,
@@ -103,6 +106,7 @@ impl MultiProviderService {
             provider_type: provider.provider_type.clone(),
             api_key: config.get("api_key").and_then(|v| v.as_str()).map(String::from),
             base_url: config.get("base_url").and_then(|v| v.as_str()).map(String::from),
+            region: config.get("region").and_then(|v| v.as_str()).map(String::from),
             model,
             priority: provider.priority,
             weight: 1,
@@ -137,21 +141,23 @@ impl MultiProviderService {
         let base_url = config.base_url.clone();
 
         match provider.provider_type.as_str() {
-            "openai" => Some(LlmBackendSettings::OpenAI { api_key, base_url, model }),
-            "anthropic" => Some(LlmBackendSettings::Anthropic { api_key, model }),
-            "zhipu" => Some(LlmBackendSettings::Zhipu { api_key, base_url, model }),
-            "ollama" => Some(LlmBackendSettings::Ollama { base_url, model }),
-            "aliyun" => Some(LlmBackendSettings::Aliyun { api_key, model }),
-            "volcengine" => Some(LlmBackendSettings::Volcengine { api_key, model }),
+            "openai" => Some(LlmBackendSettings::OpenAI { api_key, base_url, region: config.region.clone(), model }),
+            "anthropic" => Some(LlmBackendSettings::Anthropic { api_key, region: config.region.clone(), model }),
+            "zhipu" => Some(LlmBackendSettings::Zhipu { api_key, base_url, region: config.region.clone(), model }),
+            "ollama" => Some(LlmBackendSettings::Ollama { base_url, region: config.region.clone(), model }),
+            "aliyun" => Some(LlmBackendSettings::Aliyun { api_key, region: config.region.clone(), model }),
+            "volcengine" => Some(LlmBackendSettings::Volcengine { api_key, region: config.region.clone(), model }),
             "tencent" => Some(LlmBackendSettings::Tencent {
                 api_key,
                 model,
+                region: config.region.clone(),
                 secret_id: provider.secret_id.clone(),
                 secret_key: provider.secret_key.clone(),
             }),
-            "longcat" => Some(LlmBackendSettings::Longcat { api_key, model }),
-            "moonshot" => Some(LlmBackendSettings::Moonshot { api_key, model }),
-            "minimax" => Some(LlmBackendSettings::Minimax { api_key, model }),
+            "longcat" => Some(LlmBackendSettings::Longcat { api_key, region: config.region.clone(), model }),
+            "moonshot" => Some(LlmBackendSettings::Moonshot { api_key, region: config.region.clone(), model }),
+            "minimax" => Some(LlmBackendSettings::Minimax { api_key, base_url, region: config.region.clone(), model }),
+            "deepseek" => Some(LlmBackendSettings::DeepSeek { api_key, base_url, region: config.region.clone(), model }),
             _ => None,
         }
     }

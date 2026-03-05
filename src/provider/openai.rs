@@ -12,11 +12,8 @@ impl Provider for OpenAIProvider {
     }
     
     fn create_client(config: &ProviderConfig) -> Result<LlmClient> {
-        if let Some(base_url) = &config.base_url {
-            Ok(LlmClient::openai_compatible(&config.api_key, base_url, Self::name())?)
-        } else {
-            Ok(LlmClient::openai(&config.api_key)?)
-        }
+        let base_url = config.base_url.as_deref().unwrap_or_else(|| super::ProviderRegistry::get_default_base_url("openai", config.region.as_deref()).unwrap_or("https://api.openai.com/v1"));
+        Ok(LlmClient::openai(&config.api_key, base_url)?)
     }
     
     fn env_var_name() -> &'static str {

@@ -29,6 +29,7 @@ pub async fn info(
         crate::settings::LlmBackendSettings::Longcat { .. } => "longcat",
         crate::settings::LlmBackendSettings::Moonshot { .. } => "moonshot",
         crate::settings::LlmBackendSettings::Minimax { .. } => "minimax",
+        crate::settings::LlmBackendSettings::DeepSeek { .. } => "deepseek",
     };
 
     let mut api_endpoints = serde_json::Map::with_capacity(3);

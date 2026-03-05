@@ -248,6 +248,7 @@ pub async fn messages(
         // Use configured model instead of client model to avoid mapping issues
         let configured_model = match &config.llm_backend {
             crate::settings::LlmBackendSettings::Aliyun { model, .. } => model,
+            crate::settings::LlmBackendSettings::DeepSeek { model, .. } => model,
             _ => &request.model,
         };
         info!("DEBUG: Using model for streaming: {} (client requested: {})", configured_model, request.model);
@@ -279,6 +280,7 @@ pub async fn messages(
         // Use configured model instead of client model to avoid mapping issues
         let configured_model = match &config.llm_backend {
             crate::settings::LlmBackendSettings::Aliyun { model, .. } => model,
+            crate::settings::LlmBackendSettings::DeepSeek { model, .. } => model,
             _ => &request.model,
         };
         info!("DEBUG: Using model: {} (client requested: {})", configured_model, request.model);
@@ -499,6 +501,7 @@ pub async fn models(
                 crate::settings::LlmBackendSettings::Longcat { .. } => "longcat",
                 crate::settings::LlmBackendSettings::Moonshot { .. } => "moonshot",
                 crate::settings::LlmBackendSettings::Minimax { .. } => "minimax",
+                crate::settings::LlmBackendSettings::DeepSeek { .. } => "deepseek",
             };
 
             let response = json!({

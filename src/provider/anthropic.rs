@@ -12,7 +12,8 @@ impl Provider for AnthropicProvider {
     }
     
     fn create_client(config: &ProviderConfig) -> Result<LlmClient> {
-        Ok(LlmClient::anthropic(&config.api_key)?)
+        let base_url = config.base_url.as_deref().unwrap_or_else(|| super::ProviderRegistry::get_default_base_url("anthropic", config.region.as_deref()).unwrap_or("https://api.anthropic.com/v1"));
+        Ok(LlmClient::anthropic(&config.api_key, base_url)?)
     }
     
     fn env_var_name() -> &'static str {

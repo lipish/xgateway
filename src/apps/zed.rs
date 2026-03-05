@@ -18,8 +18,9 @@ impl ZedApp {
                 log_level: "info".to_string(),
             },
             llm_backend: LlmBackendSettings::Ollama {
-                base_url: Some("http://localhost:11435".to_string()),
-                model: "llama2".to_string(),
+                base_url: Some("http://localhost:11434".to_string()),
+                region: None,
+                model: "llama3".to_string(),
             },
             apis: ApiSettings {
                 openai: Some(OpenAiApiSettings {

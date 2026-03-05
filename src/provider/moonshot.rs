@@ -13,7 +13,7 @@ impl Provider for MoonshotProvider {
     
     fn create_client(config: &ProviderConfig) -> Result<LlmClient> {
         let base_url = config.base_url.as_deref()
-            .unwrap_or("https://api.moonshot.cn/v1");
+            .unwrap_or_else(|| super::ProviderRegistry::get_default_base_url("moonshot", config.region.as_deref()).unwrap_or("https://api.moonshot.cn/v1"));
         Ok(LlmClient::openai_compatible(&config.api_key, base_url, Self::name())?)
     }
     
