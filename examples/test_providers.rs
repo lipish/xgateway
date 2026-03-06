@@ -45,13 +45,19 @@ fn load_env() -> HashMap<String, String> {
             }
             if let Some((key, value)) = trimmed.split_once('=') {
                 let key = key.trim();
-                let value = value.trim();
+                // Strip inline comments and surrounding quotes for .env compatibility.
+                let mut value = value.split('#').next().unwrap_or("").trim().to_string();
+                if (value.starts_with('"') && value.ends_with('"'))
+                    || (value.starts_with('\'') && value.ends_with('\''))
+                {
+                    value = value[1..value.len().saturating_sub(1)].to_string();
+                }
                 if key == "REGION" {
                     if let Some(sec) = section {
-                        env.insert(format!("{}_REGION", sec), value.to_string());
+                        env.insert(format!("{}_REGION", sec), value);
                     }
                 } else {
-                    env.insert(key.to_string(), value.to_string());
+                    env.insert(key.to_string(), value);
                 }
             }
         }
@@ -95,6 +101,22 @@ fn capitalize(s: &str) -> String {
         None => String::new(),
         Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
     }
+}
+
+fn env_first(env: &HashMap<String, String>, keys: &[&str], default: &str) -> String {
+    for key in keys {
+        if let Some(v) = env.get(*key) {
+            let v = v.trim();
+            if !v.is_empty() {
+                return v.to_string();
+            }
+        }
+    }
+    default.to_string()
+}
+
+fn normalized_region(raw: &str) -> String {
+    raw.trim().trim_end_matches('%').to_string()
 }
 
 // ─── HTTP client helpers ────────────────────────────────────────────────────
@@ -159,55 +181,55 @@ fn main() {
     let mut tests: Vec<ProviderTest> = Vec::new();
 
     // Zhipu
-    let zhipu_region = "global";
-    let zhipu_url = resolve_provider_url("zhipu", zhipu_region).unwrap_or_default();
+    let zhipu_region = normalized_region(env.get("ZHIPU_REGION").map(|s| s.as_str()).unwrap_or("global"));
+    let zhipu_url = resolve_provider_url("zhipu", &zhipu_region).unwrap_or_default();
     println!("  Zhipu   region={:8} → {}", zhipu_region, zhipu_url);
     tests.push(ProviderTest {
-        name: format!("Zhipu-{}-{}", capitalize(zhipu_region), run_id),
+        name: format!("Zhipu-{}-{}", capitalize(&zhipu_region), run_id),
         provider_type: "zhipu".into(),
         api_key: env.get("ZHIPU_API_KEY").cloned().unwrap_or_default(),
-        model: "glm-4.5".into(),
+        model: env_first(&env, &["ZHIPU_MODEL", "GLM_MODEL"], "glm-4.5"),
         region: zhipu_region.into(),
         base_url: String::new(), // resolved by xgateway via llm_providers
     });
 
     // Moonshot
-    let moon_region = env.get("MOONSHOT_REGION").map(|s| s.as_str()).unwrap_or("global");
-    let moon_url = resolve_provider_url("moonshot", moon_region).unwrap_or_default();
+    let moon_region = normalized_region(env.get("MOONSHOT_REGION").map(|s| s.as_str()).unwrap_or("global"));
+    let moon_url = resolve_provider_url("moonshot", &moon_region).unwrap_or_default();
     println!("  Moonshot region={:8} → {}", moon_region, moon_url);
     tests.push(ProviderTest {
-        name: format!("Moonshot-{}-{}", capitalize(moon_region), run_id),
+        name: format!("Moonshot-{}-{}", capitalize(&moon_region), run_id),
         provider_type: "moonshot".into(),
         api_key: env.get("MOONSHOT_API_KEY").cloned().unwrap_or_default(),
-        model: env.get("MOONSHOT_MODEL").cloned().unwrap_or("kimi-k2.5".into()),
+        model: env_first(&env, &["MOONSHOT_MODEL", "KIMI_MODEL"], "kimi-k2.5"),
         region: moon_region.into(),
         base_url: String::new(),
     });
 
     // MiniMax (explicit base_url from .env, or resolved via llm_providers)
-    let mm_region = env.get("MINIMAX_REGION").map(|s| s.as_str()).unwrap_or("global");
+    let mm_region = normalized_region(env.get("MINIMAX_REGION").map(|s| s.as_str()).unwrap_or("global"));
     let mm_env_url = env.get("MINIMAX_BASE_URL").cloned().unwrap_or_default();
-    let mm_resolved = resolve_provider_url("minimax", mm_region).unwrap_or_default();
+    let mm_resolved = resolve_provider_url("minimax", &mm_region).unwrap_or_default();
     let mm_url = if mm_env_url.is_empty() { mm_resolved.clone() } else { mm_env_url.clone() };
     println!("  MiniMax region={:8} → {}", mm_region, mm_url);
     tests.push(ProviderTest {
-        name: format!("MiniMax-{}-{}", capitalize(mm_region), run_id),
+        name: format!("MiniMax-{}-{}", capitalize(&mm_region), run_id),
         provider_type: "minimax".into(),
         api_key: env.get("MINIMAX_API_KEY").cloned().unwrap_or_default(),
-        model: "MiniMax-Text-01".into(),
+        model: env_first(&env, &["MINIMAX_MODEL"], "MiniMax-Text-01"),
         region: mm_region.into(),
         base_url: mm_env_url,
     });
 
     // DeepSeek
-    let ds_region = env.get("DEEPSEEK_REGION").map(|s| s.as_str()).unwrap_or("global");
-    let ds_url = resolve_provider_url("deepseek", ds_region).unwrap_or_default();
+    let ds_region = normalized_region(env.get("DEEPSEEK_REGION").map(|s| s.as_str()).unwrap_or("global"));
+    let ds_url = resolve_provider_url("deepseek", &ds_region).unwrap_or_default();
     println!("  DeepSeek region={:8} → {}", ds_region, ds_url);
     tests.push(ProviderTest {
-        name: format!("DeepSeek-{}-{}", capitalize(ds_region), run_id),
+        name: format!("DeepSeek-{}-{}", capitalize(&ds_region), run_id),
         provider_type: "deepseek".into(),
         api_key: env.get("DEEPSEEK_API_KEY").cloned().unwrap_or_default(),
-        model: "deepseek-chat".into(),
+        model: env_first(&env, &["DEEPSEEK_MODEL"], "deepseek-chat"),
         region: ds_region.into(),
         base_url: String::new(),
     });
@@ -219,7 +241,7 @@ fn main() {
         name: format!("OpenAI-Proxy-{}", run_id),
         provider_type: "openai".into(),
         api_key: env.get("OPENAI_API_KEY").cloned().unwrap_or_default(),
-        model: env.get("OPENAI_MODEL").cloned().unwrap_or("gpt-4o".into()),
+        model: env_first(&env, &["OPENAI_MODEL", "OPEANI_MODEL"], "gpt-4o"),
         region: "global".into(),
         base_url: oai_base.clone(),
     });
@@ -231,7 +253,7 @@ fn main() {
         name: format!("Anthropic-Proxy-{}", run_id),
         provider_type: "anthropic".into(),
         api_key: env.get("ANTHROPIC_API_KEY").cloned().unwrap_or_default(),
-        model: env.get("ANTHROPIC_MODEL").cloned().unwrap_or("claude-3-5-sonnet-20240620".into()),
+        model: env_first(&env, &["ANTHROPIC_MODEL"], "claude-3-5-sonnet-20240620"),
         region: "global".into(),
         base_url: ant_base.clone(),
     });

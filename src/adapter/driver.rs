@@ -122,11 +122,10 @@ impl DriverConfig {
         &self,
         request: llm_connector::types::ChatRequest,
     ) -> llm_connector::types::ChatRequest {
-        let request = if let Some(api_key) = self.request_api_key() {
-            request.with_api_key(api_key.to_string())
-        } else {
-            request
-        };
+        // Authentication headers are already configured on the cached LlmClient.
+        // Re-applying with_api_key here can append a second Authorization header,
+        // which some OpenAI-compatible gateways reject with HTTP 400.
+        let request = request;
 
         if let Some(base_url) = self.request_base_url() {
             request.with_base_url(base_url.to_string())
