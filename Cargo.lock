@@ -1107,7 +1107,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.5.10",
+ "socket2 0.6.1",
  "system-configuration 0.6.1",
  "tokio",
  "tower-service",
@@ -1355,6 +1355,8 @@ checksum = "6373607a59f0be73a39b6fe456b8192fcc3585f602af20751600e974dd455e77"
 [[package]]
 name = "llm-connector"
 version = "1.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1934eed3e14c785667bc45ad916d480a34141197f848b1b9fe5acc25abc96eb5"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -1378,6 +1380,8 @@ dependencies = [
 [[package]]
 name = "llm_providers"
 version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a6af21c0f99a8c2ac202261d3871282c3f67e055e9e2cf30be4074ec4f4c659"
 dependencies = [
  "phf",
  "serde",
@@ -1898,7 +1902,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash",
  "rustls 0.23.35",
- "socket2 0.5.10",
+ "socket2 0.6.1",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
@@ -1935,7 +1939,7 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.5.10",
+ "socket2 0.6.1",
  "tracing",
  "windows-sys 0.60.2",
 ]

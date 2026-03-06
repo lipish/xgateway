@@ -26,8 +26,8 @@ tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "trace", "fs"] }
 
 # LLM connector
-llm-connector = { path = "../llm-connector", features = ["streaming", "tencent"] }
-llm_providers = { path = "../llm-providers" }
+llm-connector = { version = "1.1.5", features = ["streaming", "tencent"] }
+llm_providers = { version = "0.8.0" }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
