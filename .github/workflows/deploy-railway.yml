@@ -38,9 +38,6 @@ jobs:
             exit 1
           fi
 
-          # Fast-fail with a clear auth error before deployment.
-          railway whoami >/dev/null
-
           railway up \
             --ci \
             --project 2e0f6dc3-9f5d-453b-a4b1-d05a6310ef0a \
