@@ -1,0 +1,37 @@
+version: "1.0"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  log_level: "info"
+  graceful_shutdown_timeout: "30s"
+
+database:
+  url: "${DATABASE_URL}"
+  max_connections: 10
+  min_connections: 2
+  connect_timeout: "10s"
+  idle_timeout: "10m"
+
+security:
+  auth_key: "${XGATEWAY_AUTH_KEY}"
+  api_key_expiry_days: 90
+  ip_whitelist: []
+  secrets_encryption_key: "${SECRETS_ENCRYPTION_KEY}"
+
+metrics:
+  enabled: true
+  prometheus:
+    enabled: true
+    endpoint: "/metrics"
+  tracing:
+    enabled: false
+
+logging:
+  format: "json"
+  level: "info"
+  file:
+    enabled: false
+
+config_watch:
+  enabled: false

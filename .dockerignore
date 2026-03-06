@@ -1,0 +1,13 @@
+target/
+admin/node_modules/
+admin/.env
+.git/
+.gitignore
+docs/
+screenshot/
+tests/
+examples/
+scripts/
+python/
+LICENSE
+keys.yaml
