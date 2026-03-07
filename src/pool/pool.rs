@@ -389,3 +389,116 @@ impl PoolStatus {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_config(priority: i32) -> ProviderInstanceConfig {
+        ProviderInstanceConfig {
+            provider_type: "openai".to_string(),
+            api_key: Some("test-key".to_string()),
+            base_url: Some("http://127.0.0.1:1".to_string()),
+            region: None,
+            model: "test-model".to_string(),
+            priority,
+            weight: 1,
+            enabled: true,
+            input_price: 0.0,
+            output_price: 0.0,
+            quota_limit: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn test_candidate_selection_with_priority_for_instance_scoped_key() {
+        let pool = ProviderPool::new();
+
+        pool.add_provider(101, "p-low".to_string(), test_config(10)).await;
+        pool.add_provider(102, "p-high".to_string(), test_config(90)).await;
+        pool.add_provider(103, "p-mid".to_string(), test_config(40)).await;
+
+        pool.update_health(101, HealthStatus::Healthy).await;
+        pool.update_health(102, HealthStatus::Healthy).await;
+        pool.update_health(103, HealthStatus::Healthy).await;
+
+        // Simulate instance-scoped key binding to provider_ids [101, 102].
+        let selected = pool
+            .select_provider_from_candidates_with_strategy(
+                LoadBalanceStrategy::Priority,
+                &[101, 102],
+                None,
+            )
+            .await;
+        assert_eq!(selected, Some(102));
+
+        // Simulate another key bound to [101, 103].
+        let selected_other = pool
+            .select_provider_from_candidates_with_strategy(
+                LoadBalanceStrategy::Priority,
+                &[101, 103],
+                None,
+            )
+            .await;
+        assert_eq!(selected_other, Some(103));
+    }
+
+    #[tokio::test]
+    async fn test_priority_retry_selects_next_candidate_when_excluded() {
+        let pool = ProviderPool::new();
+
+        pool.add_provider(201, "p1".to_string(), test_config(10)).await;
+        pool.add_provider(202, "p2".to_string(), test_config(80)).await;
+        pool.add_provider(203, "p3".to_string(), test_config(50)).await;
+
+        pool.update_health(201, HealthStatus::Healthy).await;
+        pool.update_health(202, HealthStatus::Healthy).await;
+        pool.update_health(203, HealthStatus::Healthy).await;
+
+        let first = pool
+            .select_provider_from_candidates_with_strategy(
+                LoadBalanceStrategy::Priority,
+                &[201, 202, 203],
+                None,
+            )
+            .await;
+        assert_eq!(first, Some(202));
+
+        // Simulate retry after first provider failure.
+        let retry = pool
+            .select_provider_from_candidates_with_strategy(
+                LoadBalanceStrategy::Priority,
+                &[201, 202, 203],
+                Some(202),
+            )
+            .await;
+        assert_eq!(retry, Some(203));
+    }
+
+    #[tokio::test]
+    async fn test_round_robin_stays_within_candidate_set() {
+        let pool = ProviderPool::new();
+
+        pool.add_provider(301, "p1".to_string(), test_config(1)).await;
+        pool.add_provider(302, "p2".to_string(), test_config(1)).await;
+
+        pool.update_health(301, HealthStatus::Healthy).await;
+        pool.update_health(302, HealthStatus::Healthy).await;
+
+        let mut seen = std::collections::HashSet::new();
+        for _ in 0..6 {
+            let selected = pool
+                .select_provider_from_candidates_with_strategy(
+                    LoadBalanceStrategy::RoundRobin,
+                    &[301, 302],
+                    None,
+                )
+                .await
+                .expect("expected provider selection");
+            seen.insert(selected);
+        }
+
+        assert!(seen.contains(&301));
+        assert!(seen.contains(&302));
+    }
+}
+

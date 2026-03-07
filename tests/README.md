@@ -42,6 +42,50 @@ cargo test -- --nocapture
 cargo test --test integration_test_name
 ```
 
+## New Test Samples
+
+### 1) API key binding multiple provider instances (E2E)
+
+This script validates that one instance-scoped API key can access multiple bound provider IDs,
+and rejects a non-bound provider ID.
+
+```bash
+API_KEY=sk-link-xxx \
+ALLOWED_PROVIDER_IDS=1,2 \
+DENIED_PROVIDER_ID=999999 \
+BASE_URL=http://127.0.0.1:3000 \
+./tests/test_api_key_multi_instance_models.sh
+```
+
+### 2) API key priority + candidate routing (Rust automated tests)
+
+This script runs deterministic tests for:
+- candidate set selection under instance-scoped key binding,
+- priority retry behavior (exclude failed provider),
+- round-robin distribution within candidate set.
+
+```bash
+./tests/test_api_key_priority_and_lb.sh
+```
+
+## Load Balancing Test Plan (Practical)
+
+Load balancing is hard to verify end-to-end because real upstream latency, quotas, and failures are noisy.
+Use a layered approach:
+
+1. Deterministic unit tests (already added)
+- Verify exact selection behavior with controlled priorities and candidate sets.
+- Verify retry with `exclude` picks the next best provider.
+
+2. Controlled integration tests (recommended next)
+- Use 2-3 local mock upstream servers with fixed response delays and fixed status codes.
+- Route providers to those mocks and run concurrent requests.
+- Assert observed distribution ratio and fallback path from request logs.
+
+3. Real-provider smoke tests
+- Keep only as confidence checks (not strict assertions), because network and provider behavior are unstable.
+- Track metrics trend: success rate, p95 latency, failover count.
+
 ## 🔐 E2E（真实 API Key）预留用例
 
 以下步骤用于后续联调，默认不在 CI 中执行。建议使用最小权限、短时有效的测试 key，并通过环境变量注入。
