@@ -1,10 +1,10 @@
-use sqlx::Row;
-use anyhow::Result;
 use crate::db::{DatabasePool, Message, NewMessage};
+use anyhow::Result;
+use sqlx::Row;
 
 impl DatabasePool {
     // Message CRUD operations
-    
+
     pub async fn create_message(&self, msg: NewMessage) -> Result<Message> {
         match self {
             Self::Postgres(pool) => {

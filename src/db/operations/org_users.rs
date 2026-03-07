@@ -82,7 +82,12 @@ impl DatabasePool {
         }
     }
 
-    pub async fn add_user_to_org(&self, org_id: i64, user_id: i64, role: Option<&str>) -> Result<()> {
+    pub async fn add_user_to_org(
+        &self,
+        org_id: i64,
+        user_id: i64,
+        role: Option<&str>,
+    ) -> Result<()> {
         let query = r#"
             INSERT INTO org_users (org_id, user_id, role)
             VALUES ($1, $2, COALESCE($3, 'member'))

@@ -38,7 +38,7 @@ export function ProvidersPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const [testingId, setTestingId] = useState<number | null>(null);
-  const [testResult, setTestResult] = useState<TestResult | null>(null);
+  const [testResultsByProviderId, setTestResultsByProviderId] = useState<Record<number, TestResult>>({});
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
@@ -365,7 +365,6 @@ export function ProvidersPage() {
 
   const testProvider = async (id: number) => {
     setTestingId(id);
-    setTestResult(null);
     const startTime = Date.now();
     const minLoadingTime = 800;
     try {
@@ -374,17 +373,23 @@ export function ProvidersPage() {
       if (elapsed < minLoadingTime) {
         await new Promise((resolve) => setTimeout(resolve, minLoadingTime - elapsed));
       }
-      setTestResult({
-        id,
-        success: result.success,
-        message: result.message || (result.success ? t('providers.connectionSuccess') : t('providers.connectionFailed')),
-      });
+      setTestResultsByProviderId((prev) => ({
+        ...prev,
+        [id]: {
+          id,
+          success: result.success,
+          message: result.message || (result.success ? t('providers.connectionSuccess') : t('providers.connectionFailed')),
+        },
+      }));
     } catch {
       const elapsed = Date.now() - startTime;
       if (elapsed < minLoadingTime) {
         await new Promise((resolve) => setTimeout(resolve, minLoadingTime - elapsed));
       }
-      setTestResult({ id, success: false, message: t('providers.networkError') });
+      setTestResultsByProviderId((prev) => ({
+        ...prev,
+        [id]: { id, success: false, message: t('providers.networkError') },
+      }));
     } finally {
       setTestingId(null);
     }
@@ -529,7 +534,7 @@ export function ProvidersPage() {
                     onTest={testProvider}
                     onNavigateToChat={(id) => navigate(`/chat?provider=${id}`)}
                     testingId={testingId}
-                    testResult={testResult}
+                    testResult={selectedProvider ? (testResultsByProviderId[selectedProvider.id] ?? null) : null}
                   />
                 </div>
               )}

@@ -57,10 +57,7 @@ impl DatabasePool {
 
         match self {
             Self::Postgres(pool) => {
-                let result = sqlx::query(query)
-                    .bind(id)
-                    .execute(pool)
-                    .await?;
+                let result = sqlx::query(query).bind(id).execute(pool).await?;
                 Ok(result.rows_affected() > 0)
             }
         }

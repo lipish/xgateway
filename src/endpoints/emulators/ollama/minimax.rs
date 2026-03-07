@@ -1,11 +1,11 @@
-use axum::response::Response;
-use axum::body::Body;
-use futures::StreamExt;
-use std::convert::Infallible;
-use tracing::info;
-use serde_json::Value;
 use crate::adapter::drivers::minimax::MinimaxClient;
 use crate::endpoints::emulators::convert;
+use axum::body::Body;
+use axum::response::Response;
+use futures::StreamExt;
+use serde_json::Value;
+use std::convert::Infallible;
+use tracing::info;
 
 pub async fn handle_minimax_chat(
     model: &str,
@@ -36,7 +36,9 @@ pub async fn handle_minimax_chat(
                     Response::builder()
                         .status(500)
                         .header("content-type", "application/json")
-                        .body(Body::from(serde_json::json!({"error": "Chat request failed"}).to_string()))
+                        .body(Body::from(
+                            serde_json::json!({"error": "Chat request failed"}).to_string(),
+                        ))
                         .unwrap()
                 }
             }
@@ -46,7 +48,9 @@ pub async fn handle_minimax_chat(
         Response::builder()
             .status(500)
             .header("content-type", "application/json")
-            .body(Body::from(serde_json::json!({"error": "API key not configured"}).to_string()))
+            .body(Body::from(
+                serde_json::json!({"error": "API key not configured"}).to_string(),
+            ))
             .unwrap()
     }
 }
@@ -75,11 +79,9 @@ pub async fn handle_minimax_stream(
                 }
             });
 
-            let body_stream = adapted_stream.map(|data| {
-                match data {
-                    Ok(s) => Ok::<_, Infallible>(axum::body::Bytes::from(s)),
-                    Err(_) => Ok(axum::body::Bytes::new()),
-                }
+            let body_stream = adapted_stream.map(|data| match data {
+                Ok(s) => Ok::<_, Infallible>(axum::body::Bytes::from(s)),
+                Err(_) => Ok(axum::body::Bytes::new()),
             });
             let body = Body::from_stream(body_stream);
 
@@ -94,7 +96,9 @@ pub async fn handle_minimax_stream(
             Response::builder()
                 .status(500)
                 .header("content-type", "application/json")
-                .body(Body::from(serde_json::json!({"error": "Streaming failed"}).to_string()))
+                .body(Body::from(
+                    serde_json::json!({"error": "Streaming failed"}).to_string(),
+                ))
                 .unwrap()
         }
     }

@@ -1,9 +1,8 @@
-use std::env;
 use crate::settings::{
-    Settings, ServerSettings, LlmBackendSettings, ApiSettings,
-    OpenAiApiSettings, OllamaApiSettings, AnthropicApiSettings,
-    ClientAdapterSettings, ZedAdapterSettings,
+    AnthropicApiSettings, ApiSettings, ClientAdapterSettings, LlmBackendSettings,
+    OllamaApiSettings, OpenAiApiSettings, ServerSettings, Settings, ZedAdapterSettings,
 };
+use std::env;
 
 /// OpenHands application configuration
 #[allow(dead_code)]

@@ -1,31 +1,31 @@
-mod tuner;
-mod apps;
-mod settings;
-mod service;
-mod engine;
-mod cli;
-mod provider;
-mod db;
-mod admin;
-mod pool;
 mod adapter;
-mod endpoints;
-mod router;
-mod xtrace;
+mod admin;
+mod apps;
+mod cli;
 mod config;
+mod db;
+mod endpoints;
+mod engine;
+mod pool;
+mod provider;
+mod router;
+mod service;
+mod settings;
+mod tuner;
+mod xtrace;
 
-use clap::Parser;
+use crate::config::{ConfigLoader, ConfigManager};
+use crate::xtrace::XTraceClient;
 use anyhow::Result;
-use tracing::{info, error, warn};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use cli::{Args, list_applications, show_application_info};
-use engine::instance::init_instance_id;
+use clap::Parser;
+use cli::{list_applications, show_application_info, Args};
 use db::try_database;
+use engine::instance::init_instance_id;
 use pool::PoolManager;
 use router::build_multi_mode_app;
-use crate::xtrace::XTraceClient;
-use crate::config::{ConfigManager, ConfigLoader};
 use std::sync::Arc;
+use tracing::{error, info, warn};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -60,8 +60,8 @@ fn start_xtrace() {
         .or_else(|_| std::env::var("API_BEARER_TOKEN"))
         .unwrap_or_else(|_| "xtrace-token".to_string());
 
-    let bind_addr = std::env::var("XTRACE_BIND_ADDR")
-        .unwrap_or_else(|_| "127.0.0.1:8742".to_string());
+    let bind_addr =
+        std::env::var("XTRACE_BIND_ADDR").unwrap_or_else(|_| "127.0.0.1:8742".to_string());
 
     let config = ::xtrace::ServerConfig {
         database_url,
@@ -121,6 +121,11 @@ async fn run_multi_mode(args: Args) -> Result<()> {
         }
     };
 
+    // Sync model data from llm-providers crate to database with fault tolerance
+    if let Err(e) = crate::config::ModelSyncer::sync(&db_pool).await {
+        warn!("Model synchronization failed: {}. Continuing startup...", e);
+    }
+
     let pool_manager = Arc::new(PoolManager::new(db_pool.clone()));
     if let Err(e) = pool_manager.init().await {
         warn!("Failed to initialize pool manager: {}", e);
@@ -137,17 +142,22 @@ async fn run_multi_mode(args: Args) -> Result<()> {
         }
     } else if let Some(protocols) = &args.protocols {
         let proto_list: Vec<String> = protocols.split(',').map(|s| s.to_string()).collect();
-        crate::apps::AppConfigGenerator::generate_protocol_config(&proto_list, args.llm_api_key.as_deref())
+        crate::apps::AppConfigGenerator::generate_protocol_config(
+            &proto_list,
+            args.llm_api_key.as_deref(),
+        )
     } else {
         crate::settings::Settings::default()
     };
 
-    let llm_service = Arc::new(tokio::sync::RwLock::new(crate::service::Service::new(&settings.llm_backend)?));
+    let llm_service = Arc::new(tokio::sync::RwLock::new(crate::service::Service::new(
+        &settings.llm_backend,
+    )?));
     let old_config = Arc::new(tokio::sync::RwLock::new(settings));
     let xtrace = XTraceClient::from_env();
-    
+
     let app = build_multi_mode_app(
-        db_pool.clone(), 
+        db_pool.clone(),
         Arc::clone(&pool_manager),
         llm_service,
         old_config,
@@ -173,7 +183,9 @@ async fn run_multi_mode(args: Args) -> Result<()> {
 }
 
 fn initialize_logging(args: &Args) {
-    let log_level = args.log_level.clone()
+    let log_level = args
+        .log_level
+        .clone()
         .or_else(|| std::env::var("XGATEWAY_LOG_LEVEL").ok())
         .unwrap_or_else(|| "info".to_string());
 

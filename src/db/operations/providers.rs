@@ -1,6 +1,6 @@
-use sqlx::{PgPool, QueryBuilder, Row};
+use crate::db::{DatabasePool, NewProvider, Provider, ProviderStats, UpdateProvider};
 use anyhow::Result;
-use crate::db::{DatabasePool, Provider, NewProvider, UpdateProvider, ProviderStats};
+use sqlx::{PgPool, QueryBuilder, Row};
 
 impl DatabasePool {
     pub async fn create_provider(&self, provider: NewProvider) -> Result<i64> {
@@ -31,7 +31,7 @@ impl DatabasePool {
             FROM providers 
             ORDER BY priority DESC, created_at ASC
         "#;
-        
+
         match self {
             Self::Postgres(pool) => {
                 Ok(sqlx::query_as::<_, Provider>(query).fetch_all(pool).await?)
@@ -60,7 +60,7 @@ impl DatabasePool {
             WHERE enabled = true
             ORDER BY priority DESC, created_at ASC
         "#;
-        
+
         match self {
             Self::Postgres(pool) => {
                 Ok(sqlx::query_as::<_, Provider>(query).fetch_all(pool).await?)
@@ -94,7 +94,12 @@ impl DatabasePool {
         }
     }
 
-    async fn update_provider_postgres(&self, pool: &PgPool, id: i64, update: UpdateProvider) -> Result<bool> {
+    async fn update_provider_postgres(
+        &self,
+        pool: &PgPool,
+        id: i64,
+        update: UpdateProvider,
+    ) -> Result<bool> {
         let mut query = QueryBuilder::new(
             "UPDATE providers SET updated_at = CURRENT_TIMESTAMP, version = version + 1",
         );
@@ -204,9 +209,10 @@ impl DatabasePool {
                 let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM providers")
                     .fetch_one(pool)
                     .await?;
-                let enabled: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM providers WHERE enabled = true")
-                    .fetch_one(pool)
-                    .await?;
+                let enabled: i64 =
+                    sqlx::query_scalar("SELECT COUNT(*) FROM providers WHERE enabled = true")
+                        .fetch_one(pool)
+                        .await?;
                 Ok(ProviderStats {
                     total: total as usize,
                     enabled: enabled as usize,

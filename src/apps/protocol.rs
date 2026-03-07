@@ -1,7 +1,6 @@
 use crate::settings::{
-    Settings, ServerSettings, LlmBackendSettings, ApiSettings,
-    OpenAiApiSettings, OllamaApiSettings, AnthropicApiSettings,
-    ClientAdapterSettings, ZedAdapterSettings,
+    AnthropicApiSettings, ApiSettings, ClientAdapterSettings, LlmBackendSettings,
+    OllamaApiSettings, OpenAiApiSettings, ServerSettings, Settings, ZedAdapterSettings,
 };
 
 /// Generate protocol combination configuration
@@ -22,22 +21,22 @@ pub fn generate_protocol_config(protocols: &[String], cli_api_key: Option<&str>)
                     // Use CLI-provided auth key (if any) for the OpenAI-compatible endpoint
                     api_key: cli_api_key.map(|k| k.to_string()),
                 });
-            },
+            }
             "ollama" => {
                 ollama_config = Some(OllamaApiSettings {
                     enabled: true,
-                    path: "".to_string(),  // Empty path so routes become /api/tags directly
+                    path: "".to_string(), // Empty path so routes become /api/tags directly
                     api_key_header: None,
                     api_key: None,
                 });
-            },
+            }
             "anthropic" => {
                 anthropic_config = Some(AnthropicApiSettings {
                     enabled: true,
                     path: "/anthropic".to_string(),
                     api_key_header: Some("x-api-key".to_string()),
                 });
-            },
+            }
             _ => {
                 eprintln!("Warning: Unknown protocol '{}', ignoring", protocol);
             }

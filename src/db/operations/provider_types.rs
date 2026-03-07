@@ -1,10 +1,10 @@
-use sqlx::{PgPool, QueryBuilder};
+use crate::db::{DatabasePool, NewProviderType, ProviderType, UpdateProviderType};
 use anyhow::Result;
-use crate::db::{DatabasePool, ProviderType, NewProviderType, UpdateProviderType};
+use sqlx::{PgPool, QueryBuilder};
 
 impl DatabasePool {
     // Provider Type CRUD operations
-    
+
     pub async fn list_provider_types(&self) -> Result<Vec<ProviderType>> {
         let query = r#"
             SELECT id, label, base_url, models, driver_type, enabled, sort_order, docs_url, created_at, updated_at
@@ -12,9 +12,11 @@ impl DatabasePool {
             WHERE enabled = true
             ORDER BY sort_order ASC, id ASC
         "#;
-        
+
         match self {
-            Self::Postgres(pool) => Ok(sqlx::query_as::<_, ProviderType>(query).fetch_all(pool).await?),
+            Self::Postgres(pool) => Ok(sqlx::query_as::<_, ProviderType>(query)
+                .fetch_all(pool)
+                .await?),
         }
     }
 
@@ -31,7 +33,7 @@ impl DatabasePool {
 
     pub async fn create_provider_type(&self, pt: NewProviderType) -> Result<()> {
         let models_json = serde_json::to_string(&pt.models)?;
-        
+
         match self {
             Self::Postgres(pool) => {
                 sqlx::query(
@@ -51,36 +53,59 @@ impl DatabasePool {
         }
     }
 
-    async fn update_provider_type_postgres(&self, pool: &PgPool, id: &str, update: UpdateProviderType) -> Result<bool> {
-        let mut query = QueryBuilder::new("UPDATE provider_types SET updated_at = CURRENT_TIMESTAMP");
+    async fn update_provider_type_postgres(
+        &self,
+        pool: &PgPool,
+        id: &str,
+        update: UpdateProviderType,
+    ) -> Result<bool> {
+        let mut query =
+            QueryBuilder::new("UPDATE provider_types SET updated_at = CURRENT_TIMESTAMP");
         let mut has_updates = false;
 
         if let Some(label) = &update.label {
-            query.push(", label = "); query.push_bind(label); has_updates = true;
+            query.push(", label = ");
+            query.push_bind(label);
+            has_updates = true;
         }
         if let Some(base_url) = &update.base_url {
-            query.push(", base_url = "); query.push_bind(base_url); has_updates = true;
+            query.push(", base_url = ");
+            query.push_bind(base_url);
+            has_updates = true;
         }
         if let Some(driver_type) = &update.driver_type {
-            query.push(", driver_type = "); query.push_bind(driver_type); has_updates = true;
+            query.push(", driver_type = ");
+            query.push_bind(driver_type);
+            has_updates = true;
         }
         if let Some(models) = &update.models {
             let models_json = serde_json::to_string(models)?;
-            query.push(", models = "); query.push_bind(models_json); has_updates = true;
+            query.push(", models = ");
+            query.push_bind(models_json);
+            has_updates = true;
         }
         if let Some(enabled) = update.enabled {
-            query.push(", enabled = "); query.push_bind(enabled); has_updates = true;
+            query.push(", enabled = ");
+            query.push_bind(enabled);
+            has_updates = true;
         }
         if let Some(sort_order) = update.sort_order {
-            query.push(", sort_order = "); query.push_bind(sort_order); has_updates = true;
+            query.push(", sort_order = ");
+            query.push_bind(sort_order);
+            has_updates = true;
         }
         if let Some(docs_url) = &update.docs_url {
-            query.push(", docs_url = "); query.push_bind(docs_url); has_updates = true;
+            query.push(", docs_url = ");
+            query.push_bind(docs_url);
+            has_updates = true;
         }
 
-        if !has_updates { return Ok(false); }
+        if !has_updates {
+            return Ok(false);
+        }
 
-        query.push(" WHERE id = "); query.push_bind(id);
+        query.push(" WHERE id = ");
+        query.push_bind(id);
         let result = query.build().execute(pool).await?;
         Ok(result.rows_affected() > 0)
     }
@@ -89,7 +114,9 @@ impl DatabasePool {
         match self {
             Self::Postgres(pool) => {
                 let result = sqlx::query("DELETE FROM provider_types WHERE id = $1")
-                    .bind(id).execute(pool).await?;
+                    .bind(id)
+                    .execute(pool)
+                    .await?;
                 Ok(result.rows_affected() > 0)
             }
         }
@@ -100,7 +127,8 @@ impl DatabasePool {
         match self {
             Self::Postgres(pool) => {
                 let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM provider_types")
-                    .fetch_one(pool).await?;
+                    .fetch_one(pool)
+                    .await?;
                 Ok(count == 0)
             }
         }
@@ -110,7 +138,7 @@ impl DatabasePool {
     pub async fn batch_insert_provider_types(&self, types: Vec<NewProviderType>) -> Result<()> {
         for (i, pt) in types.into_iter().enumerate() {
             let models_json = serde_json::to_string(&pt.models)?;
-            
+
             match self {
                 Self::Postgres(pool) => {
                     sqlx::query(

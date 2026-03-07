@@ -1,7 +1,7 @@
+use super::ApiResponse;
+use crate::db::{DatabasePool, NewUser};
 use axum::Json;
 use serde::{Deserialize, Serialize};
-use crate::db::{DatabasePool, NewUser};
-use super::ApiResponse;
 
 #[derive(Debug, Deserialize)]
 pub struct LoginRequest {
@@ -46,7 +46,7 @@ pub async fn login_api(
                         message: format!("Failed to persist auth token: {}", e),
                     });
                 }
-                
+
                 let response = LoginResponse {
                     user: serde_json::json!({
                         "id": user.id,
@@ -55,7 +55,7 @@ pub async fn login_api(
                     }),
                     token,
                 };
-                
+
                 Json(ApiResponse {
                     success: true,
                     data: Some(response),
@@ -134,13 +134,11 @@ pub async fn forgot_password_api(
     Json(req): Json<ForgotPasswordRequest>,
 ) -> Json<ApiResponse<()>> {
     match db_pool.get_user_by_username(&req.username).await {
-        Ok(Some(_)) => {
-            Json(ApiResponse {
-                success: true,
-                data: Some(()),
-                message: "Password reset link sent to your email".to_string(),
-            })
-        }
+        Ok(Some(_)) => Json(ApiResponse {
+            success: true,
+            data: Some(()),
+            message: "Password reset link sent to your email".to_string(),
+        }),
         Ok(None) => Json(ApiResponse {
             success: false,
             data: None,

@@ -1,7 +1,10 @@
+use super::ApiResponse;
+use crate::db::{
+    Conversation, ConversationListItem, ConversationWithMessages, DatabasePool, Message,
+    NewConversation, NewMessage, UpdateConversation,
+};
 use axum::Json;
 use serde::Deserialize;
-use crate::db::{DatabasePool, NewConversation, UpdateConversation, NewMessage, Conversation, Message, ConversationListItem, ConversationWithMessages};
-use super::ApiResponse;
 
 #[derive(Debug, Deserialize)]
 pub struct ListConversationsQuery {
@@ -10,14 +13,19 @@ pub struct ListConversationsQuery {
     pub limit: i64,
 }
 
-fn default_limit() -> i64 { 50 }
+fn default_limit() -> i64 {
+    50
+}
 
 /// List conversations
 pub async fn list_conversations_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
     axum::extract::Query(query): axum::extract::Query<ListConversationsQuery>,
 ) -> Json<ApiResponse<Vec<ConversationListItem>>> {
-    match db_pool.list_conversations(query.provider_id, query.limit).await {
+    match db_pool
+        .list_conversations(query.provider_id, query.limit)
+        .await
+    {
         Ok(conversations) => Json(ApiResponse {
             success: true,
             data: Some(conversations),

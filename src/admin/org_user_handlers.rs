@@ -3,9 +3,9 @@ use axum::response::IntoResponse;
 use axum::Json;
 use serde::Deserialize;
 
+use super::ApiResponse;
 use crate::admin::auth_middleware::AdminUserContext;
 use crate::db::DatabasePool;
-use super::ApiResponse;
 
 pub async fn list_org_users_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,

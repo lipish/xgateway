@@ -1,15 +1,15 @@
-use std::sync::Arc;
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
-use futures::StreamExt;
-use llm_connector::LlmConnectorError;
-use llm_connector::types::{ChatRequest, Message, Role};
-use crate::db::{self, DatabasePool, NewRequestLog};
-use crate::pool::PoolManager;
 use super::driver::{build_driver_config, DriverType};
 use super::stream::{extract_response_content, extract_tokens_used};
 use super::types::RequestResult;
+use crate::db::{self, DatabasePool, NewRequestLog};
+use crate::pool::PoolManager;
 use crate::xtrace::{self, XTraceRequestContext};
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use futures::StreamExt;
+use llm_connector::types::{ChatRequest, Message, Role};
+use llm_connector::LlmConnectorError;
+use std::sync::Arc;
 
 fn map_llm_error(e: &LlmConnectorError) -> (StatusCode, &'static str) {
     match e {
@@ -26,7 +26,8 @@ fn map_llm_error(e: &LlmConnectorError) -> (StatusCode, &'static str) {
             (StatusCode::BAD_REQUEST, "invalid_request")
         }
         LlmConnectorError::NotFoundError(_) => (StatusCode::NOT_FOUND, "not_found"),
-        LlmConnectorError::StreamingNotSupported(_) | LlmConnectorError::UnsupportedOperation(_) => {
+        LlmConnectorError::StreamingNotSupported(_)
+        | LlmConnectorError::UnsupportedOperation(_) => {
             (StatusCode::NOT_IMPLEMENTED, "not_supported")
         }
         LlmConnectorError::TimeoutError(_) => (StatusCode::REQUEST_TIMEOUT, "timeout"),
@@ -77,18 +78,23 @@ mod tests {
 
     #[test]
     fn test_map_llm_error_auth_and_rate_limit() {
-        let (status, error_type) = map_llm_error(&LlmConnectorError::AuthenticationError("bad key".to_string()));
+        let (status, error_type) = map_llm_error(&LlmConnectorError::AuthenticationError(
+            "bad key".to_string(),
+        ));
         assert_eq!(status, StatusCode::UNAUTHORIZED);
         assert_eq!(error_type, "auth_error");
 
-        let (status, error_type) = map_llm_error(&LlmConnectorError::RateLimitError("quota".to_string()));
+        let (status, error_type) =
+            map_llm_error(&LlmConnectorError::RateLimitError("quota".to_string()));
         assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
         assert_eq!(error_type, "rate_limit_exceeded");
     }
 
     #[test]
     fn test_map_llm_error_upstream() {
-        let (status, error_type) = map_llm_error(&LlmConnectorError::ProviderError("upstream failed".to_string()));
+        let (status, error_type) = map_llm_error(&LlmConnectorError::ProviderError(
+            "upstream failed".to_string(),
+        ));
         assert_eq!(status, StatusCode::BAD_GATEWAY);
         assert_eq!(error_type, "upstream_error");
     }
@@ -120,21 +126,24 @@ mod tests {
 }
 
 fn parse_messages(req_body: &serde_json::Value) -> Vec<Message> {
-    req_body.get("messages")
+    req_body
+        .get("messages")
         .and_then(|m| m.as_array())
         .map(|arr| {
-            arr.iter().filter_map(|msg| {
-                let role_str = msg.get("role")?.as_str()?;
-                let content = msg.get("content")?.as_str()?;
-                let role = match role_str {
-                    "system" => Role::System,
-                    "user" => Role::User,
-                    "assistant" => Role::Assistant,
-                    "tool" => Role::Tool,
-                    _ => Role::User,
-                };
-                Some(Message::text(role, content))
-            }).collect()
+            arr.iter()
+                .filter_map(|msg| {
+                    let role_str = msg.get("role")?.as_str()?;
+                    let content = msg.get("content")?.as_str()?;
+                    let role = match role_str {
+                        "system" => Role::System,
+                        "user" => Role::User,
+                        "assistant" => Role::Assistant,
+                        "tool" => Role::Tool,
+                        _ => Role::User,
+                    };
+                    Some(Message::text(role, content))
+                })
+                .collect()
         })
         .unwrap_or_default()
 }
@@ -155,22 +164,24 @@ pub async fn send_to_provider(
     let config: serde_json::Value = serde_json::from_str(&provider.config).unwrap_or_else(|e| {
         tracing::warn!(
             "Failed to parse provider config for '{}' (id={}): {}",
-            provider.name, provider.id, e
+            provider.name,
+            provider.id,
+            e
         );
         serde_json::Value::default()
     });
 
     let api_key = config.get("api_key").and_then(|v| v.as_str());
-    let base_url = provider.endpoint.as_deref()
+    let base_url = provider
+        .endpoint
+        .as_deref()
         .or_else(|| config.get("base_url").and_then(|v| v.as_str()));
     let region = config.get("region").and_then(|v| v.as_str());
 
     let request_model = req_body.get("model").and_then(|v| v.as_str());
     let config_model = config.get("model").and_then(|v| v.as_str());
 
-    let model = request_model
-        .or(config_model)
-        .unwrap_or("");
+    let model = request_model.or(config_model).unwrap_or("");
 
     pool_manager.record_request_start(provider.id).await;
 
@@ -183,7 +194,8 @@ pub async fn send_to_provider(
         base_url,
         region,
         model,
-    ).await;
+    )
+    .await;
 
     tracing::info!(
         target: "xgateway::upstream",
@@ -201,7 +213,9 @@ pub async fn send_to_provider(
         Ok(c) => c,
         Err(e) => {
             let latency_ms = start_time.elapsed().as_millis() as i64;
-            pool_manager.record_failure(provider.id, Some(&e.to_string())).await;
+            pool_manager
+                .record_failure(provider.id, Some(&e.to_string()))
+                .await;
             let (status_code, error_type) = e
                 .downcast_ref::<LlmConnectorError>()
                 .map(map_llm_error)
@@ -248,7 +262,8 @@ pub async fn send_to_provider(
             start_time,
             driver_config.driver_type,
             xtrace_ctx,
-        ).await
+        )
+        .await
     } else {
         handle_non_stream_request(
             client,
@@ -263,7 +278,8 @@ pub async fn send_to_provider(
             pool_manager,
             start_time,
             xtrace_ctx,
-        ).await
+        )
+        .await
     }
 }
 
@@ -297,7 +313,7 @@ async fn handle_stream_request(
             let provider_id = provider.id;
             let provider_name = provider.name.clone();
             let model_str = chat_request.model.clone();
-    let api_key_id_clone = api_key_id;
+            let api_key_id_clone = api_key_id;
             let project_id_clone = project_id;
             let org_id_clone = org_id;
             let db = db_pool.clone();
@@ -327,7 +343,10 @@ async fn handle_stream_request(
                                     }
                                 }
                             }
-                            let sse_data = format!("data: {}\n\n", serde_json::to_string(&response).unwrap_or_default());
+                            let sse_data = format!(
+                                "data: {}\n\n",
+                                serde_json::to_string(&response).unwrap_or_default()
+                            );
                             let _ = tx.send(sse_data);
                         }
                         Err(e) => {
@@ -352,17 +371,20 @@ async fn handle_stream_request(
                 };
 
                 let response_content = content_clone.lock().ok().and_then(|c| {
-                    if c.is_empty() { None } else { Some(c.clone()) }
+                    if c.is_empty() {
+                        None
+                    } else {
+                        Some(c.clone())
+                    }
                 });
                 let usage_value = usage_snapshot.lock().ok().and_then(|u| u.clone());
-                let tokens_used = usage_value
-                    .as_ref()
-                    .map(extract_usage_tokens)
-                    .unwrap_or(0);
+                let tokens_used = usage_value.as_ref().map(extract_usage_tokens).unwrap_or(0);
 
                 if let Some(ctx) = xtrace_ctx_clone {
                     let output = response_content.clone().map(serde_json::Value::String);
-                    let usage_tokens = usage_value.as_ref().and_then(|u| xtrace::usage_from_value(u));
+                    let usage_tokens = usage_value
+                        .as_ref()
+                        .and_then(|u| xtrace::usage_from_value(u));
                     let completion_start = first_token_at.lock().ok().and_then(|t| *t);
                     ctx.client.report_generation(
                         &ctx,
@@ -377,10 +399,10 @@ async fn handle_stream_request(
                     );
                 }
 
-            let log = NewRequestLog {
-                api_key_id: api_key_id_clone,
-                project_id: project_id_clone,
-                org_id: org_id_clone,
+                let log = NewRequestLog {
+                    api_key_id: api_key_id_clone,
+                    project_id: project_id_clone,
+                    org_id: org_id_clone,
                     provider_id: Some(provider_id),
                     provider_name,
                     model: model_str,
@@ -411,7 +433,9 @@ async fn handle_stream_request(
         }
         Err(e) => {
             let latency_ms = start_time.elapsed().as_millis() as i64;
-            pool_manager.record_failure(provider.id, Some(&e.to_string())).await;
+            pool_manager
+                .record_failure(provider.id, Some(&e.to_string()))
+                .await;
             let (status_code, error_type) = map_llm_error(&e);
             tracing::error!(
                 target: "xgateway::upstream",
@@ -508,7 +532,9 @@ async fn handle_non_stream_request(
         }
         Err(e) => {
             let latency_ms = start_time.elapsed().as_millis() as i64;
-            pool_manager.record_failure(provider.id, Some(&e.to_string())).await;
+            pool_manager
+                .record_failure(provider.id, Some(&e.to_string()))
+                .await;
             let (status_code, error_type) = map_llm_error(&e);
             tracing::error!(
                 target: "xgateway::upstream",

@@ -1,7 +1,6 @@
 use crate::settings::{
-    Settings, ServerSettings, LlmBackendSettings, ApiSettings,
-    OpenAiApiSettings, OllamaApiSettings, AnthropicApiSettings,
-    ClientAdapterSettings, ZedAdapterSettings,
+    AnthropicApiSettings, ApiSettings, ClientAdapterSettings, LlmBackendSettings,
+    OllamaApiSettings, OpenAiApiSettings, ServerSettings, Settings, ZedAdapterSettings,
 };
 /// Zed.dev application configuration
 #[allow(dead_code)]
@@ -24,14 +23,14 @@ impl ZedApp {
             },
             apis: ApiSettings {
                 openai: Some(OpenAiApiSettings {
-                    enabled: false,  // Disabled by default - use --protocols openai to enable
+                    enabled: false, // Disabled by default - use --protocols openai to enable
                     path: "/v1".to_string(),
                     api_key_header: Some("Authorization".to_string()),
                     api_key: None,
                 }),
                 ollama: Some(OllamaApiSettings {
-                    enabled: false,  // Disabled by default - use --protocols ollama to enable
-                    path: "".to_string(),  // Empty path so routes become /api/tags directly
+                    enabled: false,       // Disabled by default - use --protocols ollama to enable
+                    path: "".to_string(), // Empty path so routes become /api/tags directly
                     api_key_header: None,
                     api_key: None,
                 }),

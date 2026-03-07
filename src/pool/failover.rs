@@ -2,11 +2,11 @@
 //!
 //! Provides automatic failover and retry mechanisms for provider failures.
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
 
 use super::circuit_breaker::CircuitBreaker;
 use super::health::HealthChecker;
@@ -32,9 +32,17 @@ pub enum BackoffStrategy {
     /// Fixed delay between retries
     Fixed { delay_ms: u64 },
     /// Exponential backoff
-    Exponential { base_ms: u64, max_ms: u64, multiplier: f64 },
+    Exponential {
+        base_ms: u64,
+        max_ms: u64,
+        multiplier: f64,
+    },
     /// Linear backoff
-    Linear { initial_ms: u64, increment_ms: u64, max_ms: u64 },
+    Linear {
+        initial_ms: u64,
+        increment_ms: u64,
+        max_ms: u64,
+    },
 }
 
 impl Default for BackoffStrategy {
@@ -52,11 +60,19 @@ impl BackoffStrategy {
     pub fn delay_for_attempt(&self, attempt: u32) -> Duration {
         match self {
             BackoffStrategy::Fixed { delay_ms } => Duration::from_millis(*delay_ms),
-            BackoffStrategy::Exponential { base_ms, max_ms, multiplier } => {
+            BackoffStrategy::Exponential {
+                base_ms,
+                max_ms,
+                multiplier,
+            } => {
                 let delay = (*base_ms as f64) * multiplier.powi(attempt as i32);
                 Duration::from_millis(delay.min(*max_ms as f64) as u64)
             }
-            BackoffStrategy::Linear { initial_ms, increment_ms, max_ms } => {
+            BackoffStrategy::Linear {
+                initial_ms,
+                increment_ms,
+                max_ms,
+            } => {
                 let delay = initial_ms + (increment_ms * attempt as u64);
                 Duration::from_millis(delay.min(*max_ms))
             }
@@ -123,20 +139,30 @@ impl FailoverManager {
     /// Register a circuit breaker for a provider
     pub async fn register_provider(&self, provider_id: i64) {
         let mut breakers = self.circuit_breakers.write().await;
-        breakers.entry(provider_id).or_insert_with(CircuitBreaker::new);
+        breakers
+            .entry(provider_id)
+            .or_insert_with(CircuitBreaker::new);
         tracing::info!("Registered circuit breaker for provider {}", provider_id);
     }
 
     /// Set fallback chain for a provider
     pub async fn set_fallback_chain(&self, provider_id: i64, fallback_ids: Vec<i64>) {
-        self.fallback_chains.write().await.insert(provider_id, fallback_ids);
-        tracing::info!("Set fallback chain for provider {}: {:?}", provider_id, 
-            self.fallback_chains.read().await.get(&provider_id));
+        self.fallback_chains
+            .write()
+            .await
+            .insert(provider_id, fallback_ids);
+        tracing::info!(
+            "Set fallback chain for provider {}: {:?}",
+            provider_id,
+            self.fallback_chains.read().await.get(&provider_id)
+        );
     }
 
     /// Get fallback chain for a provider
     pub async fn get_fallback_chain(&self, provider_id: i64) -> Vec<i64> {
-        self.fallback_chains.read().await
+        self.fallback_chains
+            .read()
+            .await
             .get(&provider_id)
             .cloned()
             .unwrap_or_default()
@@ -168,7 +194,8 @@ impl FailoverManager {
         }
         tracing::warn!(
             "Provider {} failure recorded, condition: {:?}",
-            provider_id, condition
+            provider_id,
+            condition
         );
     }
 
@@ -194,10 +221,12 @@ impl FailoverManager {
         let chain = self.get_fallback_chain(failed_provider_id).await;
         for provider_id in chain {
             if self.is_provider_available(provider_id).await
-               && self.health_checker.is_healthy(provider_id).await {
+                && self.health_checker.is_healthy(provider_id).await
+            {
                 tracing::info!(
                     "Found fallback provider {} for failed provider {}",
-                    provider_id, failed_provider_id
+                    provider_id,
+                    failed_provider_id
                 );
                 return Some(provider_id);
             }
@@ -209,8 +238,7 @@ impl FailoverManager {
     pub async fn get_available_providers(&self, provider_ids: &[i64]) -> Vec<i64> {
         let mut available = Vec::new();
         for &id in provider_ids {
-            if self.is_provider_available(id).await
-               && self.health_checker.is_healthy(id).await {
+            if self.is_provider_available(id).await && self.health_checker.is_healthy(id).await {
                 available.push(id);
             }
         }
@@ -232,7 +260,9 @@ impl FailoverManager {
     }
 
     /// Get all circuit states
-    pub async fn get_all_circuit_states(&self) -> HashMap<i64, super::circuit_breaker::CircuitState> {
+    pub async fn get_all_circuit_states(
+        &self,
+    ) -> HashMap<i64, super::circuit_breaker::CircuitState> {
         let breakers = self.circuit_breakers.read().await;
         let mut states = HashMap::new();
         for (id, breaker) in breakers.iter() {
@@ -247,4 +277,3 @@ impl Default for FailoverManager {
         Self::new(Arc::new(HealthChecker::new()))
     }
 }
-

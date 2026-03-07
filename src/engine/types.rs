@@ -1,4 +1,3 @@
-
 /// Token usage information
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -15,7 +14,7 @@ pub struct Response {
     pub content: String,
     pub model: String,
     pub usage: Usage,
-    pub tool_calls: Option<serde_json::Value>,  // Store tool_calls from LLM response
+    pub tool_calls: Option<serde_json::Value>, // Store tool_calls from LLM response
 }
 
 /// Model information
@@ -23,4 +22,3 @@ pub struct Response {
 pub struct Model {
     pub id: String,
 }
-

@@ -1,8 +1,8 @@
-use anyhow::Result;
-use tracing::{info, error};
-use crate::settings::Settings;
-use crate::apps::{SupportedApp, AppConfigGenerator};
+use crate::apps::{AppConfigGenerator, SupportedApp};
 use crate::cli::Args;
+use crate::settings::Settings;
+use anyhow::Result;
+use tracing::{error, info};
 
 #[allow(dead_code)]
 pub struct ConfigLoader;
@@ -27,11 +27,12 @@ impl ConfigLoader {
     /// 加载应用模式配置
     #[allow(dead_code)]
     fn load_app_config(app_name: &str, args: &Args) -> Result<(Settings, String)> {
-        let app = SupportedApp::from_str(app_name)
-            .ok_or_else(|| anyhow::anyhow!(
+        let app = SupportedApp::from_str(app_name).ok_or_else(|| {
+            anyhow::anyhow!(
                 "Unknown application: {}. Use --list-apps to see available applications.",
                 app_name
-            ))?;
+            )
+        })?;
 
         info!("Starting in {} mode", app.name());
 
@@ -46,7 +47,8 @@ impl ConfigLoader {
             // Check required CLI flags for protocol combination
             Self::check_protocol_flags(&protocols, args)?;
 
-            let mut config = AppConfigGenerator::generate_protocol_config(&protocols, args.auth_key.as_deref());
+            let mut config =
+                AppConfigGenerator::generate_protocol_config(&protocols, args.auth_key.as_deref());
 
             // Apply provider/model overrides if specified
             if let Some(provider) = &args.provider {
@@ -54,11 +56,15 @@ impl ConfigLoader {
                     config,
                     Some(provider.as_str()),
                     args.model.as_deref(),
-                    args.llm_api_key.as_deref()
+                    args.llm_api_key.as_deref(),
                 )?;
             }
 
-            let config_source = format!("app: {} with protocols: {}", app.name(), protocols.join(", "));
+            let config_source = format!(
+                "app: {} with protocols: {}",
+                app.name(),
+                protocols.join(", ")
+            );
             return Ok((config, config_source));
         }
 
@@ -73,7 +79,7 @@ impl ConfigLoader {
             config,
             Some(provider),
             args.model.as_deref(),
-            args.llm_api_key.as_deref()
+            args.llm_api_key.as_deref(),
         )?;
 
         let config_source = format!("built-in: {} with provider: {}", app.name(), provider);
@@ -89,7 +95,9 @@ impl ConfigLoader {
             .collect();
 
         if protocols.is_empty() {
-            return Err(anyhow::anyhow!("No protocols specified. Use --protocols openai,ollama,anthropic"));
+            return Err(anyhow::anyhow!(
+                "No protocols specified. Use --protocols openai,ollama,anthropic"
+            ));
         }
 
         info!("Starting with protocols: {}", protocols.join(", "));
@@ -98,7 +106,8 @@ impl ConfigLoader {
         Self::check_protocol_flags(&protocols, args)?;
 
         // Generate base config for the selected protocols
-        let mut config = AppConfigGenerator::generate_protocol_config(&protocols, args.auth_key.as_deref());
+        let mut config =
+            AppConfigGenerator::generate_protocol_config(&protocols, args.auth_key.as_deref());
 
         // Apply provider/model overrides if specified (same behavior as app mode)
         if let Some(provider) = &args.provider {
@@ -106,7 +115,7 @@ impl ConfigLoader {
                 config,
                 Some(provider.as_str()),
                 args.model.as_deref(),
-                args.llm_api_key.as_deref()
+                args.llm_api_key.as_deref(),
             )?;
         }
 
@@ -118,25 +127,24 @@ impl ConfigLoader {
     /// 要求提供 --provider 参数
     #[allow(dead_code)]
     fn require_provider<'a>(app_name: &str, args: &'a Args) -> Result<&'a str> {
-        args.provider.as_deref()
-            .ok_or_else(|| {
-                error!("Missing required parameter: --provider");
-                error!("");
-                error!("You must specify which LLM provider to use:");
-                error!("  --provider openai      (requires --api-key)");
-                error!("  --provider anthropic   (requires --api-key)");
-                error!("  --provider zhipu       (requires --api-key)");
-                error!("  --provider aliyun      (requires --api-key)");
-                error!("  --provider minimax     (requires --api-key)");
-                error!("  --provider ollama      (no API key needed)");
-                error!("");
-                error!("Example:");
-                error!("  ./xgateway --app {} --provider minimax", app_name);
-                error!("");
-                error!("📚 For more information:");
-                error!("  ./xgateway --app-info {}", app_name);
-                anyhow::anyhow!("Missing required parameter: --provider")
-            })
+        args.provider.as_deref().ok_or_else(|| {
+            error!("Missing required parameter: --provider");
+            error!("");
+            error!("You must specify which LLM provider to use:");
+            error!("  --provider openai      (requires --api-key)");
+            error!("  --provider anthropic   (requires --api-key)");
+            error!("  --provider zhipu       (requires --api-key)");
+            error!("  --provider aliyun      (requires --api-key)");
+            error!("  --provider minimax     (requires --api-key)");
+            error!("  --provider ollama      (no API key needed)");
+            error!("");
+            error!("Example:");
+            error!("  ./xgateway --app {} --provider minimax", app_name);
+            error!("");
+            error!("📚 For more information:");
+            error!("  ./xgateway --app-info {}", app_name);
+            anyhow::anyhow!("Missing required parameter: --provider")
+        })
     }
 
     /// 检查协议模式所需的 CLI 参数
@@ -191,14 +199,12 @@ impl ConfigLoader {
             info!("Overriding LLM provider to: {}", provider_name);
 
             // Determine provider API key strictly from CLI
-            let provided_key = api_key
-                .map(|key| key.to_string())
-                .ok_or_else(|| {
-                    anyhow::anyhow!(
-                        "Missing required --api-key for provider '{}'",
-                        provider_name
-                    )
-                })?;
+            let provided_key = api_key.map(|key| key.to_string()).ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Missing required --api-key for provider '{}'",
+                    provider_name
+                )
+            })?;
 
             // Determine model
             let model_name = if let Some(m) = model {
@@ -289,7 +295,8 @@ impl ConfigLoader {
                     model: model_name,
                 },
                 "ollama" => LlmBackendSettings::Ollama {
-                    base_url: std::env::var("OLLAMA_BASE_URL").ok()
+                    base_url: std::env::var("OLLAMA_BASE_URL")
+                        .ok()
                         .or(Some("http://localhost:11434".to_string())),
                     region: None,
                     model: model_name,

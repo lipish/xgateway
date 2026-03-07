@@ -1,8 +1,8 @@
-use axum::Json;
-use serde::Deserialize;
-use crate::db::{DatabasePool, NewUser, User, NewUserInstance, UserInstance};
 use super::ApiResponse;
 use crate::admin::auth_middleware::AdminUserContext;
+use crate::db::{DatabasePool, NewUser, NewUserInstance, User, UserInstance};
+use axum::Json;
+use serde::Deserialize;
 
 /// List users
 pub async fn list_users_api(
@@ -50,10 +50,18 @@ pub async fn create_user_api(
     Json(req): Json<CreateUserRequest>,
 ) -> Json<ApiResponse<i64>> {
     if !ctx.is_admin && ctx.org_role.as_deref() != Some("admin") {
-        return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+        return Json(ApiResponse {
+            success: false,
+            data: None,
+            message: "org_admin_required".to_string(),
+        });
     }
     if !ctx.is_admin && req.role_id.as_deref() == Some("admin") {
-        return Json(ApiResponse { success: false, data: None, message: "admin_required".to_string() });
+        return Json(ApiResponse {
+            success: false,
+            data: None,
+            message: "admin_required".to_string(),
+        });
     }
 
     let new_user = NewUser {
@@ -69,7 +77,9 @@ pub async fn create_user_api(
             } else {
                 ctx.org_id
             };
-            let _ = db_pool.add_user_to_org(target_org_id, id, Some("member")).await;
+            let _ = db_pool
+                .add_user_to_org(target_org_id, id, Some("member"))
+                .await;
             Json(ApiResponse {
                 success: true,
                 data: Some(id),
@@ -92,15 +102,27 @@ pub async fn delete_user_api(
 ) -> Json<ApiResponse<()>> {
     if !ctx.is_admin {
         if ctx.org_role.as_deref() != Some("admin") {
-            return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+            return Json(ApiResponse {
+                success: false,
+                data: None,
+                message: "org_admin_required".to_string(),
+            });
         }
         match db_pool.is_user_in_org(ctx.org_id, id).await {
             Ok(true) => {}
             Ok(false) => {
-                return Json(ApiResponse { success: false, data: None, message: "forbidden".to_string() });
+                return Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: "forbidden".to_string(),
+                });
             }
             Err(e) => {
-                return Json(ApiResponse { success: false, data: None, message: format!("Failed to check org membership: {}", e) });
+                return Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: format!("Failed to check org membership: {}", e),
+                });
             }
         }
     }
@@ -143,30 +165,51 @@ pub async fn update_user_api(
 ) -> Json<ApiResponse<()>> {
     if !ctx.is_admin {
         if ctx.org_role.as_deref() != Some("admin") {
-            return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+            return Json(ApiResponse {
+                success: false,
+                data: None,
+                message: "org_admin_required".to_string(),
+            });
         }
         if req.role_id.as_deref() == Some("admin") {
-            return Json(ApiResponse { success: false, data: None, message: "admin_required".to_string() });
+            return Json(ApiResponse {
+                success: false,
+                data: None,
+                message: "admin_required".to_string(),
+            });
         }
         match db_pool.is_user_in_org(ctx.org_id, id).await {
             Ok(true) => {}
             Ok(false) => {
-                return Json(ApiResponse { success: false, data: None, message: "forbidden".to_string() });
+                return Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: "forbidden".to_string(),
+                });
             }
             Err(e) => {
-                return Json(ApiResponse { success: false, data: None, message: format!("Failed to check org membership: {}", e) });
+                return Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: format!("Failed to check org membership: {}", e),
+                });
             }
         }
     }
 
-    match db_pool.update_user_profile(id, req.role_id.as_deref(), req.password_hash.as_deref()).await {
+    match db_pool
+        .update_user_profile(id, req.role_id.as_deref(), req.password_hash.as_deref())
+        .await
+    {
         Ok(true) => {
             let target_org_id = if ctx.is_admin {
                 req.org_id.unwrap_or(1)
             } else {
                 ctx.org_id
             };
-            let _ = db_pool.add_user_to_org(target_org_id, id, Some("member")).await;
+            let _ = db_pool
+                .add_user_to_org(target_org_id, id, Some("member"))
+                .await;
             Json(ApiResponse {
                 success: true,
                 data: Some(()),
@@ -194,15 +237,27 @@ pub async fn toggle_user_api(
 ) -> Json<ApiResponse<()>> {
     if !ctx.is_admin {
         if ctx.org_role.as_deref() != Some("admin") {
-            return Json(ApiResponse { success: false, data: None, message: "org_admin_required".to_string() });
+            return Json(ApiResponse {
+                success: false,
+                data: None,
+                message: "org_admin_required".to_string(),
+            });
         }
         match db_pool.is_user_in_org(ctx.org_id, id).await {
             Ok(true) => {}
             Ok(false) => {
-                return Json(ApiResponse { success: false, data: None, message: "forbidden".to_string() });
+                return Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: "forbidden".to_string(),
+                });
             }
             Err(e) => {
-                return Json(ApiResponse { success: false, data: None, message: format!("Failed to check org membership: {}", e) });
+                return Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: format!("Failed to check org membership: {}", e),
+                });
             }
         }
     }
@@ -218,7 +273,11 @@ pub async fn toggle_user_api(
     match result {
         Ok(users) => {
             if let Some(user) = users.into_iter().find(|u| u.id == id) {
-                let new_status = if user.status == "active" { "disabled" } else { "active" };
+                let new_status = if user.status == "active" {
+                    "disabled"
+                } else {
+                    "active"
+                };
                 match db_pool.update_user_status(id, new_status).await {
                     Ok(_) => Json(ApiResponse {
                         success: true,

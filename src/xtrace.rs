@@ -1,13 +1,15 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use base64::Engine;
 use chrono::{DateTime, Utc};
 use reqwest::header::HeaderValue;
-use base64::Engine;
 use serde_json::Value as JsonValue;
 use tokio::sync::mpsc;
 use uuid::Uuid;
-use xtrace_client::{BatchIngestRequest, Client as XTraceSdkClient, ObservationIngest, TraceIngest};
+use xtrace_client::{
+    BatchIngestRequest, Client as XTraceSdkClient, ObservationIngest, TraceIngest,
+};
 
 const DEFAULT_TRACE_NAME: &str = "xgateway.chat";
 const DEFAULT_QUEUE_SIZE: usize = 10_000;
@@ -99,8 +101,7 @@ impl XTraceClient {
             return None;
         }
 
-        let base_url = env_var("XTRACE_BASE_URL")
-            .or_else(|| env_var("XTRACE_HOST"));
+        let base_url = env_var("XTRACE_BASE_URL").or_else(|| env_var("XTRACE_HOST"));
         let Some(base_url) = base_url else {
             tracing::warn!("XTrace enabled but XTRACE_BASE_URL is missing");
             return None;
@@ -120,7 +121,8 @@ impl XTraceClient {
             return None;
         };
 
-        let trace_name = env_var("XTRACE_TRACE_NAME").unwrap_or_else(|| DEFAULT_TRACE_NAME.to_string());
+        let trace_name =
+            env_var("XTRACE_TRACE_NAME").unwrap_or_else(|| DEFAULT_TRACE_NAME.to_string());
         let project_id = env_var("XTRACE_PROJECT_ID");
         let environment = env_var("XTRACE_ENVIRONMENT");
 
@@ -167,25 +169,30 @@ impl XTraceClient {
     ) {
         let elapsed = end_time.duration_since(ctx.start_time);
         let latency = elapsed.as_secs_f64();
-        let end_timestamp = ctx.start_timestamp
-            + chrono::Duration::milliseconds(elapsed.as_millis() as i64);
+        let end_timestamp =
+            ctx.start_timestamp + chrono::Duration::milliseconds(elapsed.as_millis() as i64);
 
         let (completion_start_time, time_to_first_token) = completion_start
             .map(|instant| {
                 let ttft = instant.duration_since(ctx.start_time).as_secs_f64();
-                let timestamp = ctx.start_timestamp
-                    + chrono::Duration::milliseconds((ttft * 1000.0) as i64);
+                let timestamp =
+                    ctx.start_timestamp + chrono::Duration::milliseconds((ttft * 1000.0) as i64);
                 (timestamp, ttft)
             })
             .unzip();
 
         let usage_json = usage.as_ref().map(build_usage_json);
-        let input_json = ctx.messages.clone().or_else(|| Some(ctx.request_payload.clone()));
+        let input_json = ctx
+            .messages
+            .clone()
+            .or_else(|| Some(ctx.request_payload.clone()));
 
-    let metadata = build_metadata(ctx, provider_id, provider_name, model, error.as_deref());
+        let metadata = build_metadata(ctx, provider_id, provider_name, model, error.as_deref());
 
         let trace_output = output.clone().or_else(|| {
-            error.as_ref().map(|msg| serde_json::json!({ "error": msg }))
+            error
+                .as_ref()
+                .map(|msg| serde_json::json!({ "error": msg }))
         });
 
         let trace = TraceIngest {
@@ -266,13 +273,15 @@ impl XTraceClient {
     ) {
         let elapsed = start_time.elapsed();
         let latency = elapsed.as_secs_f64();
-        let end_timestamp = start_timestamp
-            + chrono::Duration::milliseconds(elapsed.as_millis() as i64);
+        let end_timestamp =
+            start_timestamp + chrono::Duration::milliseconds(elapsed.as_millis() as i64);
 
         let metadata = build_request_metadata(method, path, status, error.as_deref(), is_stream);
 
         let trace_output = response_payload.clone().or_else(|| {
-            error.as_ref().map(|msg| serde_json::json!({ "error": msg }))
+            error
+                .as_ref()
+                .map(|msg| serde_json::json!({ "error": msg }))
         });
 
         let trace = TraceIngest {
@@ -361,8 +370,7 @@ fn normalize_base_url(mut value: String) -> String {
 }
 
 fn build_sdk_backend(base_url: &str) -> Option<XTraceBackend> {
-    let token = env_var("XTRACE_API_BEARER_TOKEN")
-        .or_else(|| env_var("XTRACE_API_KEY"))?;
+    let token = env_var("XTRACE_API_BEARER_TOKEN").or_else(|| env_var("XTRACE_API_KEY"))?;
     match XTraceSdkClient::new(base_url, &token) {
         Ok(client) => Some(XTraceBackend::Sdk(Arc::new(client))),
         Err(err) => {
@@ -408,18 +416,36 @@ fn build_metadata(
 ) -> JsonValue {
     let mut map = serde_json::Map::new();
     map.insert("stream".to_string(), JsonValue::Bool(ctx.is_stream));
-    map.insert("provider_id".to_string(), JsonValue::Number(provider_id.into()));
-    map.insert("provider_name".to_string(), JsonValue::String(provider_name.to_string()));
-    map.insert("provider_model".to_string(), JsonValue::String(model.to_string()));
+    map.insert(
+        "provider_id".to_string(),
+        JsonValue::Number(provider_id.into()),
+    );
+    map.insert(
+        "provider_name".to_string(),
+        JsonValue::String(provider_name.to_string()),
+    );
+    map.insert(
+        "provider_model".to_string(),
+        JsonValue::String(model.to_string()),
+    );
 
     if let Some(requested_model) = &ctx.requested_model {
-        map.insert("requested_model".to_string(), JsonValue::String(requested_model.clone()));
+        map.insert(
+            "requested_model".to_string(),
+            JsonValue::String(requested_model.clone()),
+        );
     }
     if let Some(api_key_id) = ctx.api_key_id {
-        map.insert("api_key_id".to_string(), JsonValue::Number(api_key_id.into()));
+        map.insert(
+            "api_key_id".to_string(),
+            JsonValue::Number(api_key_id.into()),
+        );
     }
     if let Some(project_id) = ctx.project_id {
-        map.insert("project_id".to_string(), JsonValue::Number(project_id.into()));
+        map.insert(
+            "project_id".to_string(),
+            JsonValue::Number(project_id.into()),
+        );
     }
     if let Some(org_id) = ctx.org_id {
         map.insert("org_id".to_string(), JsonValue::Number(org_id.into()));
@@ -474,7 +500,11 @@ pub fn usage_from_value(usage: &JsonValue) -> Option<UsageTokens> {
     if input.is_none() && output.is_none() && total.is_none() {
         None
     } else {
-        Some(UsageTokens { input, output, total })
+        Some(UsageTokens {
+            input,
+            output,
+            total,
+        })
     }
 }
 
@@ -487,7 +517,10 @@ fn build_usage_json(usage: &UsageTokens) -> JsonValue {
     })
 }
 
-async fn ingest_worker(config: Arc<XTraceConfig>, mut receiver: mpsc::Receiver<BatchIngestRequest>) {
+async fn ingest_worker(
+    config: Arc<XTraceConfig>,
+    mut receiver: mpsc::Receiver<BatchIngestRequest>,
+) {
     while let Some(payload) = receiver.recv().await {
         if let Err(err) = send_with_retry(&config, payload).await {
             tracing::warn!("Failed to send XTrace payload: {}", err);
@@ -499,38 +532,46 @@ async fn send_with_retry(config: &XTraceConfig, payload: BatchIngestRequest) -> 
     let mut attempt = 0;
 
     loop {
-        let result = match &config.backend {
-            XTraceBackend::Sdk(client) => {
-                client.ingest_batch(&payload).await.map(|_| ()).map_err(|err| {
-                    let status = match &err {
-                        xtrace_client::Error::Http(http_err) => http_err.status(),
-                        _ => None,
-                    };
-                    let status = status.and_then(|s| reqwest::StatusCode::from_u16(s.as_u16()).ok());
-                    (format!("{}", err), status)
-                })
-            }
-            XTraceBackend::Http { client, base_url, auth_header } => {
-                let url = format!("{}/v1/l/batch", base_url);
-                match client
-                    .post(&url)
-                    .header(reqwest::header::AUTHORIZATION, auth_header.clone())
-                    .json(&payload)
-                    .send()
+        let result =
+            match &config.backend {
+                XTraceBackend::Sdk(client) => client
+                    .ingest_batch(&payload)
                     .await
-                {
-                    Ok(resp) => {
-                        let status = resp.status();
-                        if status.is_success() {
-                            Ok(())
-                        } else {
-                            Err((format!("status {}", status), Some(status)))
+                    .map(|_| ())
+                    .map_err(|err| {
+                        let status = match &err {
+                            xtrace_client::Error::Http(http_err) => http_err.status(),
+                            _ => None,
+                        };
+                        let status =
+                            status.and_then(|s| reqwest::StatusCode::from_u16(s.as_u16()).ok());
+                        (format!("{}", err), status)
+                    }),
+                XTraceBackend::Http {
+                    client,
+                    base_url,
+                    auth_header,
+                } => {
+                    let url = format!("{}/v1/l/batch", base_url);
+                    match client
+                        .post(&url)
+                        .header(reqwest::header::AUTHORIZATION, auth_header.clone())
+                        .json(&payload)
+                        .send()
+                        .await
+                    {
+                        Ok(resp) => {
+                            let status = resp.status();
+                            if status.is_success() {
+                                Ok(())
+                            } else {
+                                Err((format!("status {}", status), Some(status)))
+                            }
                         }
+                        Err(err) => Err((format!("{}", err), err.status())),
                     }
-                    Err(err) => Err((format!("{}", err), err.status())),
                 }
-            }
-        };
+            };
 
         match result {
             Ok(()) => return Ok(()),

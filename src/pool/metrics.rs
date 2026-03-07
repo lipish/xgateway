@@ -6,12 +6,12 @@
 //! - Error rates
 //! - Active connections
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
 
 /// Metrics for a single request
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,7 +82,9 @@ impl ProviderMetrics {
     /// Register a provider for metrics collection
     pub async fn register_provider(&self, provider_id: i64) {
         let mut states = self.states.write().await;
-        states.entry(provider_id).or_insert_with(ProviderMetricsState::default);
+        states
+            .entry(provider_id)
+            .or_insert_with(ProviderMetricsState::default);
     }
 
     /// Record a request start (increment active connections)
@@ -129,7 +131,8 @@ impl ProviderMetrics {
     /// Get active connections for a provider
     pub async fn get_active_connections(&self, provider_id: i64) -> u64 {
         let states = self.states.read().await;
-        states.get(&provider_id)
+        states
+            .get(&provider_id)
             .map(|s| s.active_connections.load(Ordering::Relaxed))
             .unwrap_or(0)
     }
@@ -149,7 +152,11 @@ impl ProviderMetrics {
         let (avg, p50, p95, p99) = calculate_latency_stats(&latencies);
 
         let elapsed = state.start_time.elapsed().as_secs_f64();
-        let rps = if elapsed > 0.0 { total as f64 / elapsed } else { 0.0 };
+        let rps = if elapsed > 0.0 {
+            total as f64 / elapsed
+        } else {
+            0.0
+        };
 
         Some(ProviderMetricsSummary {
             total_requests: total,
@@ -247,4 +254,3 @@ impl ProviderMetricsSummary {
         }
     }
 }
-

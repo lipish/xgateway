@@ -1,11 +1,11 @@
+use crate::db::DatabasePool;
+use crate::pool::PoolManager;
+use crate::service::Service as LlmService;
+use crate::settings::{LlmBackendSettings, Settings};
+use crate::xtrace::XTraceClient;
+use anyhow::Result;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use crate::pool::PoolManager;
-use crate::db::DatabasePool;
-use crate::settings::{Settings, LlmBackendSettings};
-use crate::xtrace::XTraceClient;
-use crate::service::Service as LlmService;
-use anyhow::Result;
 
 #[derive(Clone)]
 pub struct ProxyState {

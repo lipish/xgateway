@@ -1,14 +1,14 @@
+use crate::endpoints::ProxyState;
+use crate::tuner::{ClientTuner, FormatDetector};
 use axum::{
+    body::Body,
     http::{HeaderMap, StatusCode},
     response::Response,
-    body::Body,
 };
 use futures::StreamExt;
 use serde_json::Value;
 use std::convert::Infallible;
 use tracing::{info, warn};
-use crate::tuner::{ClientTuner, FormatDetector};
-use crate::endpoints::ProxyState;
 
 pub async fn handle_streaming_request(
     headers: HeaderMap,
@@ -24,7 +24,10 @@ pub async fn handle_streaming_request(
     drop(config); // 释放读锁
 
     // 使用检测到的格式或客户端偏好
-    let final_format = if headers.get("accept").is_none_or(|v| v.to_str().unwrap_or("").contains("*/*")) {
+    let final_format = if headers
+        .get("accept")
+        .is_none_or(|v| v.to_str().unwrap_or("").contains("*/*"))
+    {
         client_adapter.preferred_format()
     } else {
         stream_format
@@ -32,11 +35,18 @@ pub async fn handle_streaming_request(
 
     let content_type = FormatDetector::get_content_type(final_format);
 
-    info!("Starting Ollama streaming response - Client: {:?}, Format: {:?} ({}), Tools: {}",
-          client_adapter, final_format, content_type, tools.as_ref().map_or(0, |t| t.len()));
+    info!(
+        "Starting Ollama streaming response - Client: {:?}, Format: {:?} ({}), Tools: {}",
+        client_adapter,
+        final_format,
+        content_type,
+        tools.as_ref().map_or(0, |t| t.len())
+    );
 
     let llm_service = state.llm_service.read().await;
-    let stream_result = llm_service.chat_stream_ollama_with_tools(model, messages.clone(), tools.clone(), final_format).await;
+    let stream_result = llm_service
+        .chat_stream_ollama_with_tools(model, messages.clone(), tools.clone(), final_format)
+        .await;
     drop(llm_service); // 显式释放锁
 
     match stream_result {
@@ -57,9 +67,7 @@ pub async fn handle_streaming_request(
                         llm_connector::StreamFormat::NDJSON => {
                             format!("{}\n", json_data)
                         }
-                        llm_connector::StreamFormat::Json => {
-                            json_data.to_string()
-                        }
+                        llm_connector::StreamFormat::Json => json_data.to_string(),
                     }
                 } else {
                     data.to_string()
@@ -79,7 +87,10 @@ pub async fn handle_streaming_request(
             Ok(response)
         }
         Err(e) => {
-            warn!("Ollama streaming failed, falling back to non-streaming: {:?}", e);
+            warn!(
+                "Ollama streaming failed, falling back to non-streaming: {:?}",
+                e
+            );
             // 这里我们不能直接调用 handle_non_streaming_request 因为循环依赖
             // 我们将在 mod.rs 中处理这种回退逻辑，或者通过传递闭包
             Err(StatusCode::INTERNAL_SERVER_ERROR)
@@ -99,7 +110,12 @@ pub async fn handle_generic_chat_stream(
     let model_ref = model_arg.as_deref();
 
     match llm_service
-        .chat_stream_ollama_with_tools(model_ref, messages, tools, llm_connector::StreamFormat::NDJSON)
+        .chat_stream_ollama_with_tools(
+            model_ref,
+            messages,
+            tools,
+            llm_connector::StreamFormat::NDJSON,
+        )
         .await
     {
         Ok(rx) => {
@@ -127,7 +143,10 @@ pub async fn handle_generic_chat_stream(
     }
 }
 
-pub fn detect_ollama_client(headers: &HeaderMap, config: &crate::settings::Settings) -> ClientTuner {
+pub fn detect_ollama_client(
+    headers: &HeaderMap,
+    config: &crate::settings::Settings,
+) -> ClientTuner {
     // 3. 检查 User-Agent 自动检测
     if let Some(user_agent) = headers.get("user-agent") {
         if let Ok(ua_str) = user_agent.to_str() {

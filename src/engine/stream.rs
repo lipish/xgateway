@@ -59,44 +59,23 @@ mod tests {
         );
 
         // Test standalone closing tags
-        assert_eq!(
-            filter_think_tags("content</think></think>"),
-            "content"
-        );
+        assert_eq!(filter_think_tags("content</think></think>"), "content");
 
         // Test no think tags
-        assert_eq!(
-            filter_think_tags("normal content"),
-            "normal content"
-        );
+        assert_eq!(filter_think_tags("normal content"), "normal content");
 
         // Test empty content
-        assert_eq!(
-            filter_think_tags("<think></think>"),
-            ""
-        );
+        assert_eq!(filter_think_tags("<think></think>"), "");
 
         // Test whitespace preservation (important for streaming!)
-        assert_eq!(
-            filter_think_tags("\n"),
-            "\n"
-        );
+        assert_eq!(filter_think_tags("\n"), "\n");
 
-        assert_eq!(
-            filter_think_tags("  "),
-            "  "
-        );
+        assert_eq!(filter_think_tags("  "), "  ");
 
-        assert_eq!(
-            filter_think_tags("<think>test</think>\n"),
-            "\n"
-        );
+        assert_eq!(filter_think_tags("<think>test</think>\n"), "\n");
 
         // Test newlines in content
-        assert_eq!(
-            filter_think_tags("line1\nline2"),
-            "line1\nline2"
-        );
+        assert_eq!(filter_think_tags("line1\nline2"), "line1\nline2");
     }
 }
 
@@ -112,7 +91,8 @@ impl Client {
         messages: Vec<llm_connector::types::Message>,
         format: StreamFormat,
     ) -> Result<UnboundedReceiverStream<String>> {
-        self.chat_stream_with_format_and_tools(model, messages, None, format).await
+        self.chat_stream_with_format_and_tools(model, messages, None, format)
+            .await
     }
 
     /// Send a streaming chat request with specified format and tools (Ollama-style response)
@@ -138,13 +118,20 @@ impl Client {
             ..Default::default()
         };
 
-        tracing::info!("Requesting streaming from LLM connector (Ollama format) with {} tools...",
-                      request.tools.as_ref().map_or(0, |t| t.len()));
+        tracing::info!(
+            "Requesting streaming from LLM connector (Ollama format) with {} tools...",
+            request.tools.as_ref().map_or(0, |t| t.len())
+        );
 
         // Debug: log messages being sent to LLM connector
         for (i, msg) in request.messages.iter().enumerate() {
-            tracing::debug!("📨 Message {}: role={:?}, tool_call_id={:?}, has_tool_calls={}",
-                          i, msg.role, msg.tool_call_id, msg.tool_calls.is_some());
+            tracing::debug!(
+                "📨 Message {}: role={:?}, tool_call_id={:?}, has_tool_calls={}",
+                i,
+                msg.role,
+                msg.tool_call_id,
+                msg.tool_calls.is_some()
+            );
         }
 
         // Use real streaming API
@@ -209,9 +196,11 @@ impl Client {
                             // Log if we're filtering out reasoning content
                             if let Some(reasoning) = &first_choice.delta.reasoning_content {
                                 if !reasoning.is_empty() {
-                                    tracing::debug!("🧠 Filtered reasoning_content ({} chars): {:?}",
-                                                  reasoning.len(),
-                                                  reasoning.chars().take(50).collect::<String>());
+                                    tracing::debug!(
+                                        "🧠 Filtered reasoning_content ({} chars): {:?}",
+                                        reasoning.len(),
+                                        reasoning.chars().take(50).collect::<String>()
+                                    );
                                 }
                             }
                         }
@@ -220,9 +209,16 @@ impl Client {
                             chunk_count += 1;
                             has_payload = true;
                             if chunk_count == 1 {
-                                tracing::info!("📦 Received first streaming chunk ({} chars)", content_text.len());
+                                tracing::info!(
+                                    "📦 Received first streaming chunk ({} chars)",
+                                    content_text.len()
+                                );
                             } else {
-                                tracing::debug!("📦 Received chunk #{} ({} chars)", chunk_count, content_text.len());
+                                tracing::debug!(
+                                    "📦 Received chunk #{} ({} chars)",
+                                    chunk_count,
+                                    content_text.len()
+                                );
                             }
                         }
 
@@ -235,36 +231,66 @@ impl Client {
                                     // Zed expects arguments to be a JSON object, not a string
                                     let mut ollama_tool_calls = Vec::new();
                                     for (i, tc) in tool_calls.iter().enumerate() {
-                                        tracing::debug!("Processing tool call {}: name={}, args_len={}",
-                                                      i, tc.function.name, tc.function.arguments.len());
+                                        tracing::debug!(
+                                            "Processing tool call {}: name={}, args_len={}",
+                                            i,
+                                            tc.function.name,
+                                            tc.function.arguments.len()
+                                        );
 
                                         let mut ollama_tc = serde_json::Map::new();
 
                                         // Add tool call ID - this is crucial for Zed
                                         if !tc.id.is_empty() {
-                                            ollama_tc.insert("id".to_string(), Value::String(tc.id.clone()));
+                                            ollama_tc.insert(
+                                                "id".to_string(),
+                                                Value::String(tc.id.clone()),
+                                            );
                                             tracing::debug!("Tool call ID: {}", tc.id);
                                         } else {
                                             // Generate a unique ID if missing
-                                            let generated_id = format!("call_{}", uuid::Uuid::new_v4().to_string().replace("-", "")[..8].to_string());
-                                            ollama_tc.insert("id".to_string(), Value::String(generated_id.clone()));
-                                            tracing::warn!("Generated tool call ID: {}", generated_id);
+                                            let generated_id = format!(
+                                                "call_{}",
+                                                uuid::Uuid::new_v4().to_string().replace("-", "")
+                                                    [..8]
+                                                    .to_string()
+                                            );
+                                            ollama_tc.insert(
+                                                "id".to_string(),
+                                                Value::String(generated_id.clone()),
+                                            );
+                                            tracing::warn!(
+                                                "Generated tool call ID: {}",
+                                                generated_id
+                                            );
                                         }
 
                                         // Add type field
-                                        ollama_tc.insert("type".to_string(), Value::String("function".to_string()));
+                                        ollama_tc.insert(
+                                            "type".to_string(),
+                                            Value::String("function".to_string()),
+                                        );
 
                                         // Add function object
                                         let mut function = serde_json::Map::new();
-                                        function.insert("name".to_string(), Value::String(tc.function.name.clone()));
+                                        function.insert(
+                                            "name".to_string(),
+                                            Value::String(tc.function.name.clone()),
+                                        );
 
                                         // Parse arguments from string to JSON object
                                         let arguments_value = if tc.function.arguments.is_empty() {
                                             Value::Object(serde_json::Map::new())
                                         } else {
-                                            match serde_json::from_str::<Value>(&tc.function.arguments) {
+                                            match serde_json::from_str::<Value>(
+                                                &tc.function.arguments,
+                                            ) {
                                                 Ok(v) => {
-                                                    tracing::debug!("Parsed tool arguments: {}", serde_json::to_string(&v).unwrap_or_default());
+                                                    tracing::debug!(
+                                                        "Parsed tool arguments: {}",
+                                                        serde_json::to_string(&v)
+                                                            .unwrap_or_default()
+                                                    );
                                                     v
                                                 }
                                                 Err(e) => {
@@ -276,15 +302,27 @@ impl Client {
                                         };
                                         function.insert("arguments".to_string(), arguments_value);
 
-                                        ollama_tc.insert("function".to_string(), Value::Object(function));
+                                        ollama_tc.insert(
+                                            "function".to_string(),
+                                            Value::Object(function),
+                                        );
 
-                                        tracing::debug!("Converted tool call: {}", serde_json::to_string(&ollama_tc).unwrap_or_default());
+                                        tracing::debug!(
+                                            "Converted tool call: {}",
+                                            serde_json::to_string(&ollama_tc).unwrap_or_default()
+                                        );
                                         ollama_tool_calls.push(Value::Object(ollama_tc));
                                     }
 
-                                    message.insert("tool_calls".to_string(), Value::Array(ollama_tool_calls));
+                                    message.insert(
+                                        "tool_calls".to_string(),
+                                        Value::Array(ollama_tool_calls),
+                                    );
                                     has_payload = true;
-                                    tracing::debug!("Chunk includes {} tool call(s)", tool_calls.len());
+                                    tracing::debug!(
+                                        "Chunk includes {} tool call(s)",
+                                        tool_calls.len()
+                                    );
                                 }
                             }
 
@@ -322,7 +360,9 @@ impl Client {
                         };
 
                         if tx.send(formatted_data).is_err() {
-                            tracing::warn!("Failed to send chunk to receiver (client disconnected?)");
+                            tracing::warn!(
+                                "Failed to send chunk to receiver (client disconnected?)"
+                            );
                             break;
                         }
                         tracing::debug!("Sent chunk #{} to client", chunk_count);
@@ -428,13 +468,14 @@ impl Client {
         tokio::spawn(async move {
             tracing::info!("Starting to process stream chunks (OpenAI format)...");
             let mut chunk_count = 0;
-            let mut has_tool_calls = false;  // Track if tool_calls detected
-            
+            let mut has_tool_calls = false; // Track if tool_calls detected
+
             // Track tool call IDs by index for Codex CLI compatibility
             // Codex uses `id` field to accumulate arguments across chunks,
             // but llm-connector only includes `id` in the first chunk.
             // We remember the id for each index and inject it into subsequent chunks.
-            let mut tool_call_ids: std::collections::HashMap<usize, String> = std::collections::HashMap::new();
+            let mut tool_call_ids: std::collections::HashMap<usize, String> =
+                std::collections::HashMap::new();
 
             while let Some(chunk) = stream.next().await {
                 tracing::debug!("📥 Received raw chunk from stream");
@@ -453,7 +494,12 @@ impl Client {
                                 delta["content"] = serde_json::json!(content);
                                 has_data = true;
                                 chunk_count += 1;
-                                tracing::info!("📦 Received chunk #{}: '{}' ({} chars)", chunk_count, content, content.len());
+                                tracing::info!(
+                                    "📦 Received chunk #{}: '{}' ({} chars)",
+                                    chunk_count,
+                                    content,
+                                    content.len()
+                                );
                             }
                         }
 
@@ -462,53 +508,76 @@ impl Client {
                             if let Some(tool_calls) = &first_choice.delta.tool_calls {
                                 // Build tool_calls array with id injection for Codex compatibility
                                 let mut tool_calls_array = Vec::new();
-                                
+
                                 for tc in tool_calls {
                                     let index = tc.index.unwrap_or(0);
-                                    
+
                                     // Remember id from first chunk, inject into subsequent chunks
                                     if !tc.id.is_empty() {
                                         tool_call_ids.insert(index, tc.id.clone());
-                                        tracing::debug!("Remembered tool call id for index {}: {}", index, tc.id);
+                                        tracing::debug!(
+                                            "Remembered tool call id for index {}: {}",
+                                            index,
+                                            tc.id
+                                        );
                                     }
-                                    
+
                                     // Build tool call object with id always present
                                     let mut tc_obj = serde_json::Map::new();
-                                    
+
                                     // Always include id (from current chunk or remembered)
                                     if let Some(remembered_id) = tool_call_ids.get(&index) {
-                                        tc_obj.insert("id".to_string(), Value::String(remembered_id.clone()));
+                                        tc_obj.insert(
+                                            "id".to_string(),
+                                            Value::String(remembered_id.clone()),
+                                        );
                                     }
-                                    
+
                                     // Include index
                                     tc_obj.insert("index".to_string(), Value::Number(index.into()));
-                                    
+
                                     // Include type if present
                                     if !tc.call_type.is_empty() {
-                                        tc_obj.insert("type".to_string(), Value::String(tc.call_type.clone()));
+                                        tc_obj.insert(
+                                            "type".to_string(),
+                                            Value::String(tc.call_type.clone()),
+                                        );
                                     }
-                                    
+
                                     // Include function object
                                     let mut func_obj = serde_json::Map::new();
                                     if !tc.function.name.is_empty() {
-                                        func_obj.insert("name".to_string(), Value::String(tc.function.name.clone()));
+                                        func_obj.insert(
+                                            "name".to_string(),
+                                            Value::String(tc.function.name.clone()),
+                                        );
                                     }
                                     if !tc.function.arguments.is_empty() {
-                                        func_obj.insert("arguments".to_string(), Value::String(tc.function.arguments.clone()));
+                                        func_obj.insert(
+                                            "arguments".to_string(),
+                                            Value::String(tc.function.arguments.clone()),
+                                        );
                                     }
                                     if !func_obj.is_empty() {
-                                        tc_obj.insert("function".to_string(), Value::Object(func_obj));
+                                        tc_obj.insert(
+                                            "function".to_string(),
+                                            Value::Object(func_obj),
+                                        );
                                     }
-                                    
+
                                     tool_calls_array.push(Value::Object(tc_obj));
                                 }
-                                
+
                                 if !tool_calls_array.is_empty() {
                                     delta["tool_calls"] = Value::Array(tool_calls_array);
                                     has_data = true;
                                     has_tool_calls = true;
                                     chunk_count += 1;
-                                    tracing::info!("Received chunk #{} with tool_calls: {} calls", chunk_count, tool_calls.len());
+                                    tracing::info!(
+                                        "Received chunk #{} with tool_calls: {} calls",
+                                        chunk_count,
+                                        tool_calls.len()
+                                    );
                                 }
                             }
                         }
@@ -535,7 +604,9 @@ impl Client {
 
                             // Send all chunks immediately (preserve streaming experience)
                             if tx.send(formatted_data).is_err() {
-                                tracing::warn!("Failed to send chunk to receiver (client disconnected?)");
+                                tracing::warn!(
+                                    "Failed to send chunk to receiver (client disconnected?)"
+                                );
                                 break;
                             }
                             tracing::debug!("Sent chunk #{} to client", chunk_count);
@@ -555,7 +626,9 @@ impl Client {
             // Send final message at stream end
             // 🎯 Key fix: If tool_calls detected, finish_reason should be "tool_calls" not "stop"
             let finish_reason = if has_tool_calls {
-                tracing::info!("🎯 Setting finish_reason to 'tool_calls' (detected tool_calls in stream)");
+                tracing::info!(
+                    "🎯 Setting finish_reason to 'tool_calls' (detected tool_calls in stream)"
+                );
                 "tool_calls"
             } else {
                 "stop"
@@ -585,4 +658,3 @@ impl Client {
         Ok(UnboundedReceiverStream::new(rx))
     }
 }
-

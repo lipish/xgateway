@@ -1,9 +1,9 @@
-pub mod types;
-pub mod chat;
-pub mod models;
-pub mod emulators;
 pub mod basic;
+pub mod chat;
+pub mod emulators;
+pub mod models;
+pub mod types;
 
-pub use types::ProxyState;
 pub use chat::handle_chat_completions;
-pub use models::{handle_list_models, handle_get_model};
+pub use models::{handle_get_model, handle_list_models};
+pub use types::ProxyState;

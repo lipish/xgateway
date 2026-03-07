@@ -1,6 +1,6 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use chrono::{DateTime, Utc};
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Organization {
@@ -28,15 +28,15 @@ pub struct Provider {
     pub name: String,
     #[sqlx(rename = "type")]
     pub provider_type: String,
-    pub config: String,  // JSON string
+    pub config: String, // JSON string
     pub enabled: bool,
     pub priority: i32,
     #[serde(default)]
-    pub endpoint: Option<String>,  // Endpoint ID for providers like Volcengine
+    pub endpoint: Option<String>, // Endpoint ID for providers like Volcengine
     #[serde(default)]
-    pub secret_id: Option<String>,  // Secret ID for Tencent Cloud
+    pub secret_id: Option<String>, // Secret ID for Tencent Cloud
     #[serde(default)]
-    pub secret_key: Option<String>,  // Secret Key for Tencent Cloud
+    pub secret_key: Option<String>, // Secret Key for Tencent Cloud
     pub owner_id: Option<i64>,
     pub version: i64,
     pub created_at: DateTime<Utc>,
@@ -94,7 +94,7 @@ impl Provider {
     pub fn new(name: String, provider_type: String, config: String) -> Self {
         let now = Utc::now();
         Self {
-            id: 0,  // Will be set by database
+            id: 0, // Will be set by database
             name,
             provider_type,
             config,
@@ -151,15 +151,15 @@ impl NewProvider {
 /// Provider type configuration (stored in database, initialized from models.yaml)
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct ProviderType {
-    pub id: String,              // e.g., "openai", "anthropic"
-    pub label: String,           // Display name
-    pub base_url: String,        // Default API base URL
-    pub models: String,          // JSON array of model objects
-    pub driver_type: String,     // e.g., "openai_compatible", "aliyun"
+    pub id: String,          // e.g., "openai", "anthropic"
+    pub label: String,       // Display name
+    pub base_url: String,    // Default API base URL
+    pub models: String,      // JSON array of model objects
+    pub driver_type: String, // e.g., "openai_compatible", "aliyun"
     pub enabled: bool,
     pub sort_order: i32,
     #[serde(default)]
-    pub docs_url: String,        // Documentation URL for provider's model list
+    pub docs_url: String, // Documentation URL for provider's model list
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -176,9 +176,9 @@ pub struct ModelInfo {
     #[serde(default)]
     pub context_length: Option<u32>,
     #[serde(default)]
-    pub input_price: Option<f64>,   // 输入价格 (元/1M tokens)
+    pub input_price: Option<f64>, // 输入价格 (元/1M tokens)
     #[serde(default)]
-    pub output_price: Option<f64>,  // 输出价格 (元/1M tokens)
+    pub output_price: Option<f64>, // 输出价格 (元/1M tokens)
 }
 
 /// For creating a new provider type
@@ -194,7 +194,7 @@ pub struct NewProviderType {
     #[serde(default)]
     pub sort_order: Option<i32>,
     #[serde(default)]
-    pub docs_url: Option<String>,  // Documentation URL for provider's model list
+    pub docs_url: Option<String>, // Documentation URL for provider's model list
 }
 
 /// For updating a provider type
@@ -206,7 +206,7 @@ pub struct UpdateProviderType {
     pub models: Option<Vec<ModelInfo>>,
     pub enabled: Option<bool>,
     pub sort_order: Option<i32>,
-    pub docs_url: Option<String>,  // Documentation URL for provider's model list
+    pub docs_url: Option<String>, // Documentation URL for provider's model list
 }
 
 /// API response format for provider types
@@ -216,7 +216,7 @@ pub struct ProviderTypeResponse {
     pub id: String,
     pub label: String,
     pub base_url: String,
-    pub models: Vec<String>,  // Just model IDs for the dropdown
+    pub models: Vec<String>, // Just model IDs for the dropdown
 }
 
 impl ProviderType {
@@ -300,7 +300,6 @@ pub struct ConversationListItem {
     pub updated_at: DateTime<Utc>,
     pub message_count: i64,
 }
-
 
 // ============ Request Log Models ============
 

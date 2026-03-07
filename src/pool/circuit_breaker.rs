@@ -3,10 +3,10 @@
 //! Implements the circuit breaker pattern to prevent cascading failures.
 //! States: Closed -> Open -> Half-Open -> Closed
 
+use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
 
 /// Circuit breaker state
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -140,7 +140,9 @@ impl CircuitBreaker {
                 // Check if we should reset failure window
                 let should_reset = {
                     let last_failure = self.last_failure_time.read().await;
-                    last_failure.map(|t| t.elapsed() >= self.config.failure_window).unwrap_or(true)
+                    last_failure
+                        .map(|t| t.elapsed() >= self.config.failure_window)
+                        .unwrap_or(true)
                 };
 
                 if should_reset {
@@ -184,7 +186,11 @@ impl CircuitBreaker {
             }
         }
 
-        tracing::info!("Circuit breaker state changed: {:?} -> {:?}", old_state, new_state);
+        tracing::info!(
+            "Circuit breaker state changed: {:?} -> {:?}",
+            old_state,
+            new_state
+        );
     }
 
     /// Force open the circuit
@@ -404,4 +410,3 @@ mod tests {
         assert!(cb.is_allowed().await);
     }
 }
-

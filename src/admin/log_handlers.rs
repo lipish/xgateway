@@ -1,9 +1,12 @@
+use super::ApiResponse;
+use crate::admin::auth_middleware::AdminUserContext;
+use crate::db::operations::request_logs::{
+    HourlyRequestCount, PerformanceStats, ProviderLatency, TodayStats, TokenUsageByApiKey,
+    TokenUsageByOrg, TokenUsageByUser, TopModelUsage,
+};
+use crate::db::{DatabasePool, RequestLog};
 use axum::Json;
 use serde::Deserialize;
-use crate::db::{DatabasePool, RequestLog};
-use crate::admin::auth_middleware::AdminUserContext;
-use crate::db::operations::request_logs::{HourlyRequestCount, ProviderLatency, TodayStats, PerformanceStats, TopModelUsage, TokenUsageByOrg, TokenUsageByApiKey, TokenUsageByUser};
-use super::ApiResponse;
 
 #[derive(Debug, Deserialize)]
 pub struct ListLogsQuery {
@@ -25,15 +28,25 @@ pub struct TokensQuery {
     pub top: i64,
 }
 
-fn default_logs_limit() -> i64 { 100 }
+fn default_logs_limit() -> i64 {
+    100
+}
 
-fn default_top_models_limit() -> i64 { 10 }
+fn default_top_models_limit() -> i64 {
+    10
+}
 
-fn default_top_models_hours() -> i64 { 24 }
+fn default_top_models_hours() -> i64 {
+    24
+}
 
-fn default_tokens_hours() -> i64 { 24 }
+fn default_tokens_hours() -> i64 {
+    24
+}
 
-fn default_tokens_top() -> i64 { 20 }
+fn default_tokens_top() -> i64 {
+    20
+}
 
 #[derive(Debug, Deserialize)]
 pub struct TopModelsQuery {

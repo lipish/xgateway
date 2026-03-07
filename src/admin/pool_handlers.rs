@@ -17,12 +17,10 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::db::DatabasePool;
-use crate::pool::{
-    ProviderPool, PoolStatus, LoadBalanceStrategy, HealthStatus,
-};
-use crate::pool::manager::{PoolManager, PoolStatusSummary};
 use super::ApiResponse;
+use crate::db::DatabasePool;
+use crate::pool::manager::{PoolManager, PoolStatusSummary};
+use crate::pool::{HealthStatus, LoadBalanceStrategy, PoolStatus, ProviderPool};
 
 /// Pool state for handlers
 pub struct PoolState {
@@ -57,9 +55,7 @@ pub struct SetFallbackChainRequest {
 }
 
 /// Get pool status
-pub async fn get_pool_status(
-    State(state): State<Arc<PoolState>>,
-) -> impl IntoResponse {
+pub async fn get_pool_status(State(state): State<Arc<PoolState>>) -> impl IntoResponse {
     let status = state.pool.get_pool_status().await;
     Json(PoolStatusResponse {
         status,
@@ -68,9 +64,7 @@ pub async fn get_pool_status(
 }
 
 /// Get all provider health statuses
-pub async fn get_all_health(
-    State(state): State<Arc<PoolState>>,
-) -> impl IntoResponse {
+pub async fn get_all_health(State(state): State<Arc<PoolState>>) -> impl IntoResponse {
     let statuses = state.pool.get_all_health_statuses().await;
     let responses: Vec<ProviderHealthResponse> = statuses
         .into_iter()
@@ -98,9 +92,7 @@ pub async fn get_provider_health(
 }
 
 /// Get metrics for all providers
-pub async fn get_all_metrics(
-    State(state): State<Arc<PoolState>>,
-) -> impl IntoResponse {
+pub async fn get_all_metrics(State(state): State<Arc<PoolState>>) -> impl IntoResponse {
     let metrics = state.pool.get_all_metrics().await;
     Json(metrics)
 }
@@ -125,22 +117,30 @@ pub async fn set_load_balance_strategy(
         "round_robin" | "roundrobin" => LoadBalanceStrategy::RoundRobin,
         "least_connections" | "leastconnections" => LoadBalanceStrategy::LeastConnections,
         "weighted" | "weighted_round_robin" => LoadBalanceStrategy::WeightedRoundRobin {
-            weights: std::collections::HashMap::new()
+            weights: std::collections::HashMap::new(),
         },
         "random" => LoadBalanceStrategy::Random,
         "priority" => LoadBalanceStrategy::Priority,
         "latency" | "latency_based" => LoadBalanceStrategy::LatencyBased,
-        _ => return (StatusCode::BAD_REQUEST, Json(serde_json::json!({
-            "error": "Invalid strategy",
-            "valid_strategies": ["round_robin", "least_connections", "weighted", "random", "priority", "latency"]
-        }))),
+        _ => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "Invalid strategy",
+                    "valid_strategies": ["round_robin", "least_connections", "weighted", "random", "priority", "latency"]
+                })),
+            )
+        }
     };
 
     state.pool.set_load_balance_strategy(strategy).await;
-    (StatusCode::OK, Json(serde_json::json!({
-        "message": "Strategy updated",
-        "strategy": request.strategy
-    })))
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "message": "Strategy updated",
+            "strategy": request.strategy
+        })),
+    )
 }
 
 /// Set fallback chain for a provider
@@ -149,7 +149,10 @@ pub async fn set_fallback_chain(
     Path(provider_id): Path<i64>,
     Json(request): Json<SetFallbackChainRequest>,
 ) -> impl IntoResponse {
-    state.pool.set_fallback_chain(provider_id, request.fallback_ids.clone()).await;
+    state
+        .pool
+        .set_fallback_chain(provider_id, request.fallback_ids.clone())
+        .await;
     Json(serde_json::json!({
         "message": "Fallback chain updated",
         "provider_id": provider_id,
@@ -178,37 +181,48 @@ pub async fn get_pool_health_api(
     let health_statuses = pool_manager.pool().get_all_health_statuses().await;
     let circuit_states = pool_manager.pool().get_all_circuit_states().await;
 
-    let health_data: Vec<serde_json::Value> = providers.iter().map(|p| {
-        let m = metrics.get(&p.id);
-        let status = health_statuses.get(&p.id).cloned().unwrap_or(crate::pool::health::HealthStatus::Unknown);
-        let circuit_state = circuit_states.get(&p.id).cloned().unwrap_or(crate::pool::circuit_breaker::CircuitState::Closed);
-        
-        let success_rate = m.map(|m| {
-            if m.total_requests > 0 {
-                (m.successful_requests as f64 / m.total_requests as f64) * 100.0
-            } else {
-                100.0
-            }
-        }).unwrap_or(100.0);
+    let health_data: Vec<serde_json::Value> = providers
+        .iter()
+        .map(|p| {
+            let m = metrics.get(&p.id);
+            let status = health_statuses
+                .get(&p.id)
+                .cloned()
+                .unwrap_or(crate::pool::health::HealthStatus::Unknown);
+            let circuit_state = circuit_states
+                .get(&p.id)
+                .cloned()
+                .unwrap_or(crate::pool::circuit_breaker::CircuitState::Closed);
 
-        let circuit_state_str = match circuit_state {
-            crate::pool::circuit_breaker::CircuitState::Closed => "closed",
-            crate::pool::circuit_breaker::CircuitState::Open => "open",
-            crate::pool::circuit_breaker::CircuitState::HalfOpen => "half_open",
-        };
+            let success_rate = m
+                .map(|m| {
+                    if m.total_requests > 0 {
+                        (m.successful_requests as f64 / m.total_requests as f64) * 100.0
+                    } else {
+                        100.0
+                    }
+                })
+                .unwrap_or(100.0);
 
-        serde_json::json!({
-            "id": p.id,
-            "name": p.name,
-            "status": format!("{:?}", status).to_lowercase(),
-            "latency_avg": m.map(|m| m.avg_latency_ms).unwrap_or(0.0),
-            "success_rate": success_rate,
-            "circuit_state": circuit_state_str,
-            "active_connections": m.map(|m| m.active_connections).unwrap_or(0),
-            "total_requests": m.map(|m| m.total_requests).unwrap_or(0),
-            "last_check": chrono::Utc::now().to_rfc3339() // TODO: Get actual last check time
+            let circuit_state_str = match circuit_state {
+                crate::pool::circuit_breaker::CircuitState::Closed => "closed",
+                crate::pool::circuit_breaker::CircuitState::Open => "open",
+                crate::pool::circuit_breaker::CircuitState::HalfOpen => "half_open",
+            };
+
+            serde_json::json!({
+                "id": p.id,
+                "name": p.name,
+                "status": format!("{:?}", status).to_lowercase(),
+                "latency_avg": m.map(|m| m.avg_latency_ms).unwrap_or(0.0),
+                "success_rate": success_rate,
+                "circuit_state": circuit_state_str,
+                "active_connections": m.map(|m| m.active_connections).unwrap_or(0),
+                "total_requests": m.map(|m| m.total_requests).unwrap_or(0),
+                "last_check": chrono::Utc::now().to_rfc3339() // TODO: Get actual last check time
+            })
         })
-    }).collect();
+        .collect();
 
     tracing::debug!("Healthy API Data: {:?}", health_data);
 
@@ -228,32 +242,38 @@ pub async fn get_pool_metrics_api(
     let providers = db_pool.list_providers().await.unwrap_or_default();
     let health_statuses = pool_manager.get_health_status().await;
 
-    let detailed: Vec<serde_json::Value> = providers.iter().map(|p| {
-        let m = metrics.get(&p.id).cloned().unwrap_or_default();
-        let health = health_statuses.get(&p.id).map(|s| format!("{:?}", s)).unwrap_or("Unknown".to_string());
-        let success_rate = if m.total_requests > 0 {
-            (m.successful_requests as f64 / m.total_requests as f64) * 100.0
-        } else {
-            100.0
-        };
-        serde_json::json!({
-            "provider_id": p.id,
-            "provider_name": p.name,
-            "enabled": p.enabled,
-            "health_status": health,
-            "total_requests": m.total_requests,
-            "successful_requests": m.successful_requests,
-            "failed_requests": m.failed_requests,
-            "success_rate": format!("{:.2}%", success_rate),
-            "avg_latency_ms": m.avg_latency_ms,
-            "p50_latency_ms": m.p50_latency_ms,
-            "p95_latency_ms": m.p95_latency_ms,
-            "p99_latency_ms": m.p99_latency_ms,
-            "active_connections": m.active_connections,
-            "tokens_used": m.tokens_used,
-            "requests_per_second": m.requests_per_second
+    let detailed: Vec<serde_json::Value> = providers
+        .iter()
+        .map(|p| {
+            let m = metrics.get(&p.id).cloned().unwrap_or_default();
+            let health = health_statuses
+                .get(&p.id)
+                .map(|s| format!("{:?}", s))
+                .unwrap_or("Unknown".to_string());
+            let success_rate = if m.total_requests > 0 {
+                (m.successful_requests as f64 / m.total_requests as f64) * 100.0
+            } else {
+                100.0
+            };
+            serde_json::json!({
+                "provider_id": p.id,
+                "provider_name": p.name,
+                "enabled": p.enabled,
+                "health_status": health,
+                "total_requests": m.total_requests,
+                "successful_requests": m.successful_requests,
+                "failed_requests": m.failed_requests,
+                "success_rate": format!("{:.2}%", success_rate),
+                "avg_latency_ms": m.avg_latency_ms,
+                "p50_latency_ms": m.p50_latency_ms,
+                "p95_latency_ms": m.p95_latency_ms,
+                "p99_latency_ms": m.p99_latency_ms,
+                "active_connections": m.active_connections,
+                "tokens_used": m.tokens_used,
+                "requests_per_second": m.requests_per_second
+            })
         })
-    }).collect();
+        .collect();
 
     Json(serde_json::json!({
         "providers": detailed,
@@ -274,7 +294,7 @@ pub async fn get_provider_metrics_api(
         None => Json(serde_json::json!({
             "success": false,
             "error": "Provider not found"
-        }))
+        })),
     }
 }
 

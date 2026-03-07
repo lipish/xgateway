@@ -1,16 +1,16 @@
-use std::sync::Arc;
-use axum::Router;
-use tower_http::cors::{Any, CorsLayer};
-use tower_http::services::{ServeDir, ServeFile};
+use crate::admin::create_admin_app;
 use crate::db::DatabasePool;
 use crate::pool::PoolManager;
-use crate::admin::create_admin_app;
+use axum::Router;
+use std::sync::Arc;
+use tower_http::cors::{Any, CorsLayer};
+use tower_http::services::{ServeDir, ServeFile};
 
-mod llm;
 mod basic;
+mod llm;
 
-use llm::build_llm_proxy_routes;
 use basic::build_basic_routes;
+use llm::build_llm_proxy_routes;
 
 use crate::service::Service as LlmService;
 use crate::settings::Settings;
@@ -22,9 +22,7 @@ use tokio::sync::RwLock;
 ///   only that origin is allowed.
 /// - If `XGATEWAY_CORS_ORIGIN` is set to `*` or unset, all origins are allowed (default).
 fn build_cors_layer() -> CorsLayer {
-    let cors = CorsLayer::new()
-        .allow_methods(Any)
-        .allow_headers(Any);
+    let cors = CorsLayer::new().allow_methods(Any).allow_headers(Any);
 
     match std::env::var("XGATEWAY_CORS_ORIGIN") {
         Ok(origin) if !origin.is_empty() && origin != "*" => {
@@ -50,7 +48,7 @@ fn build_cors_layer() -> CorsLayer {
 }
 
 pub fn build_multi_mode_app(
-    db_pool: DatabasePool, 
+    db_pool: DatabasePool,
     pool_manager: Arc<PoolManager>,
     llm_service: Arc<RwLock<LlmService>>,
     config: Arc<RwLock<Settings>>,
@@ -58,13 +56,13 @@ pub fn build_multi_mode_app(
 ) -> Router {
     let admin_routes = create_admin_app(db_pool.clone(), pool_manager.clone());
     let llm_proxy_routes = build_llm_proxy_routes(
-        db_pool.clone(), 
+        db_pool.clone(),
         pool_manager.clone(),
         llm_service.clone(),
         config.clone(),
         xtrace.clone(),
     );
-    
+
     // Create state for direct use in basic routes
     let state = crate::endpoints::ProxyState {
         db_pool,
@@ -79,8 +77,8 @@ pub fn build_multi_mode_app(
         .unwrap_or_default()
         .join("admin/dist");
 
-    let serve_dir = ServeDir::new(&static_dir)
-        .not_found_service(ServeFile::new(static_dir.join("index.html")));
+    let serve_dir =
+        ServeDir::new(&static_dir).not_found_service(ServeFile::new(static_dir.join("index.html")));
 
     basic_routes
         .merge(admin_routes)

@@ -7,17 +7,17 @@
 //! - Metrics collection
 //! - Rate limiting
 
+use anyhow::Result;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
-use anyhow::Result;
 
-use super::pool::{ProviderPool, ProviderInstanceConfig};
 use super::health::HealthStatus;
 use super::load_balancer::LoadBalanceStrategy;
 use super::metrics::ProviderMetricsSummary;
-use super::rate_limiter::{RateLimiter, RateLimitConfig, RateLimitResult};
-use crate::db::{DatabasePool, Provider, ApiKey};
+use super::pool::{ProviderInstanceConfig, ProviderPool};
+use super::rate_limiter::{RateLimitConfig, RateLimitResult, RateLimiter};
+use crate::db::{ApiKey, DatabasePool, Provider};
 use crate::provider::ProviderRegistry;
 
 /// Global provider pool manager
@@ -66,48 +66,81 @@ impl PoolManager {
                 self.add_provider(&provider).await?;
             }
         }
-        tracing::info!("Pool manager initialized with {} providers", 
-            self.pool.get_all_providers().await.len());
+        tracing::info!(
+            "Pool manager initialized with {} providers",
+            self.pool.get_all_providers().await.len()
+        );
         Ok(())
     }
 
     /// Add a provider to the pool
     pub async fn add_provider(&self, provider: &Provider) -> Result<()> {
-        let config: serde_json::Value = serde_json::from_str(&provider.config)
-            .unwrap_or_else(|e| {
+        let config: serde_json::Value =
+            serde_json::from_str(&provider.config).unwrap_or_else(|e| {
                 tracing::warn!(
                     "Failed to parse provider config for '{}' (id={}): {}",
-                    provider.name, provider.id, e
+                    provider.name,
+                    provider.id,
+                    e
                 );
                 serde_json::Value::default()
             });
 
         // Use endpoint if provided (for Volcengine ep-*), otherwise fall back to model from config
         let model = if provider.provider_type == "volcengine" {
-            provider.endpoint.clone().unwrap_or_else(|| config.get("model").and_then(|v| v.as_str()).unwrap_or("default").to_string())
+            provider.endpoint.clone().unwrap_or_else(|| {
+                config
+                    .get("model")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("default")
+                    .to_string()
+            })
         } else {
-            config.get("model").and_then(|v| v.as_str()).unwrap_or("default").to_string()
+            config
+                .get("model")
+                .and_then(|v| v.as_str())
+                .unwrap_or("default")
+                .to_string()
         };
 
         let instance_config = ProviderInstanceConfig {
             provider_type: provider.provider_type.clone(),
-            api_key: config.get("api_key").and_then(|v| v.as_str()).map(String::from),
-            base_url: config.get("base_url").and_then(|v| v.as_str()).map(String::from),
-            region: config.get("region").and_then(|v| v.as_str()).map(String::from),
+            api_key: config
+                .get("api_key")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            base_url: config
+                .get("base_url")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            region: config
+                .get("region")
+                .and_then(|v| v.as_str())
+                .map(String::from),
             model,
             priority: provider.priority,
             weight: 1,
             enabled: provider.enabled,
-            input_price: config.get("input_price").and_then(|v| v.as_f64()).unwrap_or(0.0),
-            output_price: config.get("output_price").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            input_price: config
+                .get("input_price")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0),
+            output_price: config
+                .get("output_price")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0),
             quota_limit: config.get("quota_limit").and_then(|v| v.as_u64()),
         };
 
-        self.pool.add_provider(provider.id, provider.name.clone(), instance_config).await;
-        
+        self.pool
+            .add_provider(provider.id, provider.name.clone(), instance_config)
+            .await;
+
         // Mark as healthy initially (will be updated by health check)
-        self.pool.update_health(provider.id, HealthStatus::Healthy).await;
-        
+        self.pool
+            .update_health(provider.id, HealthStatus::Healthy)
+            .await;
+
         Ok(())
     }
 
@@ -123,7 +156,9 @@ impl PoolManager {
 
     /// Select a provider with fallback (excluding a failed one)
     pub async fn select_fallback(&self, exclude_id: i64) -> Option<i64> {
-        self.pool.select_provider_with_fallback(Some(exclude_id)).await
+        self.pool
+            .select_provider_with_fallback(Some(exclude_id))
+            .await
     }
 
     pub async fn select_provider_from_candidates(
@@ -143,7 +178,11 @@ impl PoolManager {
         exclude: Option<i64>,
     ) -> Option<i64> {
         self.pool
-            .select_provider_from_candidates_with_strategy(strategy, candidate_provider_ids, exclude)
+            .select_provider_from_candidates_with_strategy(
+                strategy,
+                candidate_provider_ids,
+                exclude,
+            )
             .await
     }
 
@@ -196,9 +235,10 @@ impl PoolManager {
             enabled: key_info.status == "active",
             max_concurrency: Some(key_info.concurrency_limit as u32),
         };
-        self.rate_limiter.check_api_key(&key_info.key_hash, Some(config)).await
+        self.rate_limiter
+            .check_api_key(&key_info.key_hash, Some(config))
+            .await
     }
-
 
     /// Set global rate limit config
     pub async fn set_global_rate_limit(&self, config: RateLimitConfig) {
@@ -207,12 +247,19 @@ impl PoolManager {
 
     /// Set provider-specific rate limit config
     pub async fn set_provider_rate_limit(&self, provider_id: i64, config: RateLimitConfig) {
-        self.rate_limiter.set_provider_config(provider_id, config).await;
+        self.rate_limiter
+            .set_provider_config(provider_id, config)
+            .await;
     }
 
     /// Get rate limit status
     pub async fn get_rate_limit_status(&self) -> (u64, RateLimitConfig) {
         self.rate_limiter.get_global_status().await
+    }
+
+    /// Run a real upstream connectivity test for one provider.
+    pub async fn test_provider_connectivity(&self, provider: &Provider) -> Result<u64> {
+        self.check_provider_health(provider).await
     }
 
     /// Shutdown the manager
@@ -226,7 +273,10 @@ impl PoolManager {
         let interval = self.health_check_interval;
 
         tokio::spawn(async move {
-            tracing::info!("Starting background health check task (interval: {:?})", interval);
+            tracing::info!(
+                "Starting background health check task (interval: {:?})",
+                interval
+            );
 
             loop {
                 // Check shutdown flag
@@ -255,6 +305,17 @@ impl PoolManager {
         };
 
         for provider in providers.iter().filter(|p| p.enabled) {
+            // Skip health check if provider is already unhealthy
+            let status = self.pool.health_checker().get_status(provider.id).await;
+            if status == HealthStatus::Unhealthy {
+                tracing::debug!(
+                    "Skipping health check for unhealthy provider {} ({})",
+                    provider.name,
+                    provider.id
+                );
+                continue;
+            }
+
             let result = self.check_provider_health(provider).await;
 
             match result {
@@ -272,7 +333,7 @@ impl PoolManager {
                         err_str,
                         status
                     );
-                    
+
                     // Record health check failure to request logs
                     let model_for_log = provider
                         .endpoint
@@ -299,12 +360,13 @@ impl PoolManager {
                         || err_str.contains("(1008)")
                         || err_str.contains("1008");
 
-                    // Only disable if explicitly insufficient balance. 
+                    // Only disable if explicitly insufficient balance.
                     // Do NOT auto-disable for network errors or health check timeouts.
                     if should_disable_immediately {
                         let reason = "insufficient_balance_1008";
 
-                        if let Err(e) = self.db_pool.set_provider_enabled(provider.id, false).await {
+                        if let Err(e) = self.db_pool.set_provider_enabled(provider.id, false).await
+                        {
                             tracing::error!(
                                 "Failed to auto-disable provider {} ({}): {}",
                                 provider.name,
@@ -354,8 +416,9 @@ impl PoolManager {
         let config: serde_json::Value = serde_json::from_str(&provider.config)?;
         let api_key = config.get("api_key").and_then(|v| v.as_str()).unwrap_or("");
         let region = config.get("region").and_then(|v| v.as_str());
-        
-        let base_url = config.get("base_url")
+
+        let base_url = config
+            .get("base_url")
             .and_then(|v| v.as_str())
             .map(String::from)
             .unwrap_or_else(|| {
@@ -371,11 +434,15 @@ impl PoolManager {
                         "minimax" => "https://api.minimax.io/v1",
                         "deepseek" => "https://api.deepseek.com/v1",
                         _ => "",
-                    }).to_string()
+                    })
+                    .to_string()
             });
 
         if base_url.is_empty() {
-            return Err(anyhow::anyhow!("No base_url configured and no default available for type '{}'", provider.provider_type));
+            return Err(anyhow::anyhow!(
+                "No base_url configured and no default available for type '{}'",
+                provider.provider_type
+            ));
         }
 
         // Some providers (like MiniMax) don't support /models endpoint
@@ -428,19 +495,30 @@ impl PoolManager {
                 .header("Authorization", format!("Bearer {}", api_key))
                 .send()
                 .await;
-            
+
             match response {
                 Ok(resp) => {
                     let latency_ms = start.elapsed().as_millis() as u64;
                     if resp.status().is_success() {
                         Ok(latency_ms)
                     } else {
-                        tracing::warn!("Health check for {} failed with status: {}", provider.name, resp.status());
-                        Err(anyhow::anyhow!("Health check failed: HTTP {}", resp.status()))
+                        tracing::warn!(
+                            "Health check for {} failed with status: {}",
+                            provider.name,
+                            resp.status()
+                        );
+                        Err(anyhow::anyhow!(
+                            "Health check failed: HTTP {}",
+                            resp.status()
+                        ))
                     }
                 }
                 Err(e) => {
-                    tracing::error!("Health check for {} failed with error: {}", provider.name, e);
+                    tracing::error!(
+                        "Health check for {} failed with error: {}",
+                        provider.name,
+                        e
+                    );
                     Err(anyhow::anyhow!("Connection failed: {}", e))
                 }
             }
@@ -453,16 +531,19 @@ impl PoolManager {
         let pool_providers = self.pool.get_all_providers().await;
 
         // Get IDs
-        let db_ids: std::collections::HashSet<i64> = db_providers.iter()
+        let db_ids: std::collections::HashSet<i64> = db_providers
+            .iter()
             .filter(|p| p.enabled)
             .map(|p| p.id)
             .collect();
-        let pool_ids: std::collections::HashSet<i64> = pool_providers.iter()
-            .map(|p| p.id)
-            .collect();
+        let pool_ids: std::collections::HashSet<i64> =
+            pool_providers.iter().map(|p| p.id).collect();
 
         // Add new providers
-        for provider in db_providers.iter().filter(|p| p.enabled && !pool_ids.contains(&p.id)) {
+        for provider in db_providers
+            .iter()
+            .filter(|p| p.enabled && !pool_ids.contains(&p.id))
+        {
             self.add_provider(provider).await?;
             tracing::info!("Added provider {} to pool", provider.name);
         }

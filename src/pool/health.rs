@@ -5,11 +5,11 @@
 //! - Health status tracking
 //! - Provider availability detection
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
 
 /// Health status of a provider
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -116,7 +116,9 @@ impl HealthChecker {
     /// Register a provider for health checking
     pub async fn register_provider(&self, provider_id: i64) {
         let mut states = self.states.write().await;
-        states.entry(provider_id).or_insert_with(ProviderHealthState::default);
+        states
+            .entry(provider_id)
+            .or_insert_with(ProviderHealthState::default);
         tracing::info!("Registered provider {} for health checking", provider_id);
     }
 
@@ -130,7 +132,8 @@ impl HealthChecker {
     /// Check if a provider is healthy
     pub async fn is_healthy(&self, provider_id: i64) -> bool {
         let states = self.states.read().await;
-        states.get(&provider_id)
+        states
+            .get(&provider_id)
             .map(|s| s.status == HealthStatus::Healthy || s.status == HealthStatus::Degraded)
             .unwrap_or(false)
     }
@@ -138,7 +141,8 @@ impl HealthChecker {
     /// Get the health status of a provider
     pub async fn get_status(&self, provider_id: i64) -> HealthStatus {
         let states = self.states.read().await;
-        states.get(&provider_id)
+        states
+            .get(&provider_id)
             .map(|s| s.status)
             .unwrap_or(HealthStatus::Unknown)
     }
@@ -146,7 +150,8 @@ impl HealthChecker {
     /// Get all provider health statuses
     pub async fn get_all_statuses(&self) -> HashMap<i64, HealthStatus> {
         let states = self.states.read().await;
-        states.iter()
+        states
+            .iter()
             .map(|(id, state)| (*id, state.status))
             .collect()
     }
@@ -154,8 +159,11 @@ impl HealthChecker {
     /// Get healthy provider IDs
     pub async fn get_healthy_providers(&self) -> Vec<i64> {
         let states = self.states.read().await;
-        states.iter()
-            .filter(|(_, state)| state.status == HealthStatus::Healthy || state.status == HealthStatus::Degraded)
+        states
+            .iter()
+            .filter(|(_, state)| {
+                state.status == HealthStatus::Healthy || state.status == HealthStatus::Degraded
+            })
             .map(|(id, _)| *id)
             .collect()
     }
@@ -165,6 +173,10 @@ impl HealthChecker {
         let mut states = self.states.write().await;
         if let Some(state) = states.get_mut(&provider_id) {
             state.status = status;
+            // If setting to Unhealthy, reset success count to ensure it needs to re-prove itself
+            if status == HealthStatus::Unhealthy {
+                state.consecutive_successes = 0;
+            }
             tracing::debug!("Set provider {} status to {:?}", provider_id, status);
         } else {
             // Register provider if not exists
@@ -178,6 +190,7 @@ impl HealthChecker {
     pub async fn record_success(&self, provider_id: i64, latency_ms: u64) {
         let mut states = self.states.write().await;
         if let Some(state) = states.get_mut(&provider_id) {
+            let old_status = state.status;
             state.consecutive_successes += 1;
             state.consecutive_failures = 0;
             state.last_success = Some(Instant::now());
@@ -186,18 +199,30 @@ impl HealthChecker {
 
             // Update average latency with exponential moving average
             let alpha = 0.2;
-            state.avg_latency_ms = alpha * (latency_ms as f64) + (1.0 - alpha) * state.avg_latency_ms;
+            state.avg_latency_ms =
+                alpha * (latency_ms as f64) + (1.0 - alpha) * state.avg_latency_ms;
 
-            // Update status based on latency
+            // Update status based on latency and success count
             if latency_ms > self.config.degraded_latency_threshold_ms {
                 state.status = HealthStatus::Degraded;
             } else if state.consecutive_successes >= self.config.healthy_threshold {
                 state.status = HealthStatus::Healthy;
             }
 
+            if old_status == HealthStatus::Unhealthy && state.status != HealthStatus::Unhealthy {
+                tracing::info!(
+                    "Provider {} recovered from Unhealthy to {:?} after {} consecutive successes",
+                    provider_id,
+                    state.status,
+                    state.consecutive_successes
+                );
+            }
+
             tracing::debug!(
                 "Provider {} success recorded: latency={}ms, status={:?}",
-                provider_id, latency_ms, state.status
+                provider_id,
+                latency_ms,
+                state.status
             );
         }
     }
@@ -220,7 +245,10 @@ impl HealthChecker {
 
             tracing::warn!(
                 "Provider {} failure recorded: consecutive_failures={}, error={:?}, status={:?}",
-                provider_id, state.consecutive_failures, error, state.status
+                provider_id,
+                state.consecutive_failures,
+                error,
+                state.status
             );
         }
     }
@@ -234,14 +262,16 @@ impl HealthChecker {
     /// Get detailed health info for a provider
     pub async fn get_health_info(&self, provider_id: i64) -> Option<HealthCheckResult> {
         let states = self.states.read().await;
-        states.get(&provider_id).map(|state| {
-            HealthCheckResult {
-                provider_id,
-                status: state.status,
-                latency_ms: if state.avg_latency_ms > 0.0 { Some(state.avg_latency_ms as u64) } else { None },
-                error_message: None,
-                checked_at: chrono::Utc::now(),
-            }
+        states.get(&provider_id).map(|state| HealthCheckResult {
+            provider_id,
+            status: state.status,
+            latency_ms: if state.avg_latency_ms > 0.0 {
+                Some(state.avg_latency_ms as u64)
+            } else {
+                None
+            },
+            error_message: None,
+            checked_at: chrono::Utc::now(),
         })
     }
 
@@ -425,4 +455,3 @@ mod tests {
         assert!(avg2 > avg);
     }
 }
-

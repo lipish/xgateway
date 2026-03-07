@@ -42,8 +42,8 @@ impl ConfigLoader {
 
     /// 从 YAML 字符串加载配置
     pub async fn load_from_yaml_str(content: &str) -> Result<Config> {
-        let mut config: Config = serde_yaml::from_str(content)
-            .context("Failed to parse config YAML")?;
+        let mut config: Config =
+            serde_yaml::from_str(content).context("Failed to parse config YAML")?;
 
         Self::expand_env_vars_in_config(&mut config)?;
 
@@ -148,14 +148,17 @@ mod tests {
         std::env::set_var("TEST_VAR", "test_value");
 
         let re = Regex::new(ENV_VAR_PATTERN).unwrap();
-        let result = ConfigLoader::expand_env_vars_in_string(&re, "prefix_${TEST_VAR}_suffix").unwrap();
+        let result =
+            ConfigLoader::expand_env_vars_in_string(&re, "prefix_${TEST_VAR}_suffix").unwrap();
         assert_eq!(result, "prefix_test_value_suffix");
     }
 
     #[test]
     fn test_env_var_with_default() {
         let re = Regex::new(ENV_VAR_PATTERN).unwrap();
-        let result = ConfigLoader::expand_env_vars_in_string(&re, "${NON_EXISTENT_VAR:default_value}").unwrap();
+        let result =
+            ConfigLoader::expand_env_vars_in_string(&re, "${NON_EXISTENT_VAR:default_value}")
+                .unwrap();
         assert_eq!(result, "default_value");
     }
 }

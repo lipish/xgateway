@@ -33,6 +33,26 @@ export function AddProviderDialog({
   onSave,
   saving
 }: AddProviderDialogProps) {
+  const getProviderNamePlaceholder = (driverType: string) => {
+    switch (driverType) {
+      case "xinference":
+        return "Xinference"
+      case "anthropic":
+        return "Anthropic"
+      case "aliyun":
+        return "Aliyun"
+      case "volcengine":
+        return "Volcengine"
+      case "tencent":
+        return "Tencent"
+      case "ollama":
+        return "Ollama"
+      case "openai_compatible":
+      default:
+        return "OpenAI Compatible"
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden border">
@@ -50,7 +70,7 @@ export function AddProviderDialog({
                 <Input
                   value={providerForm.label}
                   onChange={e => onLabelChange(e.target.value)}
-                  placeholder="OpenAI"
+                  placeholder={getProviderNamePlaceholder(providerForm.driver_type)}
                   className="h-10"
                 />
               </div>
@@ -59,16 +79,17 @@ export function AddProviderDialog({
                 <Select
                   value={providerForm.driver_type}
                   onChange={value => onFormChange({ ...providerForm, driver_type: value })}
+                  className="w-full"
                   options={[
-                    { value: "openai", label: t("modelTypes.driverTypeOpenAI") },
                     { value: "openai_compatible", label: t("modelTypes.driverTypeOpenAICompatible") },
+                    { value: "xinference", label: t("modelTypes.driverTypeXinference") },
                     { value: "anthropic", label: t("modelTypes.driverTypeAnthropic") },
                     { value: "aliyun", label: t("modelTypes.driverTypeAliyun") },
                     { value: "volcengine", label: t("modelTypes.driverTypeVolcengine") },
                     { value: "tencent", label: t("modelTypes.driverTypeTencent") },
                     { value: "ollama", label: t("modelTypes.driverTypeOllama") },
                   ]}
-                  triggerClassName="h-10"
+                  triggerClassName="h-10 w-full justify-between"
                 />
               </div>
             </div>

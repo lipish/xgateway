@@ -22,7 +22,7 @@ interface ProviderDetailProps {
   onTest: (id: number) => void
   onNavigateToChat: (id: number) => void
   testingId: number | null
-  testResult: { id: number; success: boolean; message: string } | null
+  testResult: { success: boolean; message: string } | null
 }
 
 export function ProviderDetail({ provider, providerTypeConfig, onTest, onNavigateToChat, testingId, testResult }: ProviderDetailProps) {
@@ -72,11 +72,11 @@ export function ProviderDetail({ provider, providerTypeConfig, onTest, onNavigat
               className="h-8 w-8"
               onClick={() => !testingId && onTest(provider.id)}
               disabled={!!testingId}
-              title={testingId === provider.id ? t('providers.testConnection') : testResult?.id === provider.id ? (testResult.success ? t('providers.connectionSuccess') : t('providers.connectionFailed')) : t('providers.testConnection')}
+              title={testingId === provider.id ? t('providers.testConnection') : testResult ? (testResult.success ? t('providers.connectionSuccess') : t('providers.connectionFailed')) : t('providers.testConnection')}
             >
               {testingId === provider.id ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
-              ) : testResult?.id === provider.id ? (
+              ) : testResult ? (
                 <Activity className={`h-4 w-4 ${testResult.success ? "text-primary" : "text-destructive"}`} />
               ) : (
                 <Activity className="h-4 w-4" />

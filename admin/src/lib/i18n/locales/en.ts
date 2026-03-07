@@ -561,6 +561,7 @@ export const en = {
     sortByModels: 'Sort by Models',
     driverTypeOpenAI: 'OpenAI',
     driverTypeOpenAICompatible: 'OpenAI Compatible',
+    driverTypeXinference: 'Xinference',
     driverTypeAnthropic: 'Anthropic',
     driverTypeAliyun: 'Aliyun',
     driverTypeVolcengine: 'Volcengine',

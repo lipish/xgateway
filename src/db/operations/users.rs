@@ -1,6 +1,6 @@
-use sqlx::{Row};
+use crate::db::{DatabasePool, NewUser, User};
 use anyhow::Result;
-use crate::db::{DatabasePool, User, NewUser};
+use sqlx::Row;
 
 impl DatabasePool {
     pub async fn create_user(&self, user: NewUser) -> Result<i64> {
@@ -36,9 +36,8 @@ impl DatabasePool {
 
     pub async fn get_user_by_token(&self, token: &str) -> Result<Option<User>> {
         match self {
-            Self::Postgres(pool) => {
-                Ok(sqlx::query_as::<_, User>(
-                    "SELECT u.id, u.username, u.password_hash, u.role_id, u.status, \
+            Self::Postgres(pool) => Ok(sqlx::query_as::<_, User>(
+                "SELECT u.id, u.username, u.password_hash, u.role_id, u.status, \
                             (u.created_at AT TIME ZONE 'UTC') as created_at, \
                             (u.updated_at AT TIME ZONE 'UTC') as updated_at, \
                             COALESCE(ou.org_id::BIGINT, 1) as org_id \
@@ -46,30 +45,27 @@ impl DatabasePool {
                      JOIN users u ON u.id = t.user_id \
                      LEFT JOIN org_users ou ON ou.user_id = u.id \
                      WHERE t.token = $1",
-                )
-                .bind(token)
-                .fetch_optional(pool)
-                .await?)
-            }
+            )
+            .bind(token)
+            .fetch_optional(pool)
+            .await?),
         }
     }
 
     pub async fn get_user_by_username(&self, username: &str) -> Result<Option<User>> {
         match self {
-            Self::Postgres(pool) => {
-                Ok(sqlx::query_as::<_, User>(
-                    "SELECT u.id, u.username, u.password_hash, u.role_id, u.status, \
+            Self::Postgres(pool) => Ok(sqlx::query_as::<_, User>(
+                "SELECT u.id, u.username, u.password_hash, u.role_id, u.status, \
                             (u.created_at AT TIME ZONE 'UTC') as created_at, \
                             (u.updated_at AT TIME ZONE 'UTC') as updated_at, \
                             COALESCE(ou.org_id::BIGINT, 1) as org_id \
                      FROM users u \
                      LEFT JOIN org_users ou ON ou.user_id = u.id \
                      WHERE u.username = $1",
-                )
-                    .bind(username)
-                    .fetch_optional(pool)
-                    .await?)
-            }
+            )
+            .bind(username)
+            .fetch_optional(pool)
+            .await?),
         }
     }
 
@@ -100,13 +96,22 @@ impl DatabasePool {
         let pg_query = "UPDATE users SET status = $1 WHERE id = $2";
         match self {
             Self::Postgres(pool) => {
-                let result = sqlx::query(pg_query).bind(status).bind(id).execute(pool).await?;
+                let result = sqlx::query(pg_query)
+                    .bind(status)
+                    .bind(id)
+                    .execute(pool)
+                    .await?;
                 Ok(result.rows_affected() > 0)
             }
         }
     }
 
-    pub async fn update_user_profile(&self, id: i64, role_id: Option<&str>, password_hash: Option<&str>) -> Result<bool> {
+    pub async fn update_user_profile(
+        &self,
+        id: i64,
+        role_id: Option<&str>,
+        password_hash: Option<&str>,
+    ) -> Result<bool> {
         let pg_query = r#"
             UPDATE users
             SET role_id = COALESCE($1, role_id),

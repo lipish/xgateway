@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Loader2 } from "lucide-react"
+import { Copy, Eye, EyeOff, Loader2 } from "lucide-react"
 import { t } from "@/lib/i18n"
 import type { ProviderTypeConfig } from "./types"
 
@@ -59,12 +59,13 @@ export function EditProviderDialog({
   error,
 }: EditProviderDialogProps) {
   const [showRawApiKey, setShowRawApiKey] = useState(false)
+  const [copiedApiKey, setCopiedApiKey] = useState(false)
   const [showRawSecretId, setShowRawSecretId] = useState(false)
   const [showRawSecretKey, setShowRawSecretKey] = useState(false)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden border">
+      <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border">
         <div className="p-6 space-y-5">
           <DialogHeader className="space-y-1.5 mb-0">
             <DialogTitle className="text-xl font-semibold tracking-tight text-foreground">
@@ -123,7 +124,8 @@ export function EditProviderDialog({
                       label: m.name,
                     }))}
                     placeholder={t('providers.selectModel')}
-                    triggerClassName="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background"
+                    className="w-full"
+                    triggerClassName="bg-background border-input h-10 w-full justify-between px-3 py-2 text-sm ring-offset-background"
                   />
                 ) : (
                   <Input
@@ -197,31 +199,100 @@ export function EditProviderDialog({
                 <Label htmlFor="edit-apiKey" className="text-sm font-medium">
                   API Key
                 </Label>
-                <Input
-                  id="edit-apiKey"
-                  type="text"
-                  value={showRawApiKey ? form.apiKey : maskKey(form.apiKey)}
-                  placeholder="Enter new API key or leave masked to keep current"
-                  onPaste={(e) => {
-                    const pasted = e.clipboardData.getData('text')
-                    if (pasted) {
-                      e.preventDefault()
-                      onFormChange({ ...form, apiKey: pasted })
+                <div className="space-y-1.5">
+                  <div className="relative">
+                  <Input
+                    id="edit-apiKey"
+                    type="text"
+                    value={showRawApiKey ? form.apiKey : maskKey(form.apiKey)}
+                    placeholder="Enter new API key or leave masked to keep current"
+                    onPaste={(e) => {
+                      const pasted = e.clipboardData.getData('text')
+                      if (pasted) {
+                        e.preventDefault()
+                        onFormChange({ ...form, apiKey: pasted })
+                      }
+                    }}
+                    onChange={(e) =>
+                      onFormChange({ ...form, apiKey: e.target.value })
                     }
-                  }}
-                  onFocus={() => setShowRawApiKey(true)}
-                  onBlur={() => setShowRawApiKey(false)}
-                  onChange={(e) =>
-                    onFormChange({ ...form, apiKey: e.target.value })
-                  }
-                  autoComplete="off"
-                  className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
+                    autoComplete="off"
+                    className="bg-background border-input h-10 pl-3 pr-20 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                    <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => setShowRawApiKey((prev) => !prev)}
+                        title={showRawApiKey ? t("apiKeys.hideKey") : t("apiKeys.showKey")}
+                      >
+                        {showRawApiKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={async () => {
+                          if (!form.apiKey) return
+                          try {
+                            await navigator.clipboard.writeText(form.apiKey)
+                            setCopiedApiKey(true)
+                            setTimeout(() => setCopiedApiKey(false), 1200)
+                          } catch (e) {
+                            console.error("Failed to copy API key:", e)
+                          }
+                        }}
+                        title={copiedApiKey ? t("apiKeys.copiedToClipboard") : t("common.copy")}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  {copiedApiKey && (
+                    <span className="text-xs text-primary">
+                      {t("apiKeys.copiedToClipboard")}
+                    </span>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* Row 3: Priority & Volcengine Endpoint */}
+            {/* Row 3: Volcengine Endpoint */}
+            {providerType === 'volcengine' ? (
+              <div className="space-y-2">
+                <Label htmlFor="edit-endpoint" className="text-sm font-medium">
+                  {t('providers.endpoint')} *
+                </Label>
+                <Input
+                  id="edit-endpoint"
+                  placeholder="ep-xxxxx"
+                  value={form.endpoint}
+                  onChange={(e) =>
+                    onFormChange({ ...form, endpoint: e.target.value })
+                  }
+                  className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                />
+              </div>
+            ) : null}
+
+            {/* Row 4: Base URL and Priority */}
             <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-baseUrl" className="text-sm font-medium">
+                  {t('providers.baseUrl')}
+                </Label>
+                <Input
+                  id="edit-baseUrl"
+                  value={form.baseUrl}
+                  onChange={(e) =>
+                    onFormChange({ ...form, baseUrl: e.target.value })
+                  }
+                  className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-priority" className="text-sm font-medium">
                   {t('providers.priority')}
@@ -236,37 +307,6 @@ export function EditProviderDialog({
                   className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
-              {providerType === 'volcengine' ? (
-                <div className="space-y-2">
-                  <Label htmlFor="edit-endpoint" className="text-sm font-medium">
-                    {t('providers.endpoint')} *
-                  </Label>
-                  <Input
-                    id="edit-endpoint"
-                    placeholder="ep-xxxxx"
-                    value={form.endpoint}
-                    onChange={(e) =>
-                      onFormChange({ ...form, endpoint: e.target.value })
-                    }
-                    className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  />
-                </div>
-              ) : null}
-            </div>
-
-            {/* Row 4: Base URL */}
-            <div className="space-y-2">
-              <Label htmlFor="edit-baseUrl" className="text-sm font-medium">
-                {t('providers.baseUrl')}
-              </Label>
-              <Input
-                id="edit-baseUrl"
-                value={form.baseUrl}
-                onChange={(e) =>
-                  onFormChange({ ...form, baseUrl: e.target.value })
-                }
-                className="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              />
             </div>
 
             {/* Row 5: Pricing & Quota */}

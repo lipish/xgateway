@@ -63,7 +63,8 @@ pub fn openai_messages_to_llm(messages: Vec<Value>) -> Result<Vec<LlmMessage>> {
         // Extract tool_call_id if present (for tool messages)
         let tool_call_id = if role == "tool" {
             // First try standard tool_call_id field
-            let tool_call_id = msg.get("tool_call_id")
+            let tool_call_id = msg
+                .get("tool_call_id")
                 .and_then(|id| id.as_str())
                 .map(|s| s.to_string());
 
@@ -76,8 +77,11 @@ pub fn openai_messages_to_llm(messages: Vec<Value>) -> Result<Vec<LlmMessage>> {
                 tool_call_id
             };
 
-            tracing::debug!("Tool message: tool_call_id={:?}, tool_name={:?}",
-                          tool_call_id, msg.get("tool_name"));
+            tracing::debug!(
+                "Tool message: tool_call_id={:?}, tool_name={:?}",
+                tool_call_id,
+                msg.get("tool_name")
+            );
 
             tool_call_id
         } else {
@@ -86,8 +90,12 @@ pub fn openai_messages_to_llm(messages: Vec<Value>) -> Result<Vec<LlmMessage>> {
 
         // Debug logging for tool messages
         if role == "tool" {
-            tracing::debug!("Converting tool message: role={}, tool_call_id={:?}, content_len={}",
-                          role, tool_call_id, content.len());
+            tracing::debug!(
+                "Converting tool message: role={}, tool_call_id={:?}, content_len={}",
+                role,
+                tool_call_id,
+                content.len()
+            );
 
             // Additional validation: ensure tool_call_id is not empty
             if let Some(ref id) = tool_call_id {
@@ -294,7 +302,7 @@ mod tests {
             json!({
                 "role": "user",
                 "content": "What about Shanghai?"
-            })
+            }),
         ];
 
         let result = openai_messages_to_llm(messages);
@@ -316,13 +324,11 @@ mod tests {
 
     #[test]
     fn test_missing_tool_call_id() {
-        let messages = vec![
-            json!({
-                "role": "tool",
-                "content": "Some tool response"
-                // Missing tool_call_id field - this is now allowed for compatibility
-            })
-        ];
+        let messages = vec![json!({
+            "role": "tool",
+            "content": "Some tool response"
+            // Missing tool_call_id field - this is now allowed for compatibility
+        })];
 
         let result = openai_messages_to_llm(messages);
         assert!(result.is_ok());
@@ -337,13 +343,11 @@ mod tests {
 
     #[test]
     fn test_empty_tool_call_id() {
-        let messages = vec![
-            json!({
-                "role": "tool",
-                "content": "Some tool response",
-                "tool_call_id": ""  // Empty tool_call_id
-            })
-        ];
+        let messages = vec![json!({
+            "role": "tool",
+            "content": "Some tool response",
+            "tool_call_id": ""  // Empty tool_call_id
+        })];
 
         let result = openai_messages_to_llm(messages);
         assert!(result.is_err());
@@ -352,4 +356,3 @@ mod tests {
         assert!(error_msg.contains("Tool message has empty 'tool_call_id' field"));
     }
 }
-

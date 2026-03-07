@@ -1,8 +1,8 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tokio::sync::{RwLock, Semaphore, OwnedSemaphorePermit};
-use serde::{Deserialize, Serialize};
+use tokio::sync::{OwnedSemaphorePermit, RwLock, Semaphore};
 
 /// Rate limiter configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -92,12 +92,14 @@ impl TokenBucket {
 #[derive(Debug)]
 pub enum RateLimitResult {
     /// Request allowed
-    Allowed { 
+    Allowed {
         remaining: u64,
         concurrency_permit: Option<OwnedSemaphorePermit>,
     },
     /// Request denied due to rate limit
-    Denied { retry_after: Duration },
+    Denied {
+        retry_after: Duration,
+    },
     /// Request denied due to concurrency limit
     ConcurrencyExceeded,
 
@@ -140,32 +142,41 @@ impl RateLimiter {
     pub async fn check_global(&self) -> RateLimitResult {
         let mut bucket = self.global.write().await;
         if bucket.try_acquire() {
-            RateLimitResult::Allowed { 
+            RateLimitResult::Allowed {
                 remaining: bucket.remaining(),
                 concurrency_permit: None,
             }
         } else {
-            RateLimitResult::Denied { retry_after: bucket.time_until_available() }
+            RateLimitResult::Denied {
+                retry_after: bucket.time_until_available(),
+            }
         }
     }
 
     /// Check API key rate limit and concurrency
-    pub async fn check_api_key(&self, api_key: &str, config: Option<RateLimitConfig>) -> RateLimitResult {
+    pub async fn check_api_key(
+        &self,
+        api_key: &str,
+        config: Option<RateLimitConfig>,
+    ) -> RateLimitResult {
         let actual_config = config.unwrap_or_else(|| self.default_config.clone());
-        
+
         // 1. Check RPS
         {
             let mut api_keys = self.api_keys.write().await;
-            let bucket = api_keys.entry(api_key.to_string())
+            let bucket = api_keys
+                .entry(api_key.to_string())
                 .or_insert_with(|| TokenBucket::new(actual_config.clone()));
-            
+
             // Update config if it changed
             if bucket.config.requests_per_second != actual_config.requests_per_second {
                 bucket.config = actual_config.clone();
             }
 
             if !bucket.try_acquire() {
-                return RateLimitResult::Denied { retry_after: bucket.time_until_available() };
+                return RateLimitResult::Denied {
+                    retry_after: bucket.time_until_available(),
+                };
             }
         }
 
@@ -175,14 +186,16 @@ impl RateLimiter {
             let mut semaphores = self.api_key_semaphores.write().await;
 
             let sem = match semaphores.get(api_key) {
-                Some((existing_max, existing_sem)) if *existing_max == max_usize => existing_sem.clone(),
+                Some((existing_max, existing_sem)) if *existing_max == max_usize => {
+                    existing_sem.clone()
+                }
                 _ => {
                     let new_sem = Arc::new(Semaphore::new(max_usize));
                     semaphores.insert(api_key.to_string(), (max_usize, new_sem.clone()));
                     new_sem
                 }
             };
-            
+
             match sem.try_acquire_owned() {
                 Ok(permit) => Some(permit),
                 Err(_) => return RateLimitResult::ConcurrencyExceeded,
@@ -191,12 +204,11 @@ impl RateLimiter {
             None
         };
 
-        RateLimitResult::Allowed { 
-            remaining: 0, 
+        RateLimitResult::Allowed {
+            remaining: 0,
             concurrency_permit: permit,
         }
     }
-
 
     /// Check all rate limits (global + provider)
     pub async fn check(&self, provider_id: Option<i64>) -> RateLimitResult {
@@ -216,20 +228,30 @@ impl RateLimiter {
             let mut providers = self.providers.write().await;
             let config = {
                 let configs = self.provider_configs.read().await;
-                configs.get(&id).cloned().unwrap_or_else(|| self.default_config.clone())
+                configs
+                    .get(&id)
+                    .cloned()
+                    .unwrap_or_else(|| self.default_config.clone())
             };
-            let bucket = providers.entry(id).or_insert_with(|| TokenBucket::new(config));
+            let bucket = providers
+                .entry(id)
+                .or_insert_with(|| TokenBucket::new(config));
             if bucket.try_acquire() {
-                return RateLimitResult::Allowed { 
+                return RateLimitResult::Allowed {
                     remaining: bucket.remaining(),
                     concurrency_permit: None,
                 };
             } else {
-                return RateLimitResult::Denied { retry_after: bucket.time_until_available() };
+                return RateLimitResult::Denied {
+                    retry_after: bucket.time_until_available(),
+                };
             }
         }
 
-        RateLimitResult::Allowed { remaining: 0, concurrency_permit: None }
+        RateLimitResult::Allowed {
+            remaining: 0,
+            concurrency_permit: None,
+        }
     }
 
     /// Set global rate limit config
@@ -320,14 +342,20 @@ mod tests {
 
         // Should allow up to burst_size
         for _ in 0..3 {
-            match limiter.check_api_key("test-key", Some(key_config.clone())).await {
+            match limiter
+                .check_api_key("test-key", Some(key_config.clone()))
+                .await
+            {
                 RateLimitResult::Allowed { .. } => {}
                 other => panic!("Expected Allowed, got {:?}", other),
             }
         }
 
         // Next should be denied
-        match limiter.check_api_key("test-key", Some(key_config.clone())).await {
+        match limiter
+            .check_api_key("test-key", Some(key_config.clone()))
+            .await
+        {
             RateLimitResult::Denied { .. } => {}
             other => panic!("Expected Denied, got {:?}", other),
         }
@@ -351,24 +379,40 @@ mod tests {
         };
 
         // Acquire 2 concurrency permits
-        let permit1 = match limiter.check_api_key("key1", Some(key_config.clone())).await {
-            RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
+        let permit1 = match limiter
+            .check_api_key("key1", Some(key_config.clone()))
+            .await
+        {
+            RateLimitResult::Allowed {
+                concurrency_permit, ..
+            } => concurrency_permit,
             other => panic!("Expected Allowed, got {:?}", other),
         };
-        let _permit2 = match limiter.check_api_key("key1", Some(key_config.clone())).await {
-            RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
+        let _permit2 = match limiter
+            .check_api_key("key1", Some(key_config.clone()))
+            .await
+        {
+            RateLimitResult::Allowed {
+                concurrency_permit, ..
+            } => concurrency_permit,
             other => panic!("Expected Allowed, got {:?}", other),
         };
 
         // Third should exceed concurrency
-        match limiter.check_api_key("key1", Some(key_config.clone())).await {
+        match limiter
+            .check_api_key("key1", Some(key_config.clone()))
+            .await
+        {
             RateLimitResult::ConcurrencyExceeded => {}
             other => panic!("Expected ConcurrencyExceeded, got {:?}", other),
         }
 
         // Drop first permit, should allow again
         drop(permit1);
-        match limiter.check_api_key("key1", Some(key_config.clone())).await {
+        match limiter
+            .check_api_key("key1", Some(key_config.clone()))
+            .await
+        {
             RateLimitResult::Allowed { .. } => {}
             other => panic!("Expected Allowed after dropping permit, got {:?}", other),
         }
@@ -392,15 +436,25 @@ mod tests {
         };
 
         // Exhaust key-a
-        limiter.check_api_key("key-a", Some(key_config.clone())).await;
-        limiter.check_api_key("key-a", Some(key_config.clone())).await;
-        match limiter.check_api_key("key-a", Some(key_config.clone())).await {
+        limiter
+            .check_api_key("key-a", Some(key_config.clone()))
+            .await;
+        limiter
+            .check_api_key("key-a", Some(key_config.clone()))
+            .await;
+        match limiter
+            .check_api_key("key-a", Some(key_config.clone()))
+            .await
+        {
             RateLimitResult::Denied { .. } => {}
             other => panic!("key-a should be denied, got {:?}", other),
         }
 
         // key-b should still work
-        match limiter.check_api_key("key-b", Some(key_config.clone())).await {
+        match limiter
+            .check_api_key("key-b", Some(key_config.clone()))
+            .await
+        {
             RateLimitResult::Allowed { .. } => {}
             other => panic!("key-b should be allowed, got {:?}", other),
         }
@@ -415,12 +469,17 @@ mod tests {
             max_concurrency: None,
         };
         let limiter = RateLimiter::new(config.clone());
-        limiter.set_provider_config(1, RateLimitConfig {
-            requests_per_second: 10.0,
-            burst_size: 2,
-            enabled: true,
-            max_concurrency: None,
-        }).await;
+        limiter
+            .set_provider_config(
+                1,
+                RateLimitConfig {
+                    requests_per_second: 10.0,
+                    burst_size: 2,
+                    enabled: true,
+                    max_concurrency: None,
+                },
+            )
+            .await;
 
         // Provider 1 should be limited by its own config (burst=2)
         match limiter.check(Some(1)).await {
@@ -441,7 +500,7 @@ mod tests {
     #[tokio::test]
     async fn test_tokens_replenish_over_time() {
         let config = RateLimitConfig {
-            requests_per_second: 100.0,  // 1 token per 10ms
+            requests_per_second: 100.0, // 1 token per 10ms
             burst_size: 1,
             enabled: true,
             max_concurrency: None,

@@ -7,18 +7,18 @@
 //! - Failover management
 //! - Provider pool management
 
-pub mod health;
 pub mod circuit_breaker;
-pub mod load_balancer;
 pub mod failover;
-pub mod pool;
-pub mod metrics;
-pub mod service;
+pub mod health;
+pub mod load_balancer;
 pub mod manager;
+pub mod metrics;
+pub mod pool;
 pub mod rate_limiter;
+pub mod service;
 
 pub use health::HealthStatus;
 pub use load_balancer::LoadBalanceStrategy;
-pub use pool::{ProviderPool, PoolStatus};
 pub use manager::PoolManager;
+pub use pool::{PoolStatus, ProviderPool};
 pub use rate_limiter::RateLimitResult;

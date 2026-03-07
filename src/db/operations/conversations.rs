@@ -1,6 +1,9 @@
-use sqlx::{PgPool, Row};
+use crate::db::{
+    Conversation, ConversationListItem, ConversationWithMessages, DatabasePool, NewConversation,
+    UpdateConversation,
+};
 use anyhow::Result;
-use crate::db::{DatabasePool, Conversation, NewConversation, UpdateConversation, ConversationListItem, ConversationWithMessages};
+use sqlx::{PgPool, Row};
 
 impl DatabasePool {
     // Conversation CRUD operations
@@ -25,13 +28,25 @@ impl DatabasePool {
         }
     }
 
-    pub async fn list_conversations(&self, provider_id: Option<i64>, limit: i64) -> Result<Vec<ConversationListItem>> {
+    pub async fn list_conversations(
+        &self,
+        provider_id: Option<i64>,
+        limit: i64,
+    ) -> Result<Vec<ConversationListItem>> {
         match self {
-            Self::Postgres(pool) => self.list_conversations_postgres(pool, provider_id, limit).await,
+            Self::Postgres(pool) => {
+                self.list_conversations_postgres(pool, provider_id, limit)
+                    .await
+            }
         }
     }
 
-    async fn list_conversations_postgres(&self, pool: &PgPool, provider_id: Option<i64>, limit: i64) -> Result<Vec<ConversationListItem>> {
+    async fn list_conversations_postgres(
+        &self,
+        pool: &PgPool,
+        provider_id: Option<i64>,
+        limit: i64,
+    ) -> Result<Vec<ConversationListItem>> {
         if let Some(pid) = provider_id {
             Ok(sqlx::query_as::<_, ConversationListItem>(
                 r#"SELECT c.id::BIGINT as id, c.title, c.provider_id::BIGINT as provider_id, p.name as provider_name, c.updated_at,
@@ -59,7 +74,10 @@ impl DatabasePool {
         }
     }
 
-    pub async fn get_conversation_with_messages(&self, id: i64) -> Result<Option<ConversationWithMessages>> {
+    pub async fn get_conversation_with_messages(
+        &self,
+        id: i64,
+    ) -> Result<Option<ConversationWithMessages>> {
         let conv = self.get_conversation(id).await?;
         if let Some(c) = conv {
             let messages = self.list_messages(id).await?;
@@ -94,7 +112,9 @@ impl DatabasePool {
         match self {
             Self::Postgres(pool) => {
                 let result = sqlx::query("DELETE FROM conversations WHERE id = $1")
-                    .bind(id).execute(pool).await?;
+                    .bind(id)
+                    .execute(pool)
+                    .await?;
                 Ok(result.rows_affected() > 0)
             }
         }
@@ -104,8 +124,12 @@ impl DatabasePool {
     pub async fn update_conversation_timestamp(&self, id: i64) -> Result<()> {
         match self {
             Self::Postgres(pool) => {
-                sqlx::query("UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = $1")
-                    .bind(id).execute(pool).await?;
+                sqlx::query(
+                    "UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = $1",
+                )
+                .bind(id)
+                .execute(pool)
+                .await?;
             }
         }
         Ok(())

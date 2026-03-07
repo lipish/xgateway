@@ -1,24 +1,24 @@
 use axum::{
+    body::Body,
     extract::{Query, State},
     http::{HeaderMap, StatusCode},
-    response::{IntoResponse, Json},
     response::Response,
-    body::Body,
+    response::{IntoResponse, Json},
 };
+use chrono::Utc;
 use futures::StreamExt;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::convert::Infallible;
 use std::time::Instant;
-use tracing::{info, warn, error};
-use chrono::Utc;
+use tracing::{error, info, warn};
 
-use crate::tuner::{ClientTuner, FormatDetector};
+use super::convert;
+use super::errors::{json_error_response, status_from_anyhow};
 use crate::endpoints::ProxyState;
 use crate::engine::Model;
 use crate::service::Service as LlmService;
-use super::convert;
-use super::errors::{json_error_response, status_from_anyhow};
+use crate::tuner::{ClientTuner, FormatDetector};
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
@@ -84,11 +84,19 @@ pub async fn chat(
     // API Key 校验
     if let Err(err) = enforce_api_key(&headers, &state).await {
         report(err, None, Some("unauthorized".to_string()), false);
-        return json_error_response(err, "OpenAI API key authentication failed", Some("unauthorized"));
+        return json_error_response(
+            err,
+            "OpenAI API key authentication failed",
+            Some("unauthorized"),
+        );
     }
 
-    info!("📝 Received request - model: {}, stream: {:?}, messages count: {}",
-          request.model, request.stream, request.messages.len());
+    info!(
+        "📝 Received request - model: {}, stream: {:?}, messages count: {}",
+        request.model,
+        request.stream,
+        request.messages.len()
+    );
 
     // 验证模型
     if !request.model.is_empty() {
@@ -99,8 +107,16 @@ pub async fn chat(
 
         match validation_result {
             Ok(false) => {
-                error!("Model validation failed: model '{}' not found", request.model);
-                report(StatusCode::BAD_REQUEST, None, Some("model_not_found".to_string()), false);
+                error!(
+                    "Model validation failed: model '{}' not found",
+                    request.model
+                );
+                report(
+                    StatusCode::BAD_REQUEST,
+                    None,
+                    Some("model_not_found".to_string()),
+                    false,
+                );
                 return json_error_response(
                     StatusCode::BAD_REQUEST,
                     format!("Model '{}' not found", request.model),
@@ -109,7 +125,12 @@ pub async fn chat(
             }
             Err(e) => {
                 error!("Model validation error: {:?}", e);
-                report(StatusCode::INTERNAL_SERVER_ERROR, None, Some("model_validation_failed".to_string()), false);
+                report(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    None,
+                    Some("model_validation_failed".to_string()),
+                    false,
+                );
                 return json_error_response(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "Model validation failed",
@@ -126,7 +147,11 @@ pub async fn chat(
     match convert::openai_messages_to_llm(request.messages) {
         Ok(messages) => {
             info!("Successfully converted {} messages", messages.len());
-            let model = if request.model.is_empty() { None } else { Some(request.model.as_str()) };
+            let model = if request.model.is_empty() {
+                None
+            } else {
+                Some(request.model.as_str())
+            };
 
             // 转换 tools 格式
             let tools = request.tools.map(convert::openai_tools_to_llm);
@@ -143,7 +168,10 @@ pub async fn chat(
             if use_streaming {
                 info!("🌊 Using streaming mode");
                 if let Some(ref tools_ref) = tools {
-                    info!("Streaming with {} tools (llm-connector 0.7.0)", tools_ref.len());
+                    info!(
+                        "Streaming with {} tools (llm-connector 0.7.0)",
+                        tools_ref.len()
+                    );
                 }
                 match handle_streaming_request(headers, state, model, messages, tools).await {
                     Ok(resp) => {
@@ -152,7 +180,11 @@ pub async fn chat(
                     }
                     Err(err) => {
                         report(err, None, Some("streaming_failed".to_string()), true);
-                        json_error_response(err, "Streaming request failed", Some("streaming_failed"))
+                        json_error_response(
+                            err,
+                            "Streaming request failed",
+                            Some("streaming_failed"),
+                        )
                     }
                 }
             } else {
@@ -171,7 +203,12 @@ pub async fn chat(
         }
         Err(e) => {
             error!("Failed to convert OpenAI messages: {:?}", e);
-            report(StatusCode::BAD_REQUEST, None, Some("invalid_messages".to_string()), false);
+            report(
+                StatusCode::BAD_REQUEST,
+                None,
+                Some("invalid_messages".to_string()),
+                false,
+            );
             json_error_response(
                 StatusCode::BAD_REQUEST,
                 "Invalid messages payload",
@@ -195,15 +232,20 @@ async fn handle_streaming_request(
     let client_adapter = detect_openai_client(&headers, &config);
     let (_stream_format, _) = FormatDetector::determine_format(&headers);
     drop(config); // 释放读锁
-    
+
     // 使用客户端偏好格式（SSE）
     let final_format = client_adapter.preferred_format();
     let content_type = FormatDetector::get_content_type(final_format);
 
-    info!("Starting OpenAI streaming response - Format: {:?} ({})", final_format, content_type);
+    info!(
+        "Starting OpenAI streaming response - Format: {:?} ({})",
+        final_format, content_type
+    );
 
     let llm_service = state.llm_service.read().await;
-    let stream_result: Result<_, _> = llm_service.chat_stream_openai(model, messages.clone(), tools.clone(), final_format).await;
+    let stream_result: Result<_, _> = llm_service
+        .chat_stream_openai(model, messages.clone(), tools.clone(), final_format)
+        .await;
     drop(llm_service); // 显式释放锁
 
     match stream_result {
@@ -237,9 +279,7 @@ async fn handle_streaming_request(
                         llm_connector::StreamFormat::NDJSON => {
                             format!("{}\n", json_data)
                         }
-                        llm_connector::StreamFormat::Json => {
-                            json_data.to_string()
-                        }
+                        llm_connector::StreamFormat::Json => json_data.to_string(),
                     }
                 } else {
                     tracing::debug!("Failed to parse chunk as JSON: {}", json_str);
@@ -275,7 +315,8 @@ async fn handle_non_streaming_request(
     tools: Option<Vec<llm_connector::types::Tool>>,
 ) -> Result<Response, StatusCode> {
     let llm_service = state.llm_service.read().await;
-    let chat_result: Result<crate::engine::Response, _> = llm_service.chat(model, messages, tools).await;
+    let chat_result: Result<crate::engine::Response, _> =
+        llm_service.chat(model, messages, tools).await;
 
     match chat_result {
         Ok(response) => {
@@ -299,9 +340,7 @@ pub async fn models(
     let xtrace = state.xtrace.clone();
     let start_time = Instant::now();
     let start_timestamp = Utc::now();
-    let report = |status: StatusCode,
-                  response_payload: Option<Value>,
-                  error: Option<String>| {
+    let report = |status: StatusCode, response_payload: Option<Value>, error: Option<String>| {
         if let Some(xtrace) = xtrace.as_ref() {
             xtrace.report_request(
                 "GET",
@@ -318,7 +357,11 @@ pub async fn models(
     };
     if let Err(err) = enforce_api_key(&headers, &state).await {
         report(err, None, Some("unauthorized".to_string()));
-        return json_error_response(err, "OpenAI API key authentication failed", Some("unauthorized"));
+        return json_error_response(
+            err,
+            "OpenAI API key authentication failed",
+            Some("unauthorized"),
+        );
     }
 
     let llm_service: tokio::sync::RwLockReadGuard<'_, LlmService> = state.llm_service.read().await;
@@ -326,14 +369,17 @@ pub async fn models(
 
     match models_result {
         Ok(models) => {
-            let openai_models: Vec<Value> = models.into_iter().map(|model| {
-                json!({
-                    "id": model.id,
-                    "object": "model",
-                    "created": chrono::Utc::now().timestamp(),
-                    "owned_by": "system"
+            let openai_models: Vec<Value> = models
+                .into_iter()
+                .map(|model| {
+                    json!({
+                        "id": model.id,
+                        "object": "model",
+                        "created": chrono::Utc::now().timestamp(),
+                        "owned_by": "system"
+                    })
                 })
-            }).collect();
+                .collect();
 
             let config = state.config.read().await;
             let current_provider = match &config.llm_backend {
@@ -360,7 +406,11 @@ pub async fn models(
         }
         Err(e) => {
             error!("OpenAI models request failed: {:?}", e);
-            report(StatusCode::INTERNAL_SERVER_ERROR, None, Some("model_list_failed".to_string()));
+            report(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                None,
+                Some("model_list_failed".to_string()),
+            );
             json_error_response(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Failed to list models",
@@ -377,8 +427,12 @@ async fn enforce_api_key(headers: &HeaderMap, state: &ProxyState) -> Result<(), 
     if let Some(cfg) = &config.apis.openai {
         if cfg.enabled {
             if let Some(expected_key) = cfg.api_key.as_ref() {
-                let header_name = cfg.api_key_header.as_deref().unwrap_or("authorization").to_ascii_lowercase();
-                
+                let header_name = cfg
+                    .api_key_header
+                    .as_deref()
+                    .unwrap_or("authorization")
+                    .to_ascii_lowercase();
+
                 let value_opt = if header_name == "authorization" {
                     headers.get(axum::http::header::AUTHORIZATION)
                 } else {

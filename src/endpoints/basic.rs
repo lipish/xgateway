@@ -1,6 +1,6 @@
+use crate::endpoints::ProxyState;
 use axum::{extract::State, response::Json};
 use serde_json::json;
-use crate::endpoints::ProxyState;
 
 /// Health check endpoint
 pub async fn health_check() -> Json<serde_json::Value> {
@@ -13,11 +13,9 @@ pub async fn health_check() -> Json<serde_json::Value> {
 }
 
 /// Get complete provider and model information
-pub async fn info(
-    State(state): State<ProxyState>,
-) -> Json<serde_json::Value> {
+pub async fn info(State(state): State<ProxyState>) -> Json<serde_json::Value> {
     let config = state.config.read().await;
-    
+
     let current_provider = match &config.llm_backend {
         crate::settings::LlmBackendSettings::OpenAI { .. } => "openai",
         crate::settings::LlmBackendSettings::Anthropic { .. } => "anthropic",
@@ -36,28 +34,37 @@ pub async fn info(
 
     if let Some(ollama_config) = &config.apis.ollama {
         if ollama_config.enabled {
-            api_endpoints.insert("ollama".to_string(), json!({
-                "path": ollama_config.path,
-                "enabled": true,
-            }));
+            api_endpoints.insert(
+                "ollama".to_string(),
+                json!({
+                    "path": ollama_config.path,
+                    "enabled": true,
+                }),
+            );
         }
     }
 
     if let Some(openai_config) = &config.apis.openai {
         if openai_config.enabled {
-            api_endpoints.insert("openai".to_string(), json!({
-                "path": openai_config.path,
-                "enabled": true,
-            }));
+            api_endpoints.insert(
+                "openai".to_string(),
+                json!({
+                    "path": openai_config.path,
+                    "enabled": true,
+                }),
+            );
         }
     }
 
     if let Some(anthropic_config) = &config.apis.anthropic {
         if anthropic_config.enabled {
-            api_endpoints.insert("anthropic".to_string(), json!({
-                "path": anthropic_config.path,
-                "enabled": true,
-            }));
+            api_endpoints.insert(
+                "anthropic".to_string(),
+                json!({
+                    "path": anthropic_config.path,
+                    "enabled": true,
+                }),
+            );
         }
     }
 

@@ -146,8 +146,6 @@ pub struct ZedAdapterSettings {
     pub preferred_format: Option<String>,
 }
 
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OllamaApiSettings {
     pub enabled: bool,

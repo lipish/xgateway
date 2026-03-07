@@ -26,7 +26,8 @@ impl Client {
             if let Some(ollama_client) = self.llm_client.as_ollama() {
                 match ollama_client.models().await {
                     Ok(ollama_models) => {
-                        let models: Vec<Model> = ollama_models.into_iter()
+                        let models: Vec<Model> = ollama_models
+                            .into_iter()
                             .map(|model_name| Model { id: model_name })
                             .collect();
 

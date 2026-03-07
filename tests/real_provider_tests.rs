@@ -15,10 +15,10 @@ const MINIMAX_API_KEY: &str = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJHcm91cE5h
 #[ignore] // Run with --ignored flag for real API tests
 async fn test_aliyun_connectivity() {
     println!("\n=== Testing Aliyun (Qwen) Connectivity ===\n");
-    
+
     let client = Client::new();
     let start = Instant::now();
-    
+
     let response = client
         .post("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions")
         .header("Authorization", format!("Bearer {}", ALIYUN_API_KEY))
@@ -30,9 +30,9 @@ async fn test_aliyun_connectivity() {
         }))
         .send()
         .await;
-    
+
     let latency = start.elapsed();
-    
+
     match response {
         Ok(resp) => {
             println!("Status: {}", resp.status());
@@ -52,10 +52,10 @@ async fn test_aliyun_connectivity() {
 #[ignore]
 async fn test_zhipu_connectivity() {
     println!("\n=== Testing Zhipu (GLM) Connectivity ===\n");
-    
+
     let client = Client::new();
     let start = Instant::now();
-    
+
     let response = client
         .post("https://open.bigmodel.cn/api/paas/v4/chat/completions")
         .header("Authorization", format!("Bearer {}", ZHIPU_API_KEY))
@@ -67,9 +67,9 @@ async fn test_zhipu_connectivity() {
         }))
         .send()
         .await;
-    
+
     let latency = start.elapsed();
-    
+
     match response {
         Ok(resp) => {
             println!("Status: {}", resp.status());
@@ -89,10 +89,10 @@ async fn test_zhipu_connectivity() {
 #[ignore]
 async fn test_minimax_connectivity() {
     println!("\n=== Testing Minimax Connectivity ===\n");
-    
+
     let client = Client::new();
     let start = Instant::now();
-    
+
     let response = client
         .post("https://api.minimax.chat/v1/text/chatcompletion_v2")
         .header("Authorization", format!("Bearer {}", MINIMAX_API_KEY))
@@ -104,9 +104,9 @@ async fn test_minimax_connectivity() {
         }))
         .send()
         .await;
-    
+
     let latency = start.elapsed();
-    
+
     match response {
         Ok(resp) => {
             println!("Status: {}", resp.status());
@@ -130,4 +130,3 @@ async fn test_all_providers() {
     // Run with: cargo test --test real_provider_tests -- --nocapture --ignored
     println!("Run individual tests to see results");
 }
-

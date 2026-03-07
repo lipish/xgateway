@@ -48,9 +48,18 @@ mod tests {
 
     #[test]
     fn test_error_type_from_status_mapping() {
-        assert_eq!(error_type_from_status(StatusCode::UNAUTHORIZED), "auth_error");
-        assert_eq!(error_type_from_status(StatusCode::TOO_MANY_REQUESTS), "rate_limit_exceeded");
-        assert_eq!(error_type_from_status(StatusCode::BAD_GATEWAY), "upstream_error");
+        assert_eq!(
+            error_type_from_status(StatusCode::UNAUTHORIZED),
+            "auth_error"
+        );
+        assert_eq!(
+            error_type_from_status(StatusCode::TOO_MANY_REQUESTS),
+            "rate_limit_exceeded"
+        );
+        assert_eq!(
+            error_type_from_status(StatusCode::BAD_GATEWAY),
+            "upstream_error"
+        );
     }
 
     #[test]

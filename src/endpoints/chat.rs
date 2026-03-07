@@ -1,12 +1,12 @@
-use std::sync::Arc;
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
+use super::types::ProxyState;
 use crate::adapter::{send_to_provider, RequestResult};
+use crate::db::NewRequestLog;
 use crate::pool::LoadBalanceStrategy;
 use crate::pool::RateLimitResult;
-use super::types::ProxyState;
-use crate::db::NewRequestLog;
 use crate::xtrace::XTraceRequestContext;
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use std::sync::Arc;
 
 fn parse_fallback_provider_ids(chain: Option<&str>) -> Vec<i64> {
     chain
@@ -85,7 +85,8 @@ pub async fn handle_chat_completions(
         .to_string();
 
     // 1. Extract and Validate API Key
-    let api_key = headers.get(axum::http::header::AUTHORIZATION)
+    let api_key = headers
+        .get(axum::http::header::AUTHORIZATION)
         .and_then(|h| h.to_str().ok())
         .and_then(|s| s.strip_prefix("Bearer "));
 
@@ -102,7 +103,8 @@ pub async fn handle_chat_completions(
                         request_content.clone(),
                         "error",
                         Some("invalid_protocol".to_string()),
-                    ).await;
+                    )
+                    .await;
                     return (
                         StatusCode::FORBIDDEN,
                         axum::Json(serde_json::json!({
@@ -110,8 +112,9 @@ pub async fn handle_chat_completions(
                                 "message": "API key protocol does not allow this endpoint",
                                 "type": "invalid_protocol"
                             }
-                        }))
-                    ).into_response();
+                        })),
+                    )
+                        .into_response();
                 }
                 Some(info)
             }
@@ -125,7 +128,8 @@ pub async fn handle_chat_completions(
                     request_content.clone(),
                     "error",
                     Some("invalid_api_key".to_string()),
-                ).await;
+                )
+                .await;
                 return (
                     StatusCode::UNAUTHORIZED,
                     axum::Json(serde_json::json!({
@@ -133,8 +137,9 @@ pub async fn handle_chat_completions(
                             "message": "Invalid API Key",
                             "type": "invalid_api_key"
                         }
-                    }))
-                ).into_response();
+                    })),
+                )
+                    .into_response();
             }
         }
     } else {
@@ -161,7 +166,10 @@ pub async fn handle_chat_completions(
         XTraceRequestContext::new(
             Arc::clone(client),
             request.clone(),
-            request.get("model").and_then(|v| v.as_str()).map(|s| s.to_string()),
+            request
+                .get("model")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
             api_key_id,
             project_id,
             org_id,
@@ -171,9 +179,7 @@ pub async fn handle_chat_completions(
         )
     });
 
-    let requested_provider_id = request
-        .get("provider_id")
-        .and_then(|v| v.as_i64());
+    let requested_provider_id = request.get("provider_id").and_then(|v| v.as_i64());
 
     // 2. API key limits (QPS + concurrency)
     let _api_key_concurrency_permit = if let Some(key_info) = &api_key_info {
@@ -203,7 +209,9 @@ pub async fn handle_chat_completions(
                 )
                     .into_response();
             }
-            RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
+            RateLimitResult::Allowed {
+                concurrency_permit, ..
+            } => concurrency_permit,
             RateLimitResult::QueueFull | RateLimitResult::WaitTimeout => unreachable!(),
         }
     } else {
@@ -223,7 +231,9 @@ pub async fn handle_chat_completions(
                     .into_response();
             }
             RateLimitResult::ConcurrencyExceeded => unreachable!(),
-            RateLimitResult::Allowed { concurrency_permit, .. } => concurrency_permit,
+            RateLimitResult::Allowed {
+                concurrency_permit, ..
+            } => concurrency_permit,
             RateLimitResult::QueueFull | RateLimitResult::WaitTimeout => unreachable!(),
         }
     };
@@ -315,7 +325,8 @@ pub async fn handle_chat_completions(
         candidate_provider_ids.retain(|&id| id == provider_id);
     }
 
-    let candidate_set: std::collections::HashSet<i64> = candidate_provider_ids.iter().copied().collect();
+    let candidate_set: std::collections::HashSet<i64> =
+        candidate_provider_ids.iter().copied().collect();
     providers.retain(|p| candidate_set.contains(&p.id));
     candidate_provider_ids.retain(|id| candidate_set.contains(id));
 
@@ -355,17 +366,19 @@ pub async fn handle_chat_completions(
         .filter(|id| candidate_set.contains(id))
         .collect::<Vec<_>>();
 
-    let provider_map: std::collections::HashMap<i64, crate::db::Provider> = providers
-        .into_iter()
-        .map(|p| (p.id, p))
-        .collect();
+    let provider_map: std::collections::HashMap<i64, crate::db::Provider> =
+        providers.into_iter().map(|p| (p.id, p)).collect();
 
     let mut last_error: Option<(StatusCode, serde_json::Value)> = None;
     let mut tried: std::collections::HashSet<i64> = std::collections::HashSet::new();
     let mut fallback_queue = fallback_provider_ids;
 
     let mut next_provider_id = pool_manager
-        .select_provider_from_candidates_with_strategy(strategy.clone(), &candidate_provider_ids, None)
+        .select_provider_from_candidates_with_strategy(
+            strategy.clone(),
+            &candidate_provider_ids,
+            None,
+        )
         .await;
 
     while let Some(provider_id) = next_provider_id {
@@ -430,7 +443,11 @@ pub async fn handle_chat_completions(
                 ));
 
                 next_provider_id = pool_manager
-                    .select_provider_from_candidates_with_strategy(strategy.clone(), &candidate_provider_ids, Some(provider_id))
+                    .select_provider_from_candidates_with_strategy(
+                        strategy.clone(),
+                        &candidate_provider_ids,
+                        Some(provider_id),
+                    )
                     .await;
 
                 if next_provider_id.is_none() {

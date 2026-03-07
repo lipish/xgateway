@@ -95,11 +95,12 @@ export function AddProviderDialog({
                   id="add-providerType"
                   value={form.providerType}
                   onChange={onProviderTypeChange}
+                  className="w-full"
                   options={providerTypes.map((t) => ({
                     value: t.id,
                     label: t.label,
                   }))}
-                  triggerClassName="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background"
+                  triggerClassName="bg-background border-input h-10 w-full justify-between px-3 py-2 text-sm ring-offset-background"
                 />
               </div>
               <div className="space-y-2">
@@ -121,7 +122,8 @@ export function AddProviderDialog({
                       (m) => ({ value: m.id, label: m.name }),
                     ) || []
                   }
-                  triggerClassName="bg-background border-input h-10 px-3 py-2 text-sm ring-offset-background"
+                  className="w-full"
+                  triggerClassName="bg-background border-input h-10 w-full justify-between px-3 py-2 text-sm ring-offset-background"
                 />
               </div>
             </div>

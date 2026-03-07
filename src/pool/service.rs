@@ -9,16 +9,16 @@
 // This module provides a planned unified service API that is not yet fully integrated.
 #![allow(dead_code)]
 
+use anyhow::{anyhow, Result};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
-use anyhow::{Result, anyhow};
 
-use super::pool::{ProviderPool, ProviderInstanceConfig, PoolStatus};
 use super::load_balancer::LoadBalanceStrategy;
+use super::pool::{PoolStatus, ProviderInstanceConfig, ProviderPool};
 use crate::db::Provider;
-use crate::settings::LlmBackendSettings;
 use crate::service::Service;
+use crate::settings::LlmBackendSettings;
 
 /// Result of a request execution
 #[derive(Debug)]
@@ -99,34 +99,62 @@ impl MultiProviderService {
         let model = if let Some(endpoint) = &provider.endpoint {
             endpoint.clone()
         } else {
-            config.get("model").and_then(|v| v.as_str()).unwrap_or("default").to_string()
+            config
+                .get("model")
+                .and_then(|v| v.as_str())
+                .unwrap_or("default")
+                .to_string()
         };
 
         let instance_config = ProviderInstanceConfig {
             provider_type: provider.provider_type.clone(),
-            api_key: config.get("api_key").and_then(|v| v.as_str()).map(String::from),
-            base_url: config.get("base_url").and_then(|v| v.as_str()).map(String::from),
-            region: config.get("region").and_then(|v| v.as_str()).map(String::from),
+            api_key: config
+                .get("api_key")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            base_url: config
+                .get("base_url")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            region: config
+                .get("region")
+                .and_then(|v| v.as_str())
+                .map(String::from),
             model,
             priority: provider.priority,
             weight: 1,
             enabled: provider.enabled,
-            input_price: config.get("input_price").and_then(|v| v.as_f64()).unwrap_or(0.0),
-            output_price: config.get("output_price").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            input_price: config
+                .get("input_price")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0),
+            output_price: config
+                .get("output_price")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0),
             quota_limit: config.get("quota_limit").and_then(|v| v.as_u64()),
         };
 
-        self.pool.add_provider(provider.id, provider.name.clone(), instance_config.clone()).await;
+        self.pool
+            .add_provider(provider.id, provider.name.clone(), instance_config.clone())
+            .await;
 
         // Create service instance
         if let Some(backend) = self.create_backend_settings(&provider, &instance_config) {
             match Service::new(&backend) {
                 Ok(service) => {
-                    self.services.write().await.insert(provider.id, Arc::new(service));
+                    self.services
+                        .write()
+                        .await
+                        .insert(provider.id, Arc::new(service));
                     tracing::info!("Added provider {} to multi-provider service", provider.name);
                 }
                 Err(e) => {
-                    tracing::warn!("Failed to create service for provider {}: {}", provider.name, e);
+                    tracing::warn!(
+                        "Failed to create service for provider {}: {}",
+                        provider.name,
+                        e
+                    );
                 }
             }
         }
@@ -135,18 +163,48 @@ impl MultiProviderService {
     }
 
     /// Create backend settings from provider config
-    fn create_backend_settings(&self, provider: &Provider, config: &ProviderInstanceConfig) -> Option<LlmBackendSettings> {
+    fn create_backend_settings(
+        &self,
+        provider: &Provider,
+        config: &ProviderInstanceConfig,
+    ) -> Option<LlmBackendSettings> {
         let api_key = config.api_key.clone().unwrap_or_default();
         let model = config.model.clone();
         let base_url = config.base_url.clone();
 
         match provider.provider_type.as_str() {
-            "openai" => Some(LlmBackendSettings::OpenAI { api_key, base_url, region: config.region.clone(), model }),
-            "anthropic" => Some(LlmBackendSettings::Anthropic { api_key, region: config.region.clone(), model }),
-            "zhipu" => Some(LlmBackendSettings::Zhipu { api_key, base_url, region: config.region.clone(), model }),
-            "ollama" => Some(LlmBackendSettings::Ollama { base_url, region: config.region.clone(), model }),
-            "aliyun" => Some(LlmBackendSettings::Aliyun { api_key, region: config.region.clone(), model }),
-            "volcengine" => Some(LlmBackendSettings::Volcengine { api_key, region: config.region.clone(), model }),
+            "openai" => Some(LlmBackendSettings::OpenAI {
+                api_key,
+                base_url,
+                region: config.region.clone(),
+                model,
+            }),
+            "anthropic" => Some(LlmBackendSettings::Anthropic {
+                api_key,
+                region: config.region.clone(),
+                model,
+            }),
+            "zhipu" => Some(LlmBackendSettings::Zhipu {
+                api_key,
+                base_url,
+                region: config.region.clone(),
+                model,
+            }),
+            "ollama" => Some(LlmBackendSettings::Ollama {
+                base_url,
+                region: config.region.clone(),
+                model,
+            }),
+            "aliyun" => Some(LlmBackendSettings::Aliyun {
+                api_key,
+                region: config.region.clone(),
+                model,
+            }),
+            "volcengine" => Some(LlmBackendSettings::Volcengine {
+                api_key,
+                region: config.region.clone(),
+                model,
+            }),
             "tencent" => Some(LlmBackendSettings::Tencent {
                 api_key,
                 model,
@@ -154,10 +212,28 @@ impl MultiProviderService {
                 secret_id: provider.secret_id.clone(),
                 secret_key: provider.secret_key.clone(),
             }),
-            "longcat" => Some(LlmBackendSettings::Longcat { api_key, region: config.region.clone(), model }),
-            "moonshot" => Some(LlmBackendSettings::Moonshot { api_key, region: config.region.clone(), model }),
-            "minimax" => Some(LlmBackendSettings::Minimax { api_key, base_url, region: config.region.clone(), model }),
-            "deepseek" => Some(LlmBackendSettings::DeepSeek { api_key, base_url, region: config.region.clone(), model }),
+            "longcat" => Some(LlmBackendSettings::Longcat {
+                api_key,
+                region: config.region.clone(),
+                model,
+            }),
+            "moonshot" => Some(LlmBackendSettings::Moonshot {
+                api_key,
+                region: config.region.clone(),
+                model,
+            }),
+            "minimax" => Some(LlmBackendSettings::Minimax {
+                api_key,
+                base_url,
+                region: config.region.clone(),
+                model,
+            }),
+            "deepseek" => Some(LlmBackendSettings::DeepSeek {
+                api_key,
+                base_url,
+                region: config.region.clone(),
+                model,
+            }),
             _ => None,
         }
     }

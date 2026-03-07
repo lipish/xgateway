@@ -1,7 +1,6 @@
 use crate::settings::{
-    Settings, ServerSettings, LlmBackendSettings, ApiSettings,
-    OpenAiApiSettings, OllamaApiSettings, AnthropicApiSettings,
-    ClientAdapterSettings, ZedAdapterSettings,
+    AnthropicApiSettings, ApiSettings, ClientAdapterSettings, LlmBackendSettings,
+    OllamaApiSettings, OpenAiApiSettings, ServerSettings, Settings, ZedAdapterSettings,
 };
 
 /// Codex CLI application configuration

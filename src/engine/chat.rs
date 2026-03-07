@@ -1,5 +1,5 @@
-use super::Client;
 use super::types::{Response, Usage};
+use super::Client;
 use anyhow::Result;
 use llm_connector::types::ChatRequest;
 
@@ -45,7 +45,9 @@ impl Client {
             };
 
             // Extract tool_calls if present
-            let tool_calls = msg.tool_calls.as_ref()
+            let tool_calls = msg
+                .tool_calls
+                .as_ref()
                 .and_then(|tc| serde_json::to_value(tc).ok());
 
             (content, tool_calls)
@@ -70,4 +72,3 @@ impl Client {
         })
     }
 }
-

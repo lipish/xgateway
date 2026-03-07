@@ -1,8 +1,8 @@
+use crate::db::{DatabasePool, NewRequestLog};
+use futures::Stream;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
-use futures::Stream;
-use crate::db::{DatabasePool, NewRequestLog};
 
 #[allow(dead_code)]
 pub struct LoggingStream<S> {
@@ -51,7 +51,9 @@ impl<S: Stream + Unpin> Stream for LoggingStream<S> {
         if let Poll::Ready(None) = &result {
             if !self.logged {
                 self.logged = true;
-                let response_content = self.collected_content.lock()
+                let response_content = self
+                    .collected_content
+                    .lock()
                     .map(|c| if c.is_empty() { None } else { Some(c.clone()) })
                     .unwrap_or(None);
 
@@ -86,10 +88,15 @@ pub fn extract_stream_content(chunk: &[u8], collected: &Arc<Mutex<String>>) {
     if let Ok(text) = std::str::from_utf8(chunk) {
         for line in text.lines() {
             if line.starts_with("data:") {
-                let data = if line.starts_with("data: ") { &line[6..] } else { &line[5..] };
+                let data = if line.starts_with("data: ") {
+                    &line[6..]
+                } else {
+                    &line[5..]
+                };
                 if data != "[DONE]" {
                     if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
-                        let content = json.get("choices")
+                        let content = json
+                            .get("choices")
                             .and_then(|c| c.as_array())
                             .and_then(|arr| arr.first())
                             .and_then(|c| c.get("delta"))
@@ -103,7 +110,7 @@ pub fn extract_stream_content(chunk: &[u8], collected: &Arc<Mutex<String>>) {
                                     .and_then(|m| m.get("content"))
                                     .and_then(|c| c.as_str())
                             });
-                        
+
                         if let Some(content_str) = content {
                             if let Ok(mut c) = collected.lock() {
                                 c.push_str(content_str);
@@ -125,7 +132,11 @@ pub fn extract_response_content(resp_body: &serde_json::Value) -> Option<String>
     fn value_to_text(v: &serde_json::Value) -> Option<String> {
         if let Some(s) = v.as_str() {
             let s = s.trim();
-            return if s.is_empty() { None } else { Some(s.to_string()) };
+            return if s.is_empty() {
+                None
+            } else {
+                Some(s.to_string())
+            };
         }
 
         // Some providers use rich content blocks: [{"type":"text","text":"..."}, ...]
@@ -148,7 +159,11 @@ pub fn extract_response_content(resp_body: &serde_json::Value) -> Option<String>
         if let Some(obj) = v.as_object() {
             if let Some(t) = obj.get("text").and_then(|t| t.as_str()) {
                 let t = t.trim();
-                return if t.is_empty() { None } else { Some(t.to_string()) };
+                return if t.is_empty() {
+                    None
+                } else {
+                    Some(t.to_string())
+                };
             }
         }
 
@@ -169,9 +184,7 @@ pub fn extract_response_content(resp_body: &serde_json::Value) -> Option<String>
         })
         .or_else(|| {
             // Some SDKs: choices[0].text
-            choice0
-                .and_then(|c| c.get("text"))
-                .and_then(value_to_text)
+            choice0.and_then(|c| c.get("text")).and_then(value_to_text)
         })
         .or_else(|| {
             // Fallback: choices[0].content
@@ -184,7 +197,8 @@ pub fn extract_response_content(resp_body: &serde_json::Value) -> Option<String>
 }
 
 pub fn extract_tokens_used(resp_body: &serde_json::Value) -> i64 {
-    resp_body.get("usage")
+    resp_body
+        .get("usage")
         .and_then(|u| u.get("total_tokens"))
         .and_then(|t| t.as_i64())
         .unwrap_or(0)

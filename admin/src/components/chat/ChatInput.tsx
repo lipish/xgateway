@@ -1,5 +1,5 @@
 import { forwardRef } from "react"
-import { Send, Loader2, Image, Paperclip } from "lucide-react"
+import { Send, Loader2 } from "lucide-react"
 import { t } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
@@ -19,12 +19,6 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
     return (
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-card/95 backdrop-blur-sm">
         <div className="relative flex items-center gap-3 px-4 py-2 rounded-3xl bg-muted/30 border border-border/30 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-colors">
-          <button className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted/50 transition-colors">
-            <Image className="w-5 h-5 text-muted-foreground" strokeWidth={1.2} />
-          </button>
-          <button className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted/50 transition-colors">
-            <Paperclip className="w-5 h-5 text-muted-foreground" strokeWidth={1.2} />
-          </button>
           <textarea
             ref={ref}
             className="flex-1 min-h-[28px] max-h-32 py-1 bg-transparent text-sm resize-none focus:outline-none placeholder:text-muted-foreground/50 border-none"

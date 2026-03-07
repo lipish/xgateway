@@ -1,8 +1,8 @@
+use super::ApiResponse;
+use crate::adapter::types::DriverType;
+use crate::db::{DatabasePool, ModelInfo, NewProviderType, UpdateProviderType};
 use axum::Json;
 use serde::Deserialize;
-use crate::db::{DatabasePool, NewProviderType, UpdateProviderType, ModelInfo};
-use crate::adapter::types::DriverType;
-use super::ApiResponse;
 
 /// Get supported provider types (from database)
 pub async fn get_provider_types_api(
@@ -10,22 +10,25 @@ pub async fn get_provider_types_api(
 ) -> Json<ApiResponse<Vec<serde_json::Value>>> {
     match db_pool.list_provider_types().await {
         Ok(types) => {
-            let provider_types: Vec<serde_json::Value> = types.iter().map(|t| {
-                // Parse models JSON to return full model info
-                let models: Vec<serde_json::Value> = serde_json::from_str(&t.models)
-                    .unwrap_or_default();
+            let provider_types: Vec<serde_json::Value> = types
+                .iter()
+                .map(|t| {
+                    // Parse models JSON to return full model info
+                    let models: Vec<serde_json::Value> =
+                        serde_json::from_str(&t.models).unwrap_or_default();
 
-                serde_json::json!({
-                    "id": t.id,
-                    "label": t.label,
-                    "base_url": t.base_url,
-                    "driver_type": t.driver_type,
-                    "models": models,
-                    "enabled": t.enabled,
-                    "sort_order": t.sort_order,
-                    "docs_url": t.docs_url
+                    serde_json::json!({
+                        "id": t.id,
+                        "label": t.label,
+                        "base_url": t.base_url,
+                        "driver_type": t.driver_type,
+                        "models": models,
+                        "enabled": t.enabled,
+                        "sort_order": t.sort_order,
+                        "docs_url": t.docs_url
+                    })
                 })
-            }).collect();
+                .collect();
 
             Json(ApiResponse {
                 success: true,
@@ -33,13 +36,11 @@ pub async fn get_provider_types_api(
                 message: "Provider types retrieved".to_string(),
             })
         }
-        Err(e) => {
-            Json(ApiResponse {
-                success: false,
-                data: None,
-                message: format!("Failed to get provider types: {}", e),
-            })
-        }
+        Err(e) => Json(ApiResponse {
+            success: false,
+            data: None,
+            message: format!("Failed to get provider types: {}", e),
+        }),
     }
 }
 
@@ -88,7 +89,7 @@ pub async fn create_provider_type_api(
         return Json(ApiResponse {
             success: false,
             data: None,
-            message: format!("Invalid driver_type: {}. Valid types are: openai, openai_compatible, anthropic, aliyun, volcengine, tencent, ollama", req.driver_type),
+            message: format!("Invalid driver_type: {}. Valid types are: openai, openai_compatible, xinference, anthropic, aliyun, volcengine, tencent, ollama", req.driver_type),
         });
     }
 
@@ -97,15 +98,19 @@ pub async fn create_provider_type_api(
         label: req.label,
         base_url: req.base_url,
         driver_type: req.driver_type,
-        models: req.models.into_iter().map(|m| ModelInfo {
-            id: m.id,
-            name: m.name,
-            description: m.description,
-            supports_tools: m.supports_tools,
-            context_length: m.context_length,
-            input_price: m.input_price,
-            output_price: m.output_price,
-        }).collect(),
+        models: req
+            .models
+            .into_iter()
+            .map(|m| ModelInfo {
+                id: m.id,
+                name: m.name,
+                description: m.description,
+                supports_tools: m.supports_tools,
+                context_length: m.context_length,
+                input_price: m.input_price,
+                output_price: m.output_price,
+            })
+            .collect(),
         enabled: req.enabled,
         sort_order: req.sort_order,
         docs_url: req.docs_url,
@@ -149,7 +154,7 @@ pub async fn update_provider_type_api(
             return Json(ApiResponse {
                 success: false,
                 data: None,
-                message: format!("Invalid driver_type: {}. Valid types are: openai, openai_compatible, anthropic, aliyun, volcengine, tencent, ollama", dt),
+                message: format!("Invalid driver_type: {}. Valid types are: openai, openai_compatible, xinference, anthropic, aliyun, volcengine, tencent, ollama", dt),
             });
         }
     }
@@ -159,15 +164,18 @@ pub async fn update_provider_type_api(
         base_url: req.base_url,
         driver_type: req.driver_type,
         models: req.models.map(|models| {
-            models.into_iter().map(|m| ModelInfo {
-                id: m.id,
-                name: m.name,
-                description: m.description,
-                supports_tools: m.supports_tools,
-                context_length: m.context_length,
-                input_price: m.input_price,
-                output_price: m.output_price,
-            }).collect()
+            models
+                .into_iter()
+                .map(|m| ModelInfo {
+                    id: m.id,
+                    name: m.name,
+                    description: m.description,
+                    supports_tools: m.supports_tools,
+                    context_length: m.context_length,
+                    input_price: m.input_price,
+                    output_price: m.output_price,
+                })
+                .collect()
         }),
         enabled: req.enabled,
         sort_order: req.sort_order,

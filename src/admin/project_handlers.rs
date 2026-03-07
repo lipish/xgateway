@@ -1,9 +1,9 @@
 use axum::Json;
 use serde::Deserialize;
 
+use super::ApiResponse;
 use crate::admin::auth_middleware::AdminUserContext;
 use crate::db::DatabasePool;
-use super::ApiResponse;
 
 #[derive(Debug, Deserialize)]
 pub struct ListProjectsQuery {
@@ -15,7 +15,11 @@ pub async fn list_projects_api(
     axum::extract::Query(q): axum::extract::Query<ListProjectsQuery>,
     axum::extract::Extension(ctx): axum::extract::Extension<AdminUserContext>,
 ) -> Json<ApiResponse<Vec<crate::db::Project>>> {
-    let effective_org_id = if ctx.is_admin { q.org_id } else { Some(ctx.org_id) };
+    let effective_org_id = if ctx.is_admin {
+        q.org_id
+    } else {
+        Some(ctx.org_id)
+    };
     match db_pool.list_projects(effective_org_id).await {
         Ok(projects) => Json(ApiResponse {
             success: true,

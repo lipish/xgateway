@@ -1,20 +1,20 @@
-mod codex;
-mod zed;
 mod aider;
-mod openhands;
+mod codex;
 mod info;
+mod openhands;
 mod protocol;
+mod zed;
 
-use serde::{Deserialize, Serialize};
 use crate::settings::Settings;
+use serde::{Deserialize, Serialize};
 
 pub use info::AppInfoProvider;
 
 // Re-export app-specific modules
-pub use codex::CodexApp;
-pub use zed::ZedApp;
 pub use aider::AiderApp;
+pub use codex::CodexApp;
 pub use openhands::OpenHandsApp;
+pub use zed::ZedApp;
 
 /// Supported application types
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -53,12 +53,7 @@ impl SupportedApp {
 
     /// Get all supported applications
     pub fn all() -> Vec<Self> {
-        vec![
-            Self::CodexCLI,
-            Self::Zed,
-            Self::Aider,
-            Self::OpenHands,
-        ]
+        vec![Self::CodexCLI, Self::Zed, Self::Aider, Self::OpenHands]
     }
 }
 

@@ -1,6 +1,6 @@
+use anyhow::Result;
 use sqlx::PgPool;
 use tracing::info;
-use anyhow::Result;
 
 #[derive(Clone)]
 pub enum DatabasePool {

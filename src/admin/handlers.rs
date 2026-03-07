@@ -1,12 +1,12 @@
+use crate::admin::auth_middleware::AdminUserContext;
+use crate::db::{DatabasePool, NewProvider, NewUserInstance, Provider, UpdateProvider};
+use anyhow::Result;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::Json,
 };
 use serde::{Deserialize, Serialize};
-use crate::db::{DatabasePool, Provider, NewProvider, UpdateProvider, NewUserInstance};
-use anyhow::Result;
-use crate::admin::auth_middleware::AdminUserContext;
 
 #[derive(Debug, Serialize)]
 pub struct ProviderResponse {
@@ -123,7 +123,7 @@ pub async fn create_provider_api(
             message: "Name, type, and config are required".to_string(),
         }));
     }
-    
+
     // Validate JSON config
     if serde_json::from_str::<serde_json::Value>(&request.config).is_err() {
         return Ok(Json(SingleProviderResponse {
@@ -132,7 +132,7 @@ pub async fn create_provider_api(
             message: "Invalid JSON config".to_string(),
         }));
     }
-    
+
     let new_provider = NewProvider {
         name: request.name,
         provider_type: request.provider_type,
@@ -144,7 +144,7 @@ pub async fn create_provider_api(
         secret_key: request.secret_key,
         owner_id: Some(ctx.user.id),
     };
-    
+
     match db_pool.create_provider(new_provider).await {
         Ok(provider_id) => {
             let _ = db_pool
@@ -203,7 +203,7 @@ pub async fn update_provider_api(
             }));
         }
     }
-    
+
     let has_expected_version = request.expected_version.is_some();
 
     let update = UpdateProvider {
@@ -217,7 +217,7 @@ pub async fn update_provider_api(
         secret_key: request.secret_key,
         expected_version: request.expected_version,
     };
-    
+
     match db_pool.update_provider(id, update).await {
         Ok(true) => {
             // Return updated provider
@@ -245,7 +245,8 @@ pub async fn update_provider_api(
                     Ok(Some(provider)) => Ok(Json(SingleProviderResponse {
                         success: false,
                         data: Some(provider),
-                        message: "Provider has been modified, please refresh and try again".to_string(),
+                        message: "Provider has been modified, please refresh and try again"
+                            .to_string(),
                     })),
                     Ok(None) => Ok(Json(SingleProviderResponse {
                         success: false,
@@ -358,24 +359,22 @@ pub async fn get_provider_stats_api(
 /// Test provider connection
 pub async fn test_provider_api(
     State(db_pool): State<DatabasePool>,
+    State(pool_manager): State<std::sync::Arc<crate::pool::PoolManager>>,
     Path(id): Path<i64>,
 ) -> Result<Json<TestResponse>, StatusCode> {
     match db_pool.get_provider(id).await {
-        Ok(Some(_provider)) => {
-            let start_time = std::time::Instant::now();
-            
-            // TODO: Implement actual provider testing
-            // For now, just simulate a test
-            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-            
-            let latency = start_time.elapsed().as_millis() as u64;
-            
-            Ok(Json(TestResponse {
+        Ok(Some(provider)) => match pool_manager.test_provider_connectivity(&provider).await {
+            Ok(latency_ms) => Ok(Json(TestResponse {
                 success: true,
                 message: "Provider connection test successful".to_string(),
-                latency_ms: Some(latency),
-            }))
-        }
+                latency_ms: Some(latency_ms),
+            })),
+            Err(e) => Ok(Json(TestResponse {
+                success: false,
+                message: format!("Provider connection test failed: {}", e),
+                latency_ms: None,
+            })),
+        },
         Ok(None) => Ok(Json(TestResponse {
             success: false,
             message: "Provider not found".to_string(),

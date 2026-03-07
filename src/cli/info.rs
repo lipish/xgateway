@@ -1,4 +1,4 @@
-use crate::apps::{SupportedApp, AppInfoProvider};
+use crate::apps::{AppInfoProvider, SupportedApp};
 use tracing::error;
 
 /// 列出所有支持的应用
@@ -31,7 +31,10 @@ pub fn show_application_info(app_name: &str) {
         println!("   Port: {}", info.port);
         println!("   Protocol: {}", info.protocol);
         println!("   Endpoints: {}", info.endpoints.join(", "));
-        println!("   Auth Required: {}", if info.auth_required { "Yes" } else { "No" });
+        println!(
+            "   Auth Required: {}",
+            if info.auth_required { "Yes" } else { "No" }
+        );
         println!();
 
         println!(" Required Parameters:");
@@ -46,18 +49,26 @@ pub fn show_application_info(app_name: &str) {
         println!("   --provider tencent     (pass Hunyuan key via --api-key)");
         println!("   --provider ollama      (no provider API key needed)");
         println!();
-        
+
         if info.auth_required {
-            println!("   --auth-key <TOKEN>     (protects xgateway HTTP APIs, not forwarded upstream)");
+            println!(
+                "   --auth-key <TOKEN>     (protects xgateway HTTP APIs, not forwarded upstream)"
+            );
             println!();
         }
 
         println!(" Example:");
         println!();
-        println!("   ./xgateway --app {} --provider openai --api-key sk-openai-xxx", app_name);
+        println!(
+            "   ./xgateway --app {} --provider openai --api-key sk-openai-xxx",
+            app_name
+        );
         println!();
         println!("   # Or use a different provider:");
-        println!("   ./xgateway --app {} --provider anthropic --api-key sk-ant-xxx", app_name);
+        println!(
+            "   ./xgateway --app {} --provider anthropic --api-key sk-ant-xxx",
+            app_name
+        );
         println!();
     } else {
         error!("Unknown application: {}", app_name);
@@ -68,4 +79,3 @@ pub fn show_application_info(app_name: &str) {
         }
     }
 }
-

@@ -1,7 +1,7 @@
-use sqlx::Row;
+use crate::db::{DatabasePool, NewRequestLog, RequestLog};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use crate::db::{DatabasePool, RequestLog, NewRequestLog};
+use sqlx::Row;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HourlyRequestCount {
@@ -62,7 +62,7 @@ pub struct TokenUsageByUser {
 
 impl DatabasePool {
     // Request Log operations
-    
+
     pub async fn create_request_log(&self, log: NewRequestLog) -> Result<RequestLog> {
         match self {
             Self::Postgres(pool) => {
@@ -191,8 +191,10 @@ impl DatabasePool {
                     WHERE created_at >= NOW() - INTERVAL '24 hours'
                     GROUP BY TO_CHAR(created_at, 'HH24:00')
                     ORDER BY hour
-                    "#
-                ).fetch_all(pool).await?;
+                    "#,
+                )
+                .fetch_all(pool)
+                .await?;
 
                 let mut counts = Vec::new();
                 for row in rows {
@@ -222,8 +224,10 @@ impl DatabasePool {
                     GROUP BY provider_name
                     ORDER BY avg_latency_ms DESC
                     LIMIT 10
-                    "#
-                ).fetch_all(pool).await?;
+                    "#,
+                )
+                .fetch_all(pool)
+                .await?;
 
                 let mut latencies = Vec::new();
                 for row in rows {
@@ -253,7 +257,9 @@ impl DatabasePool {
 
                 Ok(TodayStats {
                     total_requests: row.try_get("total_requests")?,
-                    avg_latency_ms: row.try_get::<Option<f64>, _>("avg_latency_ms")?.unwrap_or(0.0),
+                    avg_latency_ms: row
+                        .try_get::<Option<f64>, _>("avg_latency_ms")?
+                        .unwrap_or(0.0),
                 })
             }
         }

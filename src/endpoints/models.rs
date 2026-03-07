@@ -25,23 +25,22 @@ pub async fn handle_list_models(
     let start_timestamp = Utc::now();
     let request_payload = serde_json::json!({ "provider_id": query.provider_id });
     let db_pool = &state.db_pool;
-    let report = |status: StatusCode,
-                  response_payload: Option<serde_json::Value>,
-                  error: Option<String>| {
-        if let Some(xtrace) = state.xtrace.as_ref() {
-            xtrace.report_request(
-                "GET",
-                "/v1/models",
-                status.as_u16(),
-                Some(request_payload.clone()),
-                response_payload,
-                error,
-                false,
-                start_time,
-                start_timestamp,
-            );
-        }
-    };
+    let report =
+        |status: StatusCode, response_payload: Option<serde_json::Value>, error: Option<String>| {
+            if let Some(xtrace) = state.xtrace.as_ref() {
+                xtrace.report_request(
+                    "GET",
+                    "/v1/models",
+                    status.as_u16(),
+                    Some(request_payload.clone()),
+                    response_payload,
+                    error,
+                    false,
+                    start_time,
+                    start_timestamp,
+                );
+            }
+        };
 
     let api_key = headers
         .get(axum::http::header::AUTHORIZATION)
@@ -59,11 +58,15 @@ pub async fn handle_list_models(
                             "type": "invalid_protocol"
                         }
                     });
-                    report(status, Some(body.clone()), Some("invalid_protocol".to_string()));
+                    report(
+                        status,
+                        Some(body.clone()),
+                        Some("invalid_protocol".to_string()),
+                    );
                     return (status, axum::Json(body));
                 }
                 Some(info)
-            },
+            }
             _ => {
                 let status = StatusCode::UNAUTHORIZED;
                 let body = serde_json::json!({
@@ -72,7 +75,11 @@ pub async fn handle_list_models(
                         "type": "invalid_api_key"
                     }
                 });
-                report(status, Some(body.clone()), Some("invalid_api_key".to_string()));
+                report(
+                    status,
+                    Some(body.clone()),
+                    Some("invalid_api_key".to_string()),
+                );
                 return (status, axum::Json(body));
             }
         }
@@ -93,7 +100,11 @@ pub async fn handle_list_models(
                         "type": "missing_provider_ids"
                     }
                 });
-                report(status, Some(body.clone()), Some("missing_provider_ids".to_string()));
+                report(
+                    status,
+                    Some(body.clone()),
+                    Some("missing_provider_ids".to_string()),
+                );
                 return (status, axum::Json(body));
             }
             ids
@@ -114,14 +125,19 @@ pub async fn handle_list_models(
                         "type": "provider_access_denied"
                     }
                 });
-                report(status, Some(body.clone()), Some("provider_access_denied".to_string()));
+                report(
+                    status,
+                    Some(body.clone()),
+                    Some("provider_access_denied".to_string()),
+                );
                 return (status, axum::Json(body));
             }
         }
         candidate_provider_ids = vec![provider_id];
     }
 
-    let candidate_set: std::collections::HashSet<i64> = candidate_provider_ids.iter().copied().collect();
+    let candidate_set: std::collections::HashSet<i64> =
+        candidate_provider_ids.iter().copied().collect();
     providers.retain(|p| candidate_set.contains(&p.id) && p.enabled);
 
     let models: Vec<serde_json::Value> = providers
@@ -164,23 +180,22 @@ pub async fn handle_get_model(
         "model_id": model_id
     });
     let db_pool = &state.db_pool;
-    let report = |status: StatusCode,
-                  response_payload: Option<serde_json::Value>,
-                  error: Option<String>| {
-        if let Some(xtrace) = state.xtrace.as_ref() {
-            xtrace.report_request(
-                "GET",
-                "/v1/models/:model",
-                status.as_u16(),
-                Some(request_payload.clone()),
-                response_payload,
-                error,
-                false,
-                start_time,
-                start_timestamp,
-            );
-        }
-    };
+    let report =
+        |status: StatusCode, response_payload: Option<serde_json::Value>, error: Option<String>| {
+            if let Some(xtrace) = state.xtrace.as_ref() {
+                xtrace.report_request(
+                    "GET",
+                    "/v1/models/:model",
+                    status.as_u16(),
+                    Some(request_payload.clone()),
+                    response_payload,
+                    error,
+                    false,
+                    start_time,
+                    start_timestamp,
+                );
+            }
+        };
 
     let api_key = headers
         .get(axum::http::header::AUTHORIZATION)
@@ -198,11 +213,15 @@ pub async fn handle_get_model(
                             "type": "invalid_protocol"
                         }
                     });
-                    report(status, Some(body.clone()), Some("invalid_protocol".to_string()));
+                    report(
+                        status,
+                        Some(body.clone()),
+                        Some("invalid_protocol".to_string()),
+                    );
                     return (status, axum::Json(body));
                 }
                 Some(info)
-            },
+            }
             _ => {
                 let status = StatusCode::UNAUTHORIZED;
                 let body = serde_json::json!({
@@ -211,7 +230,11 @@ pub async fn handle_get_model(
                         "type": "invalid_api_key"
                     }
                 });
-                report(status, Some(body.clone()), Some("invalid_api_key".to_string()));
+                report(
+                    status,
+                    Some(body.clone()),
+                    Some("invalid_api_key".to_string()),
+                );
                 return (status, axum::Json(body));
             }
         }
@@ -232,7 +255,11 @@ pub async fn handle_get_model(
                         "type": "missing_provider_ids"
                     }
                 });
-                report(status, Some(body.clone()), Some("missing_provider_ids".to_string()));
+                report(
+                    status,
+                    Some(body.clone()),
+                    Some("missing_provider_ids".to_string()),
+                );
                 return (status, axum::Json(body));
             }
             ids
@@ -253,14 +280,19 @@ pub async fn handle_get_model(
                         "type": "provider_access_denied"
                     }
                 });
-                report(status, Some(body.clone()), Some("provider_access_denied".to_string()));
+                report(
+                    status,
+                    Some(body.clone()),
+                    Some("provider_access_denied".to_string()),
+                );
                 return (status, axum::Json(body));
             }
         }
         candidate_provider_ids = vec![provider_id];
     }
 
-    let candidate_set: std::collections::HashSet<i64> = candidate_provider_ids.iter().copied().collect();
+    let candidate_set: std::collections::HashSet<i64> =
+        candidate_provider_ids.iter().copied().collect();
     providers.retain(|p| candidate_set.contains(&p.id) && p.enabled);
 
     let selected = providers.iter().find_map(|p| {
@@ -268,7 +300,12 @@ pub async fn handle_get_model(
         let model_owned = p
             .endpoint
             .clone()
-            .or_else(|| config.get("model").and_then(|v| v.as_str()).map(|s| s.to_string()))
+            .or_else(|| {
+                config
+                    .get("model")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+            })
             .unwrap_or_else(|| "unknown".to_string());
         if model_owned == model_id {
             Some((p, model_owned))
@@ -285,7 +322,11 @@ pub async fn handle_get_model(
                 "type": "model_not_found"
             }
         });
-        report(status, Some(body.clone()), Some("model_not_found".to_string()));
+        report(
+            status,
+            Some(body.clone()),
+            Some("model_not_found".to_string()),
+        );
         return (status, axum::Json(body));
     };
 

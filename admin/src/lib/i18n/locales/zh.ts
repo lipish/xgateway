@@ -561,6 +561,7 @@ export const zh = {
     sortByModels: '按模型数量排序',
     driverTypeOpenAI: 'OpenAI',
     driverTypeOpenAICompatible: 'OpenAI 兼容',
+    driverTypeXinference: 'Xinference',
     driverTypeAnthropic: 'Anthropic',
     driverTypeAliyun: '阿里云',
     driverTypeVolcengine: '火山引擎',

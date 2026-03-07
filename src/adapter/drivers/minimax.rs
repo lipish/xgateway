@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
+use futures_util::stream::Stream;
 use reqwest::Client;
 use serde_json::{json, Value};
-use futures_util::stream::Stream;
 use std::pin::Pin;
 
 /// Direct MiniMax API client with special handling (e.g., thinking tag cleaning)
@@ -23,11 +23,7 @@ impl MinimaxClient {
         }
     }
 
-    pub async fn chat(
-        &self,
-        model: &str,
-        messages: Vec<Value>,
-    ) -> Result<Value> {
+    pub async fn chat(&self, model: &str, messages: Vec<Value>) -> Result<Value> {
         let url = format!("{}/chat/completions", self.base_url);
 
         let payload = json!({
@@ -39,7 +35,8 @@ impl MinimaxClient {
         tracing::debug!("Sending request to MiniMax: {}", url);
         tracing::debug!("Payload: {}", payload);
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .header("Content-Type", "application/json")
             .header("Authorization", format!("Bearer {}", self.api_key))
@@ -54,17 +51,16 @@ impl MinimaxClient {
         tracing::debug!("MiniMax response body: {}", body);
 
         if !status.is_success() {
-            return Err(anyhow!(
-                "MiniMax API error: {} - {}",
-                status,
-                body
-            ));
+            return Err(anyhow!("MiniMax API error: {} - {}", status, body));
         }
 
         let mut json_response: Value = serde_json::from_str(&body)?;
 
         // Clean up the response by removing <think> tags from the content
-        if let Some(choices) = json_response.get_mut("choices").and_then(|c| c.as_array_mut()) {
+        if let Some(choices) = json_response
+            .get_mut("choices")
+            .and_then(|c| c.as_array_mut())
+        {
             for choice in choices {
                 if let Some(message) = choice.get_mut("message") {
                     if let Some(content) = message.get_mut("content").and_then(|c| c.as_str()) {
@@ -118,7 +114,8 @@ impl MinimaxClient {
 
         tracing::debug!("Sending streaming request to MiniMax: {}", url);
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .header("Content-Type", "application/json")
             .header("Authorization", format!("Bearer {}", self.api_key))
@@ -129,11 +126,7 @@ impl MinimaxClient {
         let status = response.status();
         if !status.is_success() {
             let body = response.text().await?;
-            return Err(anyhow!(
-                "MiniMax API error: {} - {}",
-                status,
-                body
-            ));
+            return Err(anyhow!("MiniMax API error: {} - {}", status, body));
         }
 
         // Create a stream from the response

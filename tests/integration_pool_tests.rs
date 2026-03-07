@@ -39,43 +39,49 @@ const TEST_PROVIDERS: &[TestProvider] = &[
 #[tokio::test]
 async fn test_provider_health_check_simulation() {
     println!("\n=== Provider Health Check Simulation ===\n");
-    
+
     for provider in TEST_PROVIDERS {
         println!("Provider: {} ({})", provider.name, provider.provider_type);
         println!("  Model: {}", provider.model);
-        println!("  API Key: {}...", &provider.api_key[..20.min(provider.api_key.len())]);
+        println!(
+            "  API Key: {}...",
+            &provider.api_key[..20.min(provider.api_key.len())]
+        );
         println!("  Status: Configured ✓");
         println!();
     }
-    
+
     println!("Total providers configured: {}", TEST_PROVIDERS.len());
 }
 
 #[tokio::test]
 async fn test_load_balancing_simulation() {
     println!("\n=== Load Balancing Simulation ===\n");
-    
+
     // Simulate round-robin selection
     println!("Round Robin Strategy:");
     for i in 0..6 {
         let idx = i % TEST_PROVIDERS.len();
         println!("  Request {}: -> {}", i + 1, TEST_PROVIDERS[idx].name);
     }
-    
+
     // Simulate priority selection
     println!("\nPriority Strategy (assuming priority order):");
-    println!("  All requests -> {} (highest priority)", TEST_PROVIDERS[0].name);
+    println!(
+        "  All requests -> {} (highest priority)",
+        TEST_PROVIDERS[0].name
+    );
 }
 
 #[tokio::test]
 async fn test_failover_simulation() {
     println!("\n=== Failover Simulation ===\n");
-    
+
     println!("Scenario: Primary provider fails");
     println!("  Primary: {} - FAILED", TEST_PROVIDERS[0].name);
     println!("  Fallback 1: {} - OK ✓", TEST_PROVIDERS[1].name);
     println!("  Result: Request routed to fallback");
-    
+
     println!("\nScenario: Multiple failures");
     println!("  Primary: {} - FAILED", TEST_PROVIDERS[0].name);
     println!("  Fallback 1: {} - FAILED", TEST_PROVIDERS[1].name);
@@ -86,12 +92,12 @@ async fn test_failover_simulation() {
 #[tokio::test]
 async fn test_circuit_breaker_simulation() {
     println!("\n=== Circuit Breaker Simulation ===\n");
-    
+
     println!("Configuration:");
     println!("  Failure Threshold: 5");
     println!("  Recovery Timeout: 30s");
     println!("  Success Threshold: 3");
-    
+
     println!("\nSimulation:");
     println!("  State: CLOSED (allowing requests)");
     println!("  Failures: 1, 2, 3, 4, 5");
@@ -105,7 +111,7 @@ async fn test_circuit_breaker_simulation() {
 #[tokio::test]
 async fn test_metrics_simulation() {
     println!("\n=== Metrics Simulation ===\n");
-    
+
     for provider in TEST_PROVIDERS {
         println!("Provider: {}", provider.name);
         println!("  Total Requests: 100");

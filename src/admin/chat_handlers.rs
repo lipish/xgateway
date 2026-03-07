@@ -1,9 +1,9 @@
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
-use axum::Json;
 use crate::adapter::{send_to_provider, RequestResult};
 use crate::db::DatabasePool;
 use crate::pool::PoolManager;
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use axum::Json;
 use std::sync::Arc;
 
 pub async fn handle_admin_chat_completions(
@@ -36,7 +36,10 @@ pub async fn handle_admin_chat_completions(
     let _user = match db_pool.get_user_by_token(token).await {
         Ok(Some(u)) => u,
         Ok(None) => {
-            tracing::warn!("Token lookup failed for token prefix: {}", &token[..std::cmp::min(20, token.len())]);
+            tracing::warn!(
+                "Token lookup failed for token prefix: {}",
+                &token[..std::cmp::min(20, token.len())]
+            );
             return (
                 StatusCode::UNAUTHORIZED,
                 Json(serde_json::json!({
@@ -124,7 +127,8 @@ pub async fn handle_admin_chat_completions(
         &pool_manager,
         None,
     )
-    .await {
+    .await
+    {
         RequestResult::Success(response) => response,
         RequestResult::Failure {
             error,

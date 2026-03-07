@@ -40,6 +40,8 @@ export const getLocalizedDriverType = (driverType?: string) => {
       return t("modelTypes.driverTypeOpenAI")
     case "openai_compatible":
       return t("modelTypes.driverTypeOpenAICompatible")
+    case "xinference":
+      return t("modelTypes.driverTypeXinference")
     case "anthropic":
       return t("modelTypes.driverTypeAnthropic")
     case "aliyun":

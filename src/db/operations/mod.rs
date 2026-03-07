@@ -1,7 +1,7 @@
 // Provider operations module
 mod providers;
 
-// Provider type operations module  
+// Provider type operations module
 mod provider_types;
 
 // Conversation operations module
@@ -21,7 +21,6 @@ pub mod api_keys;
 
 // User-Instance operations module
 pub mod user_instances;
-
 
 // Tenancy operations module
 pub mod tenancy;

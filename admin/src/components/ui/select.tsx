@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useState, useRef, useEffect } from "react"
+import * as SelectPrimitive from "@radix-ui/react-select"
 import { cn } from "@/lib/utils"
 import { ChevronDown, Check } from "lucide-react"
 import { t } from "@/lib/i18n"
@@ -34,74 +34,61 @@ const Select = ({
   menuSide = "bottom",
   emptyText,
 }: SelectProps) => {
-  const [open, setOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-
   const selectedOption = options.find(opt => opt.value === value)
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
-
   return (
-    <div ref={containerRef} className={cn("relative", open && "z-50", className)}>
-      <button
-        id={id}
-        type="button"
-        onClick={() => setOpen(!open)}
-        className={cn(
-          "flex h-10 items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          triggerClassName
-        )}
-      >
-        <div className="flex items-center gap-1 min-w-0">
-          {icon}
-          <span className={cn("whitespace-nowrap truncate", selectedOption ? "" : "text-muted-foreground")}>
-            {selectedOption?.label || placeholder}
-          </span>
-        </div>
-        <ChevronDown className={cn("ml-1 h-3.5 w-3.5 opacity-50 transition-transform shrink-0", open && "rotate-180")} />
-      </button>
-      {open && (
-        <div
+    <SelectPrimitive.Root value={value} onValueChange={onChange}>
+      <div className={cn("relative", className)}>
+        <SelectPrimitive.Trigger
+          id={id}
           className={cn(
-            "absolute z-[60] min-w-[200px] rounded-md border bg-popover shadow-md",
-            menuSide === "top" ? "bottom-full mb-2" : "mt-1"
+            "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+            triggerClassName
           )}
         >
-          <div className="max-h-60 overflow-auto p-1">
+          <div className="flex min-w-0 items-center gap-1">
+            {icon}
+            <SelectPrimitive.Value
+              placeholder={placeholder}
+              className={cn("truncate", selectedOption ? "" : "text-muted-foreground")}
+            >
+              {selectedOption?.label}
+            </SelectPrimitive.Value>
+          </div>
+          <SelectPrimitive.Icon asChild>
+            <ChevronDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+          </SelectPrimitive.Icon>
+        </SelectPrimitive.Trigger>
+      </div>
+      <SelectPrimitive.Portal>
+        <SelectPrimitive.Content
+          side={menuSide}
+          position="popper"
+          className="z-[60] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border bg-popover shadow-md"
+        >
+          <SelectPrimitive.Viewport className="max-h-60 p-1">
             {options.length === 0 ? (
               <div className="px-2 py-2 text-sm text-muted-foreground">
                 {emptyText || t("common.empty") || "No options"}
               </div>
             ) : (
               options.map((option) => (
-                <div
+                <SelectPrimitive.Item
                   key={option.value}
-                  onClick={() => {
-                    onChange?.(option.value)
-                    setOpen(false)
-                  }}
-                  className={cn(
-                    "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
-                    value === option.value && "bg-accent"
-                  )}
+                  value={option.value}
+                  className="relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none focus:bg-accent focus:text-accent-foreground"
                 >
-                  <span className="flex-1">{option.label}</span>
-                  {value === option.value && <Check className="h-4 w-4" />}
-                </div>
+                  <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
+                  <SelectPrimitive.ItemIndicator className="absolute right-2 inline-flex items-center">
+                    <Check className="h-4 w-4" />
+                  </SelectPrimitive.ItemIndicator>
+                </SelectPrimitive.Item>
               ))
             )}
-          </div>
-        </div>
-      )}
-    </div>
+          </SelectPrimitive.Viewport>
+        </SelectPrimitive.Content>
+      </SelectPrimitive.Portal>
+    </SelectPrimitive.Root>
   )
 }
 

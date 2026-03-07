@@ -6,14 +6,14 @@
 //! - Failover management
 //! - Metrics collection
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
 
-use super::health::{HealthChecker, HealthStatus};
-use super::load_balancer::{LoadBalancer, LoadBalanceStrategy};
 use super::failover::{FailoverManager, RetryCondition};
+use super::health::{HealthChecker, HealthStatus};
+use super::load_balancer::{LoadBalanceStrategy, LoadBalancer};
 use super::metrics::{ProviderMetrics, ProviderMetricsSummary};
 
 /// Configuration for a provider instance
@@ -103,7 +103,14 @@ impl ProviderPool {
         self.failover_manager.register_provider(id).await;
         self.metrics.register_provider(id).await;
         self.load_balancer.set_priority(id, config.priority).await;
-        self.load_balancer.set_pricing(id, config.input_price, config.output_price, config.quota_limit).await;
+        self.load_balancer
+            .set_pricing(
+                id,
+                config.input_price,
+                config.output_price,
+                config.quota_limit,
+            )
+            .await;
 
         self.instances.write().await.insert(id, instance);
         tracing::info!("Added provider {} ({}) to pool", name, id);
@@ -128,7 +135,9 @@ impl ProviderPool {
 
     /// Get all enabled provider IDs
     pub async fn get_enabled_provider_ids(&self) -> Vec<i64> {
-        self.instances.read().await
+        self.instances
+            .read()
+            .await
             .values()
             .filter(|p| p.config.enabled)
             .map(|p| p.id)
@@ -150,12 +159,7 @@ impl ProviderPool {
         let mut enabled_in_pool: Vec<i64> = candidate_provider_ids
             .iter()
             .copied()
-            .filter(|id| {
-                instances
-                    .get(id)
-                    .map(|p| p.config.enabled)
-                    .unwrap_or(false)
-            })
+            .filter(|id| instances.get(id).map(|p| p.config.enabled).unwrap_or(false))
             .collect();
         drop(instances);
 
@@ -189,12 +193,7 @@ impl ProviderPool {
         let mut enabled_in_pool: Vec<i64> = candidate_provider_ids
             .iter()
             .copied()
-            .filter(|id| {
-                instances
-                    .get(id)
-                    .map(|p| p.config.enabled)
-                    .unwrap_or(false)
-            })
+            .filter(|id| instances.get(id).map(|p| p.config.enabled).unwrap_or(false))
             .collect();
         drop(instances);
 
@@ -244,14 +243,18 @@ impl ProviderPool {
 
     /// Record successful request
     pub async fn record_success(&self, provider_id: i64, latency_ms: u64) {
-        self.health_checker.record_success(provider_id, latency_ms).await;
+        self.health_checker
+            .record_success(provider_id, latency_ms)
+            .await;
         self.failover_manager.record_success(provider_id).await;
     }
 
     /// Record failed request
     pub async fn record_failure(&self, provider_id: i64, error: Option<&str>) {
         self.health_checker.record_failure(provider_id, error).await;
-        self.failover_manager.record_failure(provider_id, Some(RetryCondition::ServerError)).await;
+        self.failover_manager
+            .record_failure(provider_id, Some(RetryCondition::ServerError))
+            .await;
     }
 
     /// Record request start (increment active connections)
@@ -260,18 +263,30 @@ impl ProviderPool {
     }
 
     /// Record request metrics
-    pub async fn record_request(&self, provider_id: i64, latency: std::time::Duration, success: bool, tokens: Option<u64>) {
-        self.metrics.record_request_end(provider_id, latency, success, tokens).await;
+    pub async fn record_request(
+        &self,
+        provider_id: i64,
+        latency: std::time::Duration,
+        success: bool,
+        tokens: Option<u64>,
+    ) {
+        self.metrics
+            .record_request_end(provider_id, latency, success, tokens)
+            .await;
     }
 
     /// Find fallback provider
     pub async fn find_fallback(&self, failed_provider_id: i64) -> Option<i64> {
-        self.failover_manager.find_fallback(failed_provider_id).await
+        self.failover_manager
+            .find_fallback(failed_provider_id)
+            .await
     }
 
     /// Set fallback chain for a provider
     pub async fn set_fallback_chain(&self, provider_id: i64, fallback_ids: Vec<i64>) {
-        self.failover_manager.set_fallback_chain(provider_id, fallback_ids).await;
+        self.failover_manager
+            .set_fallback_chain(provider_id, fallback_ids)
+            .await;
     }
 
     /// Get health status for a provider
@@ -295,14 +310,19 @@ impl ProviderPool {
     }
 
     /// Get all circuit states
-    pub async fn get_all_circuit_states(&self) -> HashMap<i64, super::circuit_breaker::CircuitState> {
+    pub async fn get_all_circuit_states(
+        &self,
+    ) -> HashMap<i64, super::circuit_breaker::CircuitState> {
         self.failover_manager.get_all_circuit_states().await
     }
 
     /// Check if a provider is available (healthy and circuit breaker allows)
     pub async fn is_provider_available(&self, provider_id: i64) -> bool {
         self.health_checker.is_healthy(provider_id).await
-            && self.failover_manager.is_provider_available(provider_id).await
+            && self
+                .failover_manager
+                .is_provider_available(provider_id)
+                .await
     }
 
     /// Get available providers count
@@ -413,9 +433,12 @@ mod tests {
     async fn test_candidate_selection_with_priority_for_instance_scoped_key() {
         let pool = ProviderPool::new();
 
-        pool.add_provider(101, "p-low".to_string(), test_config(10)).await;
-        pool.add_provider(102, "p-high".to_string(), test_config(90)).await;
-        pool.add_provider(103, "p-mid".to_string(), test_config(40)).await;
+        pool.add_provider(101, "p-low".to_string(), test_config(10))
+            .await;
+        pool.add_provider(102, "p-high".to_string(), test_config(90))
+            .await;
+        pool.add_provider(103, "p-mid".to_string(), test_config(40))
+            .await;
 
         pool.update_health(101, HealthStatus::Healthy).await;
         pool.update_health(102, HealthStatus::Healthy).await;
@@ -446,9 +469,12 @@ mod tests {
     async fn test_priority_retry_selects_next_candidate_when_excluded() {
         let pool = ProviderPool::new();
 
-        pool.add_provider(201, "p1".to_string(), test_config(10)).await;
-        pool.add_provider(202, "p2".to_string(), test_config(80)).await;
-        pool.add_provider(203, "p3".to_string(), test_config(50)).await;
+        pool.add_provider(201, "p1".to_string(), test_config(10))
+            .await;
+        pool.add_provider(202, "p2".to_string(), test_config(80))
+            .await;
+        pool.add_provider(203, "p3".to_string(), test_config(50))
+            .await;
 
         pool.update_health(201, HealthStatus::Healthy).await;
         pool.update_health(202, HealthStatus::Healthy).await;
@@ -478,8 +504,10 @@ mod tests {
     async fn test_round_robin_stays_within_candidate_set() {
         let pool = ProviderPool::new();
 
-        pool.add_provider(301, "p1".to_string(), test_config(1)).await;
-        pool.add_provider(302, "p2".to_string(), test_config(1)).await;
+        pool.add_provider(301, "p1".to_string(), test_config(1))
+            .await;
+        pool.add_provider(302, "p2".to_string(), test_config(1))
+            .await;
 
         pool.update_health(301, HealthStatus::Healthy).await;
         pool.update_health(302, HealthStatus::Healthy).await;
@@ -501,4 +529,3 @@ mod tests {
         assert!(seen.contains(&302));
     }
 }
-

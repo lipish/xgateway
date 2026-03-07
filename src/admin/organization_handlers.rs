@@ -1,9 +1,9 @@
 use axum::Json;
 use serde::Deserialize;
 
+use super::ApiResponse;
 use crate::admin::auth_middleware::AdminUserContext;
 use crate::db::DatabasePool;
-use super::ApiResponse;
 
 pub async fn list_organizations_api(
     axum::extract::State(db_pool): axum::extract::State<DatabasePool>,
@@ -57,7 +57,10 @@ pub async fn create_organization_api(
         });
     }
 
-    match db_pool.create_organization(req.name.trim(), Some(ctx.user.id)).await {
+    match db_pool
+        .create_organization(req.name.trim(), Some(ctx.user.id))
+        .await
+    {
         Ok(id) => match db_pool.list_organizations().await {
             Ok(orgs) => {
                 let org = orgs.into_iter().find(|o| o.id == id);
@@ -87,7 +90,6 @@ pub async fn create_organization_api(
         }),
     }
 }
-
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateOrganizationRequest {

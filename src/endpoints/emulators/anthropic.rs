@@ -4,19 +4,19 @@ use axum::{
     response::{IntoResponse, Response, Sse},
     Json,
 };
+use chrono::Utc;
 use futures_util::stream::Stream;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::time::Instant;
 use tracing::{error, info};
-use chrono::Utc;
 
+use super::errors::{json_error_response, status_from_anyhow};
 use crate::endpoints::ProxyState;
 use crate::engine::Model;
 use crate::service::Service as LlmService;
-use llm_connector::types::{ImageSource, Message as LlmMessage, MessageBlock, Role as LlmRole};
 use axum::http::header::AUTHORIZATION;
-use super::errors::{json_error_response, status_from_anyhow};
+use llm_connector::types::{ImageSource, Message as LlmMessage, MessageBlock, Role as LlmRole};
 
 /// Anthropic Messages API Request
 #[derive(Debug, Deserialize, Serialize)]
@@ -170,10 +170,17 @@ pub async fn messages(
             );
         }
     };
-    info!("📨 Anthropic Messages API request: client_model={}, stream={}", request.model, request.stream);
-    info!("📋 Request details: messages_count={}, max_tokens={:?}, temperature={:?}",
-          request.messages.len(), request.max_tokens, request.temperature);
-    
+    info!(
+        "📨 Anthropic Messages API request: client_model={}, stream={}",
+        request.model, request.stream
+    );
+    info!(
+        "📋 Request details: messages_count={}, max_tokens={:?}, temperature={:?}",
+        request.messages.len(),
+        request.max_tokens,
+        request.temperature
+    );
+
     let api_key = headers
         .get(AUTHORIZATION)
         .and_then(|h| h.to_str().ok())
@@ -182,7 +189,12 @@ pub async fn messages(
         match state.db_pool.get_api_key_by_hash(key).await {
             Ok(Some(info)) => {
                 if info.protocol != "anthropic" {
-                    report(StatusCode::FORBIDDEN, None, Some("invalid_protocol".to_string()), request.stream);
+                    report(
+                        StatusCode::FORBIDDEN,
+                        None,
+                        Some("invalid_protocol".to_string()),
+                        request.stream,
+                    );
                     return json_error_response(
                         StatusCode::FORBIDDEN,
                         "API key protocol does not allow this endpoint",
@@ -191,7 +203,12 @@ pub async fn messages(
                 }
             }
             _ => {
-                report(StatusCode::UNAUTHORIZED, None, Some("invalid_api_key".to_string()), request.stream);
+                report(
+                    StatusCode::UNAUTHORIZED,
+                    None,
+                    Some("invalid_api_key".to_string()),
+                    request.stream,
+                );
                 return json_error_response(
                     StatusCode::UNAUTHORIZED,
                     "Invalid API key",
@@ -251,8 +268,18 @@ pub async fn messages(
             crate::settings::LlmBackendSettings::DeepSeek { model, .. } => model,
             _ => &request.model,
         };
-        info!("DEBUG: Using model for streaming: {} (client requested: {})", configured_model, request.model);
-        let stream_result: Result<_, _> = llm_service.chat_stream_openai(Some(configured_model), llm_messages, None, llm_connector::StreamFormat::SSE).await;
+        info!(
+            "DEBUG: Using model for streaming: {} (client requested: {})",
+            configured_model, request.model
+        );
+        let stream_result: Result<_, _> = llm_service
+            .chat_stream_openai(
+                Some(configured_model),
+                llm_messages,
+                None,
+                llm_connector::StreamFormat::SSE,
+            )
+            .await;
 
         match stream_result {
             Ok(stream) => {
@@ -261,8 +288,13 @@ pub async fn messages(
                 let response = Sse::new(anthropic_stream).into_response();
                 // Add required Anthropic API headers
                 let mut response = response;
-                response.headers_mut().insert("anthropic-version", "2023-06-01".parse().unwrap());
-                response.headers_mut().insert("request-id", uuid::Uuid::new_v4().to_string().parse().unwrap());
+                response
+                    .headers_mut()
+                    .insert("anthropic-version", "2023-06-01".parse().unwrap());
+                response.headers_mut().insert(
+                    "request-id",
+                    uuid::Uuid::new_v4().to_string().parse().unwrap(),
+                );
                 report(StatusCode::OK, None, None, true);
                 response
             }
@@ -283,8 +315,13 @@ pub async fn messages(
             crate::settings::LlmBackendSettings::DeepSeek { model, .. } => model,
             _ => &request.model,
         };
-        info!("DEBUG: Using model: {} (client requested: {})", configured_model, request.model);
-        let chat_result: Result<crate::engine::Response, _> = llm_service.chat(Some(configured_model), llm_messages, None).await;
+        info!(
+            "DEBUG: Using model: {} (client requested: {})",
+            configured_model, request.model
+        );
+        let chat_result: Result<crate::engine::Response, _> = llm_service
+            .chat(Some(configured_model), llm_messages, None)
+            .await;
 
         match chat_result {
             Ok(response) => {
@@ -309,8 +346,13 @@ pub async fn messages(
                 let response_payload = serde_json::to_value(&anthropic_response).ok();
                 let mut response = Json(anthropic_response).into_response();
                 // Add required Anthropic API headers for non-streaming responses
-                response.headers_mut().insert("anthropic-version", "2023-06-01".parse().unwrap());
-                response.headers_mut().insert("request-id", uuid::Uuid::new_v4().to_string().parse().unwrap());
+                response
+                    .headers_mut()
+                    .insert("anthropic-version", "2023-06-01".parse().unwrap());
+                response.headers_mut().insert(
+                    "request-id",
+                    uuid::Uuid::new_v4().to_string().parse().unwrap(),
+                );
                 report(StatusCode::OK, response_payload, None, false);
                 response
             }
@@ -330,8 +372,8 @@ fn convert_to_anthropic_stream(
     stream: tokio_stream::wrappers::UnboundedReceiverStream<String>,
     model: String,
 ) -> impl Stream<Item = Result<axum::response::sse::Event, std::convert::Infallible>> {
-    use futures_util::{StreamExt, stream};
-    
+    use futures_util::{stream, StreamExt};
+
     let message_id = uuid::Uuid::new_v4().to_string();
     let model_clone = model.clone();
 
@@ -453,41 +495,41 @@ fn convert_to_anthropic_stream(
 ///
 /// 用于列出可用的 Anthropic 模型
 #[allow(dead_code)]
-pub async fn models(
-    State(state): State<ProxyState>,
-) -> Response {
+pub async fn models(State(state): State<ProxyState>) -> Response {
     let start_time = Instant::now();
     let start_timestamp = Utc::now();
-    let report = |status: StatusCode,
-                  response_payload: Option<serde_json::Value>,
-                  error: Option<String>| {
-        if let Some(xtrace) = state.xtrace.as_ref() {
-            xtrace.report_request(
-                "GET",
-                "/v1/models",
-                status.as_u16(),
-                None,
-                response_payload,
-                error,
-                false,
-                start_time,
-                start_timestamp,
-            );
-        }
-    };
+    let report =
+        |status: StatusCode, response_payload: Option<serde_json::Value>, error: Option<String>| {
+            if let Some(xtrace) = state.xtrace.as_ref() {
+                xtrace.report_request(
+                    "GET",
+                    "/v1/models",
+                    status.as_u16(),
+                    None,
+                    response_payload,
+                    error,
+                    false,
+                    start_time,
+                    start_timestamp,
+                );
+            }
+        };
     let llm_service: tokio::sync::RwLockReadGuard<'_, LlmService> = state.llm_service.read().await;
     let models_result: Result<Vec<Model>, _> = llm_service.list_models().await;
 
     match models_result {
         Ok(models) => {
-            let anthropic_models: Vec<serde_json::Value> = models.into_iter().map(|model| {
-                json!({
-                    "id": model.id,
-                    "type": "model",
-                    "display_name": model.id,
-                    "created_at": chrono::Utc::now().to_rfc3339(),
+            let anthropic_models: Vec<serde_json::Value> = models
+                .into_iter()
+                .map(|model| {
+                    json!({
+                        "id": model.id,
+                        "type": "model",
+                        "display_name": model.id,
+                        "created_at": chrono::Utc::now().to_rfc3339(),
+                    })
                 })
-            }).collect();
+                .collect();
 
             let config = state.config.read().await;
             let current_provider = match &config.llm_backend {
@@ -513,7 +555,11 @@ pub async fn models(
         }
         Err(e) => {
             error!("Anthropic models request failed: {:?}", e);
-            report(StatusCode::INTERNAL_SERVER_ERROR, None, Some("model_list_failed".to_string()));
+            report(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                None,
+                Some("model_list_failed".to_string()),
+            );
             json_error_response(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Failed to list models",
@@ -524,7 +570,7 @@ pub async fn models(
 }
 
 /// Anthropic Count Tokens API
-/// 
+///
 /// Claude Code 使用此端点来计算 token 数量
 /// 我们返回一个模拟的 token 计数响应
 #[allow(dead_code)]
@@ -535,45 +581,56 @@ pub async fn count_tokens(
     let start_time = Instant::now();
     let start_timestamp = Utc::now();
     let request_payload = Some(request.clone());
-    let report = |status: StatusCode,
-                  response_payload: Option<serde_json::Value>,
-                  error: Option<String>| {
-        if let Some(xtrace) = state.xtrace.as_ref() {
-            xtrace.report_request(
-                "POST",
-                "/v1/messages/count_tokens",
-                status.as_u16(),
-                request_payload.clone(),
-                response_payload,
-                error,
-                false,
-                start_time,
-                start_timestamp,
-            );
-        }
-    };
+    let report =
+        |status: StatusCode, response_payload: Option<serde_json::Value>, error: Option<String>| {
+            if let Some(xtrace) = state.xtrace.as_ref() {
+                xtrace.report_request(
+                    "POST",
+                    "/v1/messages/count_tokens",
+                    status.as_u16(),
+                    request_payload.clone(),
+                    response_payload,
+                    error,
+                    false,
+                    start_time,
+                    start_timestamp,
+                );
+            }
+        };
     info!("📊 Anthropic Count Tokens API request received");
-    
+
     // 计算整个请求的字符数来估算 token
     let request_str = serde_json::to_string(&request).unwrap_or_default();
     let total_chars = request_str.len();
-    
+
     // 简单估算：每4个字符约等于1个token
     let estimated_tokens = (total_chars / 4).max(1);
-    
-    info!("📊 Estimated tokens: {} (from {} chars)", estimated_tokens, total_chars);
-    
+
+    info!(
+        "📊 Estimated tokens: {} (from {} chars)",
+        estimated_tokens, total_chars
+    );
+
     let response = json!({
         "input_tokens": estimated_tokens
     });
-    
+
     let mut response = Json(response).into_response();
     // Add required Anthropic API headers
-    response.headers_mut().insert("anthropic-version", "2023-06-01".parse().unwrap());
-    response.headers_mut().insert("request-id", uuid::Uuid::new_v4().to_string().parse().unwrap());
-    report(StatusCode::OK, Some(json!({
-        "input_tokens": estimated_tokens
-    })), None);
+    response
+        .headers_mut()
+        .insert("anthropic-version", "2023-06-01".parse().unwrap());
+    response.headers_mut().insert(
+        "request-id",
+        uuid::Uuid::new_v4().to_string().parse().unwrap(),
+    );
+    report(
+        StatusCode::OK,
+        Some(json!({
+            "input_tokens": estimated_tokens
+        })),
+        None,
+    );
     Ok(response)
 }
 
@@ -583,11 +640,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_json_error_response_has_type_and_code() {
-        let response = json_error_response(
-            StatusCode::BAD_GATEWAY,
-            "upstream failed",
-            None,
-        );
+        let response = json_error_response(StatusCode::BAD_GATEWAY, "upstream failed", None);
 
         let status = response.status();
         let body = axum::body::to_bytes(response.into_body(), usize::MAX)
